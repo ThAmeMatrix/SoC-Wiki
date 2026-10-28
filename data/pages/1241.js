@@ -1,0 +1,1 @@
+window.WIKI_PAGES[1241]={"id":1241,"title":"天赋/战争机器","html":"<div class=\"mw-parser-output\">\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5631,"date":"2023-06-28","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=天赋/战争机器&oldid=5631","hasOnlineMedia":false};

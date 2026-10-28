@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2066]={"id":2066,"title":"技能图鉴库/公主的敕令","html":"<div class=\"mw-parser-output\">\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5368,"date":"2023-06-27","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=技能图鉴库/公主的敕令&oldid=5368","hasOnlineMedia":false};

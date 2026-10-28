@@ -1,0 +1,1828 @@
+<div class="mw-parser-output"><div id="bread-edit" class="bread-edit" style="float:right;margin-top:10px;margin-right:10px"><sup><a rel="nofollow" class="external text" href="https://wiki.biligame.com/llzj/index.php?title=%E4%BC%A4%E5%AE%B3%E8%AE%A1%E7%AE%97%E5%99%A8&amp;action=edit">编</a></sup> <sup><a rel="nofollow" class="external text" href="https://wiki.biligame.com/llzj/index.php?title=%E4%BC%A4%E5%AE%B3%E8%AE%A1%E7%AE%97%E5%99%A8&amp;action=purge">刷</a></sup> <sup><a rel="nofollow" class="external text" href="https://wiki.biligame.com/llzj/index.php?title=%E4%BC%A4%E5%AE%B3%E8%AE%A1%E7%AE%97%E5%99%A8&amp;action=history">历</a></sup></div>
+<div style="padding: 5px 10px;margin: 10px 0;border: 1px solid #ebccd1;border-left-width: 5px;border-radius: 3px;background: rgb(255 255 255 / 40%);">
+<a href="/llzj/%E9%A6%96%E9%A1%B5" title="首页">首页</a>  &gt; <b>伤害计算器</b><br /></div>
+<hr />
+<h2><span id=".E4.BD.BF.E7.94.A8.E8.AF.B4.E6.98.8E"></span><span class="mw-headline" id="使用说明"><img alt="说明.png" src="https://patchwiki.biligame.com/images/llzj/thumb/9/98/kx0akko30kul0jemcyfqitclkkm3bsv.png/40px-%E8%AF%B4%E6%98%8E.png" decoding="async" loading="lazy" width="40" height="40" srcset="https://patchwiki.biligame.com/images/llzj/thumb/9/98/kx0akko30kul0jemcyfqitclkkm3bsv.png/60px-%E8%AF%B4%E6%98%8E.png 1.5x, https://patchwiki.biligame.com/images/llzj/thumb/9/98/kx0akko30kul0jemcyfqitclkkm3bsv.png/80px-%E8%AF%B4%E6%98%8E.png 2x" data-file-width="128" data-file-height="128" /><font color="#5a4328">使用说明</font></span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/llzj/index.php?title=%E4%BC%A4%E5%AE%B3%E8%AE%A1%E7%AE%97%E5%99%A8&amp;action=edit&amp;section=1" title="编辑章节：使用说明">编辑</a><span class="mw-editsection-bracket">]</span></span></h2>
+<ol><li>百分比攻击加成、固定数值加成、爆伤区间、增伤区间都为<font color="#54b4db">加算</font>；无视防御、易伤区间、最终增伤区间、最终易伤区间都为<font color="#54b4db">乘算</font>。填写多个数值时用“<font color="#ed7950"> , </font>”间隔，支持中文逗号和英文逗号。</li>
+<li><font color="#f3c156">高/低地</font>(高低差≥2)：<font color="#ed7950">+15%</font>攻击/<font color="#ed7950">-10%</font>攻击。</li>
+<li><font color="#f3c156">背击</font>：<font color="#ed7950">+30%</font>增伤，远程攻击时，必须和敌人处于同一直线。</li>
+<li><font color="#f3c156">受伤/濒死</font>(低于<font color="#58cb48">70%</font>/<font color="#58cb48">30%</font>生命值)：自己受伤时<font color="#ed7950">-20%</font>增伤，濒死时<font color="#ed7950">-30%</font>增伤；敌人受伤时<font color="#ed7950">+20%</font>易伤，濒死时<font color="#ed7950">+30%</font>易伤。</li>
+<li>防御减益、裁决王[<span style="display:inline;white-space:nowrap;"><span data-type="@悬浮框/中括号介绍" data-name="威压" class="bili-tt"><font color="#54b4db">威压</font></span></span>]、[<span style="display:inline;white-space:nowrap;">决战号角</span>]均为固定防御减少</li>
+<li>伤害计算公式汇总：【by 海森】[<a rel="nofollow" class="external text" href="https://wiki.biligame.com/llzj/%E4%BC%A4%E5%AE%B3%E5%85%AC%E5%BC%8F%E6%B1%87%E6%80%BB?_refluxos=a10">伤害公式</a>]</li></ol>
+<p><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wiki 伤害计算器</title>
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
+    color: #3a2a14;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #c4a265;
+  }
+  .page-header h1 {
+    font-size: 28px;
+    color: #6b4c1e;
+    letter-spacing: 4px;
+    text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+  }
+  .page-header p {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #8a7350;
+    line-height: 1.5;
+  }
+
+  .calculator-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* 电脑端：攻方和守方左右并排，各50% */
+  .top-panels {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .top-panels .panel-half {
+    flex: 0 0 calc(50% - 8px);
+    width: calc(50% - 8px);
+  }
+
+  .top-panels .panel-half fieldset {
+    height: 100%;
+  }
+
+  .bottom-panel {
+    width: 100%;
+  }
+
+  .bottom-panel fieldset {
+    height: auto;
+  }
+
+  fieldset {
+    border: 1.5px solid #c4a265;
+    border-radius: 6px;
+    padding: 16px 18px 18px;
+    background: rgba(255, 252, 240, 0.65);
+  }
+  legend {
+    font-weight: bold;
+    font-size: 15px;
+    color: #6b4c1e;
+    padding: 0 8px;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .field-row label {
+    width: 130px;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: #5a4328;
+    text-align: right;
+    padding-right: 10px;
+  }
+  .field-row input,
+  .field-row select {
+    flex: 1;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 13px;
+    color: #3a2a14;
+    background: #fffdf5;
+    border: 1px solid #d4c09a;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-row input:focus,
+  .field-row select:focus {
+    border-color: #a07830;
+    box-shadow: 0 0 0 2px rgba(160, 120, 48, 0.15);
+  }
+  .field-row input::placeholder { color: #bba97e; }
+
+  .field-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    margin-left: 8px;
+    cursor: pointer;
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: #a08a60;
+    padding-left: 140px;
+    margin-top: -6px;
+    margin-bottom: 10px;
+  }
+
+  .field-row-pair {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+
+  .field-row-pair .def-debuff-item {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+  .field-row-pair .def-debuff-item label {
+    width: 130px;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: #5a4328;
+    text-align: right;
+    padding-right: 10px;
+  }
+  .field-row-pair .def-debuff-item select {
+    width: 120px;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 13px;
+    color: #3a2a14;
+    background: #fffdf5;
+    border: 1px solid #d4c09a;
+    border-radius: 4px;
+    outline: none;
+  }
+
+  .field-row-pair .horn-item {
+    display: flex;
+    align-items: center;
+    flex: 1;
+  }
+  .field-row-pair .horn-item label {
+    font-size: 13px;
+    color: #5a4328;
+    margin-right: 6px;
+    white-space: nowrap;
+  }
+  .field-row-pair .horn-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    margin-right: 6px;
+    cursor: pointer;
+  }
+  .field-row-pair .horn-item .horn-desc {
+    font-size: 12px;
+    color: #8a7350;
+    white-space: nowrap;
+  }
+
+  .other-row-pair {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+  }
+  .other-row-pair .other-item-left {
+    flex: 0 0 calc(55% - 8px);
+    width: calc(55% - 8px);
+  }
+  .other-row-pair .other-item-right {
+    flex: 0 0 calc(45% - 8px);
+    width: calc(45% - 8px);
+  }
+  .other-row-pair .field-row {
+    margin-bottom: 0;
+  }
+  .other-row-pair .other-item-right .field-row label {
+    width: auto;
+    min-width: 100px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .other-row-pair .other-item-left .field-row label {
+    width: 100px;
+  }
+  .other-row-pair .field-hint {
+    padding-left: 110px;
+    margin-top: 4px;
+    margin-bottom: 0;
+  }
+  .other-row-pair .other-item-right .field-hint {
+    padding-left: 110px;
+  }
+
+  .section-divider {
+    border: none;
+    border-top: 1px dashed #d4c09a;
+    margin: 14px 0;
+  }
+
+  .restraint-preview {
+    text-align: center;
+    font-size: 12px;
+    color: #8a7350;
+    margin-bottom: 8px;
+    min-height: 18px;
+  }
+  .restraint-preview .advantage { color: #2e8b2e; font-weight: bold; }
+  .restraint-preview .disadvantage { color: #c0392b; font-weight: bold; }
+  .restraint-preview .neutral { color: #8a7350; }
+
+  .formula-box {
+    margin-top: 24px;
+    padding: 14px 18px;
+    background: rgba(255, 252, 240, 0.65);
+    border: 1.5px solid #c4a265;
+    border-radius: 6px;
+  }
+  .formula-box summary {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    color: #6b4c1e;
+  }
+  .formula-box pre {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #5a4328;
+    white-space: pre-wrap;
+    line-height: 1.7;
+  }
+
+  .results-section {
+    margin-top: 24px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(255,252,240,0.8), rgba(240,228,195,0.8));
+    border: 2px solid #c4a265;
+    border-radius: 8px;
+  }
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 60px;
+  }
+  .result-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .result-label {
+    font-size: 15px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  .result-value {
+    font-size: 26px;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-normal .result-label { color: #b07020; }
+  .result-normal .result-value { color: #c0641e; }
+  .result-crit .result-label { color: #a02020; }
+  .result-crit .result-value { color: #c0392b; }
+
+  .restraint-table {
+    margin-top: 24px;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: rgba(255, 252, 240, 0.65);
+    border: 1.5px solid #c4a265;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .restraint-table caption {
+    caption-side: top;
+    text-align: left;
+    font-weight: bold;
+    font-size: 14px;
+    color: #6b4c1e;
+    padding: 10px 14px 8px;
+  }
+  .restraint-table th,
+  .restraint-table td {
+    padding: 6px 10px;
+    text-align: center;
+    border: 1px solid #d4c09a;
+  }
+  .restraint-table th {
+    background: #efe0be;
+    color: #5a4328;
+    font-weight: bold;
+  }
+  .restraint-table td.adv { color: #2e8b2e; font-weight: bold; }
+  .restraint-table td.dis { color: #c0392b; font-weight: bold; }
+
+  /* ==================== 记录按钮区域 ==================== */
+  .record-buttons {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .record-btn {
+    padding: 10px 20px;
+    background: radial-gradient(ellipse at center, #D4AF37 0%, #E5C048 30%, #F0D878 60%, #F9E8A8 100%);
+    color: #fffdf5;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;  /* 图标和文字间距 */
+  }
+  .record-btn:hover {
+    background: radial-gradient(ellipse at center, #E5C048 0%, #F6D659 30%, #FFE989 60%, #FFF5C8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.5);
+  }
+  .record-btn:active {
+    transform: translateY(0);
+  }
+
+  .record-btn.secondary {
+    background: radial-gradient(ellipse at center, #D4AF37 0%, #E5C048 30%, #F0D878 60%, #F9E8A8 100%);
+  }
+  .record-btn.secondary:hover {
+    background: radial-gradient(ellipse at center, #E5C048 0%, #F6D659 30%, #FFE989 60%, #FFF5C8 100%);
+  }
+
+  .record-btn.reset-default {
+    background: radial-gradient(ellipse at center, #475569 0%, #576579 30%, #687589 60%, #798599 100%);
+    box-shadow: 0 4px 15px rgba(71, 85, 105, 0.3);
+  }
+  .record-btn.reset-default:hover {
+    background: radial-gradient(ellipse at center, #576579 0%, #687589 30%, #798599 60%, #8A95A9 100%);
+    box-shadow: 0 8px 25px rgba(71, 85, 105, 0.5);
+  }
+
+  .record-btn.danger {
+    background: radial-gradient(ellipse at center, #C0392B 0%, #D35450 30%, #E57373 60%, #EF9A9A 100%);
+    box-shadow: 0 4px 15px rgba(192, 57, 43, 0.3);
+    color: #fffdf5;
+  }
+  .record-btn.danger:hover {
+    background: radial-gradient(ellipse at center, #A93226 0%, #C0392B 30%, #D35450 60%, #E57373 100%);
+    box-shadow: 0 8px 25px rgba(192, 57, 43, 0.5);
+  }
+
+  /* 按钮内图标样式 - 36px，无margin，用gap控制间距 */
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin: 0;  /* 去掉margin，用gap控制 */
+    flex-shrink: 0;
+  }
+
+  /* 弹窗遮罩 */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal-content {
+    background: linear-gradient(135deg, #fffdf5, #f5f0e0);
+    border: 2px solid #c4a265;
+    border-radius: 12px 12px 0 0;
+    max-width: 800px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  .modal-header {
+    background: radial-gradient(ellipse at center, #F0D878 0%, #F5E0A0 30%, #F8E8B0 60%, #FCF0D0 100%);
+    color: #6b4c1e;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 10px 10px 0 0;
+    flex-shrink: 0;
+    border-bottom: 2px solid #D4AF37;
+  }
+  .modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;  /* 标题居中 */
+    gap: 2px;
+    color: #6b4c1e;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+    flex: 1;  /* 占据剩余空间 */
+  }
+    .modal-header-icon {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    margin: 0;
+    flex-shrink: 0;
+  }
+  .modal-close {
+    background: rgba(107, 76, 30, 0.2);
+    border: none;
+    color: #6b4c1e;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .modal-close:hover {
+    background: rgba(107, 76, 30, 0.3);
+    transform: rotate(90deg);
+  }
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .records-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 768px) {
+    .records-grid { grid-template-columns: 1fr 1fr; }
+    .modal-overlay { align-items: center; padding: 20px; }
+    .modal-content { border-radius: 12px; max-height: 80vh; animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .modal-header { border-radius: 10px 10px 0 0; }
+  }
+
+  .record-card {
+    background: rgba(255, 252, 240, 0.9);
+    border: 1.5px solid #d4c09a;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .record-card:hover {
+    border-color: #c4a265;
+    box-shadow: 0 4px 12px rgba(196, 162, 101, 0.2);
+    transform: translateY(-2px);
+  }
+  .record-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #c4a265, #a07830);
+  }
+  .record-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #d4c09a;
+  }
+  .record-pin { font-size: 16px; }
+  .record-name {
+    font-weight: bold;
+    font-size: 15px;
+    color: #6b4c1e;
+    flex: 1;
+  }
+  .record-time {
+    font-size: 11px;
+    color: #8a7350;
+    white-space: nowrap;
+  }
+  .record-values {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .record-value-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(196, 162, 101, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .record-value-item .icon { font-size: 14px; }
+  .record-value-item .num {
+    font-weight: bold;
+    color: #c0641e;
+  }
+  .record-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .record-action-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d4c09a;
+    background: #fffdf5;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #5a4328;
+  }
+  .record-action-btn:hover {
+    background: #c4a265;
+    color: #fffdf5;
+    border-color: #c4a265;
+  }
+  .record-action-btn.delete:hover {
+    background: #c0392b;
+    border-color: #c0392b;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #8a7350;
+  }
+  .empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  .name-input-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .name-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1.5px solid #d4c09a;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fffdf5;
+    color: #3a2a14;
+  }
+  .name-input:focus {
+    outline: none;
+    border-color: #c4a265;
+    box-shadow: 0 0 0 3px rgba(196, 162, 101, 0.2);
+  }
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .modal-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modal-btn.primary {
+    background: radial-gradient(ellipse at center, #D4AF37 0%, #E5C048 30%, #F0D878 60%, #F9E8A8 100%);
+    color: #fffdf5;
+  }
+  .modal-btn.primary:hover {
+    background: radial-gradient(ellipse at center, #E5C048 0%, #F6D659 30%, #FFE989 60%, #FFF5C8 100%);
+  }
+  .modal-btn.secondary {
+    background: #e8e0d0;
+    color: #5a4328;
+  }
+  .modal-btn.secondary:hover { background: #d8d0c0; }
+
+  .table-modal-content { max-width: 600px; }
+  .config-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    background: #fffdf5;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1.5px solid #d4c09a;
+  }
+  .config-table th,
+  .config-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e8e0d0;
+    word-break: break-all;
+  }
+  .config-table th {
+    background: linear-gradient(135deg, #efe0be, #e0d0a0);
+    color: #5a4328;
+    font-weight: bold;
+    font-size: 13px;
+    width: 40%;
+    vertical-align: top;
+  }
+  .config-table td {
+    color: #3a2a14;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .config-table tr:last-child th,
+  .config-table tr:last-child td { border-bottom: none; }
+
+  /* ==================== 保存为图片按钮 ==================== */
+  .save-image-btn {
+    margin-top: 16px;
+    width: 100%;
+    padding: 14px;
+    background: radial-gradient(ellipse at center, #27AE60 0%, #2ECC71 30%, #58D68D 60%, #82E0AA 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;  /* 水平居中 */
+    gap: 2px;  /* 图标和文字间距 */
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+  }
+  .save-image-btn:hover {
+    background: radial-gradient(ellipse at center, #229954 0%, #27AE60 30%, #2ECC71 60%, #58D68D 100%);
+    box-shadow: 0 8px 25px rgba(39, 174, 96, 0.5);
+    transform: translateY(-1px);
+  }
+  .save-image-btn img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    margin: 0;  /* 去掉margin */
+    flex-shrink: 0;
+  }
+
+  /* ==================== 提示消息 ==================== */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: radial-gradient(ellipse at center, #A07830 0%, #B08840 30%, #C4A265 60%, #D4B275 100%);
+    color: #fffdf5;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 2000;
+    opacity: 0;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(160, 120, 48, 0.4);
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  /* 手机端适配 */
+  @media (max-width: 767px) {
+    body { padding: 12px; }
+    .page-header h1 { font-size: 22px; letter-spacing: 2px; }
+    .page-header p { font-size: 12px; word-break: break-all; }
+    .top-panels { flex-direction: column; gap: 16px; }
+    .top-panels .panel-half { flex: 1; width: 100%; }
+    .top-panels .panel-half fieldset { height: auto; }
+    fieldset { min-width: 0; padding: 12px 14px 14px; height: auto; }
+    .field-row { flex-wrap: wrap; margin-bottom: 8px; }
+    .field-row label { width: 100%; text-align: left; padding-right: 0; margin-bottom: 4px; }
+    .field-row input,
+    .field-row select { flex: 1 1 100%; height: 36px; font-size: 14px; }
+    .field-hint { padding-left: 0; margin-top: -2px; margin-bottom: 8px; width: 100%; }
+    
+    .field-row-pair { flex-direction: column; gap: 8px; align-items: stretch; }
+    .field-row-pair .def-debuff-item { width: 100%; display: flex; flex-direction: column; }
+    .field-row-pair .def-debuff-item label { width: 100%; text-align: left; padding-right: 0; margin-bottom: 4px; }
+    .field-row-pair .def-debuff-item select { width: 100%; height: 36px; }
+    .field-row-pair .horn-item { width: 100%; flex-wrap: wrap; display: flex; align-items: center; }
+    .field-row-pair .horn-item label { margin-right: 8px; width: auto; }
+    
+    .other-row-pair { flex-direction: column; gap: 8px; }
+    .other-row-pair .other-item-left,
+    .other-row-pair .other-item-right { flex: 1; width: 100%; }
+    .other-row-pair .field-row label,
+    .other-row-pair .other-item-right .field-row label { width: 100%; min-width: auto; }
+    .other-row-pair .field-hint,
+    .other-row-pair .other-item-right .field-hint { padding-left: 0; }
+    
+    .results-grid { grid-template-columns: 1fr; gap: 12px; }
+    .result-item { justify-content: center; }
+    .restraint-table { display: block; overflow-x: auto; white-space: nowrap; }
+    
+    /* 手机端按钮布局：两两并排 */
+    .record-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .record-btn {
+      width: 100%;
+      padding: 12px 8px;
+      font-size: 13px;
+      gap: 2px;
+    }
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      margin: 0;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .modal-overlay { padding: 0; }
+    .modal-content { max-height: 90vh; border-radius: 12px 12px 0 0; }
+    .modal-header { border-radius: 10px 10px 0 0; padding: 14px 16px; }
+    .modal-header h2 { justify-content: center; }
+    .modal-body { padding: 16px; }
+    .record-actions { flex-wrap: wrap; }
+    .record-action-btn { font-size: 11px; padding: 6px 8px; }
+    .record-time { font-size: 10px; }
+    .config-table th,
+    .config-table td { padding: 10px 12px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="calculator-wrap">
+  <header class="page-header">
+    <h1><div style="margin-top: 10px; margin-bottom: 10px; text-align: center; visibility: visible;" powered-by="xiumi.us">
+<div style="display: inline-block; vertical-align: middle; width: 10px; visibility: visible;">
+<div style="width: 5px; height: 5px; margin-left: 5px; background-color: rgb(218, 203, 158); visibility: visible;"></div>
+<div style="width: 5px; height: 5px; background-color: rgb(218, 203, 158); visibility: visible;"></div>
+<div style="width: 5px; height: 5px; margin-left: 5px; background-color: rgb(218, 203, 158); visibility: visible;"></div></div>
+<div style="display: inline-block; vertical-align: middle; padding-left: 6px; padding-right: 6px; font-size: 22px; visibility: visible;"><p style="visibility: visible;"><strong style="visibility: visible;">铃兰之剑伤害计算器</strong></p></div>
+<div style="display: inline-block; vertical-align: middle; width: 10px; visibility: visible;">
+<div style="width: 5px; height: 5px; background-color: rgb(218, 203, 158); visibility: visible;"></div>
+<div style="width: 5px; height: 5px; margin-left: 5px; background-color: rgb(218, 203, 158); visibility: visible;"></div>
+<div style="width: 5px; height: 5px; background-color: rgb(218, 203, 158); visibility: visible;"></div></div></div></h1>
+    <p>公式: (((黑字攻击面板 * (1+百分比加成%) + 固定加成) * 克制倍率) - (黑字防御 - 防御减益 - 号角防御 - 固定防御减少) * (1-无视防御%)) * 技能倍率% * 增伤区间 * 易伤区间 * 最终增伤区间 * 最终易伤区间</p>
+  </header>
+
+  <div class="top-panels">
+    <div class="panel-half">
+      <fieldset>
+        <legend>攻方</legend>
+        <div class="field-row">
+          <label for="atkClass">职业</label>
+          <select id="atkClass" onchange="calculate()">
+            <option value="none">-- 选择职业 --</option>
+            <option value="crusher">粉碎者</option>
+            <option value="defender">防御者</option>
+            <option value="raider">突袭者</option>
+            <option value="destroyer">毁灭者</option>
+            <option value="watcher">守望者</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <label for="atkPanel">黑字攻击面板</label>
+          <input id="atkPanel" type="number" value="0" min="0" oninput="calculate()">
+        </div>
+        <div class="field-row">
+          <label for="atkBonusPct">百分比攻击加成 %</label>
+          <input id="atkBonusPct" type="text" value="0" oninput="calculate()">
+        </div>
+        <div class="field-row">
+          <label for="atkBonusFlat">固定数值加成</label>
+          <input id="atkBonusFlat" type="text" value="0" oninput="calculate()">
+        </div>
+        <hr class="section-divider">
+        <div class="field-row">
+          <label for="skillMult">技能倍率 %</label>
+          <input id="skillMult" type="number" value="100" min="0" oninput="calculate()">
+        </div>
+        <div class="field-row">
+          <label for="critDmgPct">暴击伤害 %</label>
+          <input id="critDmgPct" type="text" value="130" oninput="calculate()">
+        </div>
+      </fieldset>
+    </div>
+
+    <div class="panel-half">
+      <fieldset>
+        <legend>守方</legend>
+        <div class="field-row">
+          <label for="defClass">职业</label>
+          <select id="defClass" onchange="calculate()">
+            <option value="none">-- 选择职业 --</option>
+            <option value="noClass">无职业</option>
+            <option value="crusher">粉碎者</option>
+            <option value="defender">防御者</option>
+            <option value="raider">突袭者</option>
+            <option value="destroyer">毁灭者</option>
+            <option value="watcher">守望者</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <label for="defBase">黑字防御</label>
+          <input id="defBase" type="number" value="0" min="0" oninput="calculate()">
+        </div>
+        <div class="field-row">
+          <label for="ignoreDefPct">无视防御 %</label>
+          <input id="ignoreDefPct" type="text" value="0" oninput="calculate()">
+        </div>
+        <div class="field-row">
+          <label for="defReduceFlat">固定防御减少</label>
+          <input id="defReduceFlat" type="text" value="0" oninput="calculate()">
+        </div>
+        <div class="field-hint">防御减益、裁决王<a href="#" style="color: #a08a60; text-decoration: underline;">[威压]</a>、决战号角均为固定防御减少</div>
+        <div class="field-row-pair">
+          <div class="def-debuff-item">
+            <label for="defDebuff">防御减益</label>
+            <select id="defDebuff" onchange="calculate()">
+              <option value="0">无</option>
+              <option value="20">-防御 20%</option>
+              <option value="40">-防御 40%</option>
+              <option value="60">-防御 60%</option>
+            </select>
+          </div>
+          <div class="horn-item">
+            <label for="hornBuff">决战号角</label>
+            <input id="hornBuff" type="checkbox" onchange="calculate()">
+            <span class="horn-desc">防御-20%，易伤+80%</span>
+          </div>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+
+  <div class="bottom-panel">
+    <fieldset>
+      <legend>其他</legend>
+      <div class="other-row-pair">
+        <div class="other-item-left">
+          <div class="field-row">
+            <label for="dmgZone">增伤区间 %</label>
+            <input id="dmgZone" type="text" value="0" oninput="calculate()">
+          </div>
+          <div class="field-hint">加算，下限 -50%（自身增伤/减伤）</div>
+        </div>
+        <div class="other-item-right">
+          <div class="field-row">
+            <label for="finalDmgZone">最终增伤区间 %</label>
+            <input id="finalDmgZone" type="text" value="0" oninput="calculate()">
+          </div>
+         <div class="field-hint">乘算，无上限（自身最终增伤/减伤）</div>
+        </div>
+      </div>
+      <div class="other-row-pair">
+        <div class="other-item-left">
+          <div class="field-row">
+            <label for="vulnZone">易伤区间 %</label>
+            <input id="vulnZone" type="text" value="0" oninput="calculate()">
+          </div>
+          <div class="field-hint">乘算，上限 300%（敌方受伤增加/减免）</div>
+        </div>
+        <div class="other-item-right">
+          <div class="field-row">
+            <label for="finalVulnZone">最终易伤区间 %</label>
+            <input id="finalVulnZone" type="text" value="0" oninput="calculate()">
+          </div>
+          <div class="field-hint">乘算，无上限（敌方最终受伤增加/减免）</div>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="restraint-preview" id="restraintInfo"></div>
+  
+  <section class="results-section" aria-label="计算结果">
+    <div class="results-grid">
+      <div class="result-item result-normal">
+        <span class="result-label">伤害约为:</span>
+        <span class="result-value" id="singleDmg">0</span>
+      </div>
+      <div class="result-item result-crit">
+        <span class="result-label">暴击伤害约为:</span>
+        <span class="result-value" id="critSingleDmg">0</span>
+      </div>
+    </div>
+  </section>
+  
+  <details class="formula-box">
+    <summary>公式分解</summary>
+    <pre id="formulaBreakdown">输入数值后即可查看计算过程。</pre>
+  </details>
+  
+  <table class="restraint-table">
+    <caption>职业克制倍率表</caption>
+    <thead>
+      <tr>
+        <th>攻方 \ 守方</th>
+        <th>粉碎者</th>
+        <th>防御者</th>
+        <th>突袭者</th>
+        <th>毁灭者</th>
+        <th>守望者</th>
+        <th>无职业</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>粉碎者</th>
+        <td>1.0</td><td class="adv">1.3</td><td class="dis">0.7</td><td>1.0</td><td>1.0</td><td>1.0</td>
+     </tr>
+     <tr>
+       <th>防御者</th>
+       <td class="dis">0.7</td><td>1.0</td><td class="adv">1.3</td><td>1.0</td><td>1.0</td><td>1.0</td>
+     </tr>
+     <tr>
+       <th>突袭者</th>
+       <td class="adv">1.3</td><td class="dis">0.7</td><td>1.0</td><td>1.0</td><td>1.0</td><td>1.0</td>
+     </tr>
+     <tr>
+       <th>毁灭者</th>
+       <td>1.0</td><td>1.0</td><td>1.0</td><td>1.0</td><td class="dis">0.6</td><td>1.0</td>
+     </tr>
+     <tr>
+       <th>守望者</th>
+       <td>1.0</td><td>1.0</td><td>1.0</td><td class="adv">1.4</td><td>1.0</td><td>1.0</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+ function getRestraint(atk, def) {
+  if (atk === "none" || def === "none") return 1.0;
+  if (atk === def) return 1.0;
+  var map = {
+    crusher_defender: 1.3,
+    defender_crusher: 0.7,
+    defender_raider: 1.3,
+    raider_defender: 0.7,
+    raider_crusher: 1.3,
+    crusher_raider: 0.7,
+    watcher_destroyer: 1.4,
+    destroyer_watcher: 0.6
+  };
+  var key = atk + "_" + def;
+  return map[key] !== undefined ? map[key] : 1.0;
+}
+
+var classNames = {
+  none: "--",
+  crusher: "粉碎者",
+  defender: "防御者",
+  raider: "突袭者",
+  destroyer: "毁灭者",
+  watcher: "守望者"
+};
+
+function num(id) {
+  var el = document.getElementById(id);
+  if (!el) return 0;
+  var v = parseFloat(el.value);
+  return isNaN(v) ? 0 : v;
+}
+
+function sumComma(id) {
+  var el = document.getElementById(id);
+  if (!el) return 0;
+  var val = (el.value || "").trim();
+  val = val.replace(/，/g, ',');
+  return val.split(",").reduce(function(s, p) {
+    var n = parseFloat(p);
+    return s + (isNaN(n) ? 0 : n);
+  }, 0);
+}
+
+function mulComma(id) {
+  var el = document.getElementById(id);
+  if (!el) return 1;
+  var val = (el.value || "").trim();
+  val = val.replace(/，/g, ',');
+  return val.split(",").reduce(function(m, p) {
+    var n = parseFloat(p);
+    return m * (isNaN(n) ? 1 : 1 + n / 100);
+  }, 1);
+}
+
+function ignoreDefMul(id) {
+  var el = document.getElementById(id);
+  if (!el) return 1;
+  var val = (el.value || "").trim();
+  val = val.replace(/，/g, ',');
+  return val.split(",").reduce(function(m, p) {
+    var n = parseFloat(p);
+    return m * (isNaN(n) ? 1 : 1 - n / 100);
+  }, 1);
+}
+
+function calculate() {
+  try {
+    var atkClass = document.getElementById("atkClass");
+    var defClass = document.getElementById("defClass");
+    var defDebuffEl = document.getElementById("defDebuff");
+    var hornBuffEl = document.getElementById("hornBuff");
+
+    atkClass = atkClass ? atkClass.value : "none";
+    defClass = defClass ? defClass.value : "none";
+
+    var atkPanel = num("atkPanel");
+    var atkBonusPct = sumComma("atkBonusPct");
+    var atkBonusFlat = sumComma("atkBonusFlat");
+    var skillMult = num("skillMult");
+    var critDmgPct = sumComma("critDmgPct");
+    var defBase = num("defBase");
+    var ignoreDefMulVal = ignoreDefMul("ignoreDefPct");
+    var defReduceFlat = sumComma("defReduceFlat");
+    var defDebuff = defDebuffEl ? parseFloat(defDebuffEl.value) || 0 : 0;
+    var hornBuff = hornBuffEl ? hornBuffEl.checked : false;
+    var dmgZone = sumComma("dmgZone");
+    var vulnZoneEl = document.getElementById("vulnZone");
+    var vulnZone = vulnZoneEl ? (vulnZoneEl.value || "") : "";
+    var finalDmgZone = sumComma("finalDmgZone");
+    var finalVulnMult = mulComma("finalVulnZone");
+
+    var restraint = getRestraint(atkClass, defClass);
+
+    var infoEl = document.getElementById("restraintInfo");
+    if (infoEl) {
+      if (atkClass === "none") {
+        infoEl.innerHTML = "";
+      } else if (defClass === "none") {
+        infoEl.innerHTML = "";
+      } else if (defClass === "noClass") {
+        infoEl.innerHTML = (classNames[atkClass] || "--") + " 对 无职业: 无克制 ×1.0";
+      } else {
+        var label = (classNames[atkClass] || "--") + " 对 " + (classNames[defClass] || "--") + ": ";
+        if (restraint > 1) {
+          infoEl.innerHTML = label + '<span class="advantage">克制 ×' + restraint + '</span>';
+        } else if (restraint < 1) {
+          infoEl.innerHTML = label + '<span class="disadvantage">被克制 ×' + restraint + '</span>';
+        } else {
+          infoEl.innerHTML = label + '<span class="neutral">无克制 ×1.0</span>';
+        }
+      }
+    }
+
+    var effectiveAtk = atkPanel * (1 + atkBonusPct / 100) + atkBonusFlat;
+    var afterRestraint = effectiveAtk * restraint;
+    var defDebuffValue = defBase * (defDebuff / 100);
+    var hornDefValue = hornBuff ? defBase * 0.2 : 0;
+    var defAfterReduce = Math.max(0, defBase - defDebuffValue - hornDefValue - defReduceFlat);
+    var effectiveDef = defAfterReduce * ignoreDefMulVal;
+    var baseDmg = Math.max(0, afterRestraint - effectiveDef);
+    var dmgMult = Math.max(0.5, 1 + dmgZone / 100);
+    var finalDmgMult = mulComma("finalDmgZone");
+    var baseVulnVal = vulnZone.trim().replace(/，/g, ',');
+    var vulnMult = baseVulnVal.split(",").reduce(function(m, p) {
+      var n = parseFloat(p);
+      return m * (isNaN(n) ? 1 : 1 + n / 100);
+    }, 1);
+    if (hornBuff) { vulnMult = vulnMult * 1.8; }
+    vulnMult = Math.min(vulnMult, 3.0);
+    var skill = skillMult / 100;
+    var singleHit = baseDmg * skill * dmgMult * vulnMult * finalDmgMult * finalVulnMult;
+    var critSingle = singleHit * (critDmgPct / 100);
+    singleHit = Math.max(0, singleHit);
+    critSingle = Math.max(0, critSingle);
+
+    var singleDmgEl = document.getElementById("singleDmg");
+    var critSingleDmgEl = document.getElementById("critSingleDmg");
+    var formulaBreakdownEl = document.getElementById("formulaBreakdown");
+
+    if (singleDmgEl) singleDmgEl.textContent = Math.round(singleHit).toLocaleString();
+    if (critSingleDmgEl) critSingleDmgEl.textContent = Math.round(critSingle).toLocaleString();
+
+    var br = "";
+    br += "有效攻击力       = " + atkPanel + " × (1 + " + atkBonusPct + "%) + " + atkBonusFlat + " = " + effectiveAtk.toFixed(2) + "\n";
+    br += "克制后攻击力     = " + effectiveAtk.toFixed(2) + " × " + restraint + " = " + afterRestraint.toFixed(2) + "\n\n";
+    br += "【防御计算】\n";
+    br += "黑字防御         = " + defBase + "\n";
+    if (defDebuff > 0) {
+      br += "防御减益(-" + defDebuff + "%)  = " + defBase + " × " + (defDebuff/100) + " = -" + defDebuffValue.toFixed(2) + "\n";
+    }
+    if (hornBuff) {
+      br += "号角防御(-20%)   = " + defBase + " × 0.2 = -" + hornDefValue.toFixed(2) + "\n";
+    }
+    if (defReduceFlat > 0) {
+      br += "固定防御减少     = -" + defReduceFlat + "\n";
+    }
+    br += "防御减少后       = " + defAfterReduce.toFixed(2) + "\n";
+    br += "无视防御系数     = " + ignoreDefMulVal.toFixed(4) + " (乘算)\n";
+    br += "有效防御力       = " + defAfterReduce.toFixed(2) + " × " + ignoreDefMulVal.toFixed(4) + " = " + effectiveDef.toFixed(2) + "\n";
+    br += "基础伤害         = " + afterRestraint.toFixed(2) + " - " + effectiveDef.toFixed(2) + " = " + baseDmg.toFixed(2) + "\n\n";
+    br += "【伤害计算】\n";
+    br += "技能倍率         = " + skillMult + "% = " + skill.toFixed(4) + "\n";
+    br += "增伤区间（加算） = " + dmgZone + "% → " + dmgMult.toFixed(4) + " [下限-50%]\n";
+    br += "易伤区间（乘算） = 系数 " + vulnMult.toFixed(4) + " [上限3.0]";
+    if (hornBuff) { br += " (含号角+80%)"; }
+    br += "\n";
+    br += "最终增伤（乘算） = 系数 " + finalDmgMult.toFixed(4) + " [无上限]\n";
+    br += "最终易伤（乘算） = 系数 " + finalVulnMult.toFixed(4) + " [无上限]\n\n";
+    br += "单段伤害         = " + Math.round(singleHit) + "\n";
+    br += "暴击伤害总和     = " + critDmgPct + "%\n";
+    br += "暴击单段         = " + Math.round(critSingle);
+
+    if (formulaBreakdownEl) formulaBreakdownEl.textContent = br;
+  } catch (e) {
+    console.error("计算错误:", e);
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", calculate);
+} else {
+  calculate();
+}
+
+const RecordManager = {
+  storageKey: 'sword_of_convallaria_damage_records',
+  records: [],
+  
+  init() {
+    this.loadRecords();
+    this.createModal();
+    this.bindEvents();
+  },
+  
+  loadRecords() {
+    const stored = localStorage.getItem(this.storageKey);
+    this.records = stored ? JSON.parse(stored) : [];
+  },
+  
+  saveRecords() {
+    localStorage.setItem(this.storageKey, JSON.stringify(this.records));
+  },
+  
+  getCurrentConfig() {
+    return {
+      atkClass: document.getElementById('atkClass').value,
+      atkPanel: document.getElementById('atkPanel').value,
+      atkBonusPct: document.getElementById('atkBonusPct').value,
+      atkBonusFlat: document.getElementById('atkBonusFlat').value,
+      skillMult: document.getElementById('skillMult').value,
+      critDmgPct: document.getElementById('critDmgPct').value,
+      defClass: document.getElementById('defClass').value,
+      defBase: document.getElementById('defBase').value,
+      ignoreDefPct: document.getElementById('ignoreDefPct').value,
+      defReduceFlat: document.getElementById('defReduceFlat').value,
+      defDebuff: document.getElementById('defDebuff').value,
+      hornBuff: document.getElementById('hornBuff').checked,
+      dmgZone: document.getElementById('dmgZone').value,
+      vulnZone: document.getElementById('vulnZone').value,
+      finalDmgZone: document.getElementById('finalDmgZone').value,
+      finalVulnZone: document.getElementById('finalVulnZone').value,
+      singleDmg: document.getElementById('singleDmg').textContent,
+      critSingleDmg: document.getElementById('critSingleDmg').textContent
+    };
+  },
+  
+  setConfig(config) {
+    document.getElementById('atkClass').value = config.atkClass || 'none';
+    document.getElementById('atkPanel').value = config.atkPanel || '0';
+    document.getElementById('atkBonusPct').value = config.atkBonusPct || '0';
+    document.getElementById('atkBonusFlat').value = config.atkBonusFlat || '0';
+    document.getElementById('skillMult').value = config.skillMult || '100';
+    document.getElementById('critDmgPct').value = config.critDmgPct || '130';
+    document.getElementById('defClass').value = config.defClass || 'none';
+    document.getElementById('defBase').value = config.defBase || '0';
+    document.getElementById('ignoreDefPct').value = config.ignoreDefPct || '0';
+    document.getElementById('defReduceFlat').value = config.defReduceFlat || '0';
+    document.getElementById('defDebuff').value = config.defDebuff || '0';
+    document.getElementById('hornBuff').checked = config.hornBuff || false;
+    document.getElementById('dmgZone').value = config.dmgZone || '0';
+    document.getElementById('vulnZone').value = config.vulnZone || '0';
+    document.getElementById('finalDmgZone').value = config.finalDmgZone || '0';
+    document.getElementById('finalVulnZone').value = config.finalVulnZone || '0';
+    calculate();
+  },
+  
+  addRecord(name) {
+    const config = this.getCurrentConfig();
+    const record = {
+      id: Date.now(),
+      name: name || `配置 ${this.records.length + 1}`,
+      time: new Date().toLocaleString('zh-CN'),
+      config: config
+    };
+    this.records.unshift(record);
+    this.saveRecords();
+    this.showToast('记录已保存');
+    return record;
+  },
+  
+  deleteRecord(id) {
+    this.records = this.records.filter(r => r.id !== id);
+    this.saveRecords();
+    this.renderRecordsList();
+    this.showToast('记录已删除');
+  },
+  
+  clearAllRecords() {
+    if (confirm('确定要清空所有记录吗？此操作不可恢复。')) {
+      this.records = [];
+      this.saveRecords();
+      this.renderRecordsList();
+      this.showToast('所有记录已清空');
+    }
+  },
+  
+  resetDefault() {
+    document.getElementById('atkClass').value = 'none';
+    document.getElementById('atkPanel').value = '0';
+    document.getElementById('atkBonusPct').value = '0';
+    document.getElementById('atkBonusFlat').value = '0';
+    document.getElementById('skillMult').value = '100';
+    document.getElementById('critDmgPct').value = '130';
+    document.getElementById('defClass').value = 'none';
+    document.getElementById('defBase').value = '0';
+    document.getElementById('ignoreDefPct').value = '0';
+    document.getElementById('defReduceFlat').value = '0';
+    document.getElementById('defDebuff').value = '0';
+    document.getElementById('hornBuff').checked = false;
+    document.getElementById('dmgZone').value = '0';
+    document.getElementById('vulnZone').value = '0';
+    document.getElementById('finalDmgZone').value = '0';
+    document.getElementById('finalVulnZone').value = '0';
+    calculate();
+    this.showToast('已恢复默认设置');
+  },
+  
+  createModal() {
+    const modalHTML = `
+      <div id="recordsModal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2><img src="https://patchwiki.biligame.com/images/llzj/7/79/1cavtuyjuyglrrnee69v7y01hzmex5v.png" class="modal-header-icon" alt="">数据库 (无上限)</h2>
+            <button class="modal-close" onclick="RecordManager.closeModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div id="recordsList"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="nameModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+          <div class="modal-header">
+            <h2><img src="https://patchwiki.biligame.com/images/llzj/9/98/kx0akko30kul0jemcyfqitclkkm3bsv.png" class="modal-header-icon" alt="">保存记录</h2>
+            <button class="modal-close" onclick="RecordManager.closeNameModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <p style="color: #5a4328; margin-bottom: 8px;">为本次记录命名 (最多20字)</p>
+            <input type="text" id="recordNameInput" class="name-input" placeholder="配置 1" maxlength="20">
+            <div class="modal-actions">
+              <button class="modal-btn secondary" onclick="RecordManager.closeNameModal()">取消</button>
+              <button class="modal-btn primary" onclick="RecordManager.confirmSave()">确定</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="viewModal" class="modal-overlay">
+        <div class="modal-content table-modal-content">
+          <div class="modal-header">
+            <h2><img src="https://patchwiki.biligame.com/images/llzj/a/a9/abs45fkpnewex091qqvafa7ynzndejo.png" class="modal-header-icon" alt="">配置详情</h2>
+            <button class="modal-close" onclick="RecordManager.closeViewModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div id="viewContent"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="toast" class="toast"></div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  },
+  
+  bindEvents() {
+    const resultsSection = document.querySelector('.results-section');
+    const buttonsHTML = `
+      <div class="record-buttons">
+        <button class="record-btn" onclick="RecordManager.openNameModal()"><img src="https://patchwiki.biligame.com/images/llzj/d/de/4tfw9hhcf4do0mjejj67xr9so5959oe.png" class="btn-icon" alt="">记录结果</button>
+        <button class="record-btn secondary" onclick="RecordManager.openModal()"><img src="https://patchwiki.biligame.com/images/llzj/7/79/qa9mb6y1qnbxxrgu6z0xnr02e7nbjye.png" class="btn-icon" alt="">查询记录</button>
+        <button class="record-btn danger" onclick="RecordManager.clearAllRecords()"><img src="https://patchwiki.biligame.com/images/llzj/1/15/cp0a46jw2uu8d2tvnym6pki73xl59cf.png" class="btn-icon" alt="">清空记录</button>
+        <button class="record-btn reset-default" onclick="RecordManager.resetDefault()"><img src="https://patchwiki.biligame.com/images/llzj/8/81/ob52g0qz2rc73xh87qtxz091uwagm1k.png" class="btn-icon" alt="">重置默认</button>
+      </div>
+    `;
+    resultsSection.insertAdjacentHTML('beforeend', buttonsHTML);
+  },
+  
+  openModal() {
+    document.getElementById('recordsModal').classList.add('active');
+    this.renderRecordsList();
+  },
+  
+  closeModal() {
+    document.getElementById('recordsModal').classList.remove('active');
+  },
+  
+  openNameModal() {
+    const defaultName = `配置 ${this.records.length + 1}`;
+    document.getElementById('recordNameInput').value = '';
+    document.getElementById('recordNameInput').placeholder = defaultName;
+    document.getElementById('nameModal').classList.add('active');
+    setTimeout(() => document.getElementById('recordNameInput').focus(), 100);
+  },
+  
+  closeNameModal() {
+    document.getElementById('nameModal').classList.remove('active');
+  },
+  
+  confirmSave() {
+    const input = document.getElementById('recordNameInput');
+    const name = input.value.trim() || input.placeholder;
+    this.addRecord(name);
+    this.closeNameModal();
+  },
+  
+  openViewModal(record) {
+    const content = document.getElementById('viewContent');
+    const c = record.config;
+    const classNames = {
+      none: '--', noClass: '无职业', crusher: '粉碎者', 
+      defender: '防御者', raider: '突袭者', destroyer: '毁灭者', watcher: '守望者'
+    };
+    
+    const defDebuffVal = parseFloat(c.defDebuff) || 0;
+    const hornDefVal = c.hornBuff ? 20 : 0;
+    const defReduceFlatRaw = c.defReduceFlat || '0';
+    const fixedDefReduce = parseFloat(defReduceFlatRaw) || 0;
+    const totalDefReducePercent = defDebuffVal + hornDefVal;
+    
+    const hasValue = (val, defaultVal = '0') => {
+      if (val === undefined || val === null) return false;
+      const str = String(val).trim();
+      if (str === '' || str === '0' || str === defaultVal) return false;
+      return true;
+    };
+    
+    let tableRows = [];
+    tableRows.push(`<tr><th>攻方黑字攻击</th><td>${c.atkPanel}</td></tr>`);
+    tableRows.push(`<tr><th>攻方职业</th><td>${classNames[c.atkClass] || '--'}</td></tr>`);
+    tableRows.push(`<tr><th>守方职业</th><td>${classNames[c.defClass] || '--'}</td></tr>`);
+    tableRows.push(`<tr><th>职业克制倍率</th><td>${this.getRestraintText(c.atkClass, c.defClass)}</td></tr>`);
+    
+    if (hasValue(c.atkBonusPct)) {
+      tableRows.push(`<tr><th>百分比攻击加成</th><td>${c.atkBonusPct}%</td></tr>`);
+    }
+    if (hasValue(c.atkBonusFlat)) {
+      tableRows.push(`<tr><th>固定数值加成</th><td>${c.atkBonusFlat}</td></tr>`);
+    }
+    
+    tableRows.push(`<tr><th>技能倍率</th><td>${c.skillMult}%</td></tr>`);
+    tableRows.push(`<tr><th>暴击伤害</th><td>${c.critDmgPct}%</td></tr>`);
+    
+    if (hasValue(c.defBase)) {
+      tableRows.push(`<tr><th>守方黑字防御</th><td>${c.defBase}</td></tr>`);
+    }
+    if (hasValue(c.ignoreDefPct)) {
+      tableRows.push(`<tr><th>无视防御</th><td>${c.ignoreDefPct}%</td></tr>`);
+    }
+    
+    if (fixedDefReduce > 0 || totalDefReducePercent > 0) {
+      let defReduceDisplay = defReduceFlatRaw !== '0' ? defReduceFlatRaw : '0';
+      if (totalDefReducePercent > 0) {
+        defReduceDisplay += ` (含减益${totalDefReducePercent}%)`;
+      }
+      tableRows.push(`<tr><th>固定防御减少</th><td>${defReduceDisplay}</td></tr>`);
+    }
+    
+    if (hasValue(c.dmgZone)) {
+      tableRows.push(`<tr><th>增伤区间</th><td>${c.dmgZone}%</td></tr>`);
+    }
+    if (hasValue(c.vulnZone) || c.hornBuff) {
+      tableRows.push(`<tr><th>易伤区间</th><td>${c.vulnZone}% ${c.hornBuff ? '(含号角+80%)' : ''}</td></tr>`);
+    }
+    if (hasValue(c.finalDmgZone)) {
+      tableRows.push(`<tr><th>最终增伤区间</th><td>${c.finalDmgZone}%</td></tr>`);
+    }
+    if (hasValue(c.finalVulnZone)) {
+      tableRows.push(`<tr><th>最终易伤区间</th><td>${c.finalVulnZone}%</td></tr>`);
+    }
+    
+    tableRows.push(`<tr style="background: linear-gradient(135deg, rgba(196,162,101,0.1), rgba(160,120,48,0.1));"><th>预计伤害</th><td style="color: #c0641e; font-weight: bold;">${c.singleDmg}</td></tr>`);
+    tableRows.push(`<tr style="background: linear-gradient(135deg, rgba(192,57,43,0.1), rgba(160,40,32,0.1));"><th>预计暴击伤害</th><td style="color: #c0392b; font-weight: bold;">${c.critSingleDmg}</td></tr>`);
+    
+    content.innerHTML = `
+      <div style="text-align: center; margin-bottom: 16px;">
+        <div style="font-size: 18px; font-weight: bold; color: #6b4c1e; margin-bottom: 4px;">
+          📌 ${record.name}
+        </div>
+        <div style="font-size: 12px; color: #8a7350;">${record.time}</div>
+      </div>
+      <table class="config-table" id="configTable">
+        ${tableRows.join('')}
+      </table>
+      <button class="save-image-btn" onclick="RecordManager.saveAsImage()"><img src="https://patchwiki.biligame.com/images/llzj/0/0f/6stciiwkrhn2jpkhrejyrfvvno0a5dc.png" alt="">保存为图片</button>
+    `;
+    document.getElementById('viewModal').classList.add('active');
+  },
+  
+  closeViewModal() {
+    document.getElementById('viewModal').classList.remove('active');
+  },
+  
+  getRestraintText(atk, def) {
+    if (atk === 'none' || def === 'none' || def === 'noClass') return '×1.0 (无克制)';
+    const restraint = getRestraint(atk, def);
+    if (restraint > 1) return `×${restraint} (克制)`;
+    if (restraint < 1) return `×${restraint} (被克制)`;
+    return '×1.0 (无克制)';
+  },
+  
+  saveAsImage() {
+    const table = document.getElementById('configTable');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const rows = table.querySelectorAll('tr');
+    const rowHeight = 42;
+    const headerHeight = 100;
+    const footerHeight = 50;
+    const totalHeight = headerHeight + (rows.length * rowHeight) + footerHeight;
+    
+    canvas.width = 600;
+    canvas.height = Math.max(400, totalHeight);
+    
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#fffdf5');
+    gradient.addColorStop(1, '#f5f0e0');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.strokeStyle = '#c4a265';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+    
+    ctx.fillStyle = '#6b4c1e';
+    ctx.font = 'bold 24px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('铃兰之剑伤害计算器', canvas.width / 2, 50);
+    
+    const configName = document.querySelector('#viewContent div div').textContent.trim();
+    ctx.font = 'bold 20px Microsoft YaHei';
+    ctx.fillStyle = '#a07830';
+    ctx.fillText(configName.replace('📌 ', ''), canvas.width / 2, 85);
+    
+    let y = 130;
+    
+    rows.forEach((row, index) => {
+      const th = row.querySelector('th');
+      const td = row.querySelector('td');
+      
+      if (!th || !td) return;
+      
+      if (index >= rows.length - 2) {
+        ctx.fillStyle = index === rows.length - 2 ? 'rgba(196,162,101,0.15)' : 'rgba(192,57,43,0.15)';
+        ctx.fillRect(30, y - 25, canvas.width - 60, rowHeight);
+      } else if (index % 2 === 0) {
+        ctx.fillStyle = 'rgba(196,162,101,0.05)';
+        ctx.fillRect(30, y - 25, canvas.width - 60, rowHeight);
+      }
+      
+      ctx.fillStyle = '#5a4328';
+      ctx.font = 'bold 14px Microsoft YaHei';
+      ctx.textAlign = 'left';
+      ctx.fillText(th.textContent, 50, y);
+      
+      ctx.fillStyle = index >= rows.length - 2 ? (index === rows.length - 2 ? '#c0641e' : '#c0392b') : '#3a2a14';
+      ctx.font = index >= rows.length - 2 ? 'bold 16px Microsoft YaHei' : '14px Microsoft YaHei';
+      ctx.textAlign = 'right';
+      ctx.fillText(td.textContent, canvas.width - 50, y);
+      
+      if (index < rows.length - 1) {
+        ctx.strokeStyle = '#e8e0d0';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(30, y + 10);
+        ctx.lineTo(canvas.width - 30, y + 10);
+        ctx.stroke();
+      }
+      
+      y += rowHeight;
+    });
+    
+    ctx.fillStyle = '#8a7350';
+    ctx.font = '12px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('铃兰之剑BWIKI伤害计算器', canvas.width / 2, canvas.height - 30);
+    
+    const link = document.createElement('a');
+    link.download = `铃兰之剑配置_${new Date().getTime()}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+    
+    this.showToast('图片已保存');
+  },
+  
+  renderRecordsList() {
+    const container = document.getElementById('recordsList');
+    
+    if (this.records.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <div>暂无记录</div>
+          <div style="font-size: 12px; margin-top: 8px;">点击"记录结果"保存当前配置</div>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = `
+      <div class="records-grid">
+        ${this.records.map(record => {
+          let timeDisplay = record.time;
+          try {
+            const date = new Date(record.time);
+            if (!isNaN(date.getTime())) {
+              const hours = date.getHours().toString().padStart(2, '0');
+              const minutes = date.getMinutes().toString().padStart(2, '0');
+              timeDisplay = `${hours}:${minutes}`;
+            }
+          } catch (e) {}
+          
+          return `
+          <div class="record-card">
+            <div class="record-header">
+              <span class="record-pin">📌</span>
+              <span class="record-name">${record.name}</span>
+              <span class="record-time">${timeDisplay}</span>
+            </div>
+            <div class="record-values">
+              <div class="record-value-item">
+                <span class="icon">⚔️</span>
+                <span class="num">${record.config.singleDmg}</span>
+              </div>
+              <div class="record-value-item">
+                <span class="icon">💥</span>
+                <span class="num">${record.config.critSingleDmg}</span>
+              </div>
+            </div>
+            <div class="record-actions">
+              <button class="record-action-btn" onclick="RecordManager.viewRecord(${record.id})">🔍 详情</button>
+              <button class="record-action-btn" onclick="RecordManager.loadRecord(${record.id})">📥 填入</button>
+              <button class="record-action-btn delete" onclick="RecordManager.deleteRecordById(${record.id})">🗑️ 删除</button>
+            </div>
+          </div>
+        `}).join('')}
+      </div>
+    `;
+  },
+  
+  viewRecord(id) {
+    const record = this.records.find(r => r.id === id);
+    if (record) this.openViewModal(record);
+  },
+  
+  loadRecord(id) {
+    const record = this.records.find(r => r.id === id);
+    if (record) {
+      this.setConfig(record.config);
+      this.closeModal();
+      this.showToast('配置已填入计算器');
+    }
+  },
+  
+  deleteRecordById(id) {
+    if (confirm('确定要删除这条记录吗？')) {
+      this.deleteRecord(id);
+    }
+  },
+  
+  showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  RecordManager.init();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.getElementById('nameModal').classList.contains('active')) {
+    RecordManager.confirmSave();
+  }
+});
+</script>
+</body>
+</html>
+<br />
+</p>
+<div class="mw-collapsible mw-collapsed" style="width:100%; background: rgba(255,252,240,0.65); border: 1.5px solid #c4a265; border-radius: 6px; overflow: hidden; margin-top: 20px;">
+<div class="mw-collapsible-toggle" style="background: #efe0be; color: #5a4328; padding: 12px; font-weight: bold; cursor: pointer; text-align: center; float: none; width: 100%; margin: 0; border: none;">
+<p>▼ 职业天赋列表（点击展开/收起）
+</p>
+</div>
+<div class="mw-collapsible-content" style="padding: 0; margin: 0;">
+<table class="wikitable" style="width:100%; border: none; background: transparent; margin: 0;">
+<tbody><tr>
+<th style="background: #efe0be; color: #5a4328; border: 1px solid #d4c09a; padding: 8px; font-weight: bold;">职业
+</th>
+<th style="background: #efe0be; color: #5a4328; border: 1px solid #d4c09a; padding: 8px; font-weight: bold;">天赋名称
+</th>
+<th style="background: #efe0be; color: #5a4328; border: 1px solid #d4c09a; padding: 8px; font-weight: bold;">效果描述
+</th></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px; text-align: center;" rowspan="3"><strong>粉碎者</strong>
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">粉碎者的勇气
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;粉碎者&gt;的己方，攻击时，若目标生命值百分比高于自己，造成伤害提高<font color="#ed7950">20%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">粉碎者的碾压
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;粉碎者&gt;的己方，获得效果：<br />① [健康]时，伤害提高<font color="#ed7950">15%</font>。<br />② 攻击时，若自身生命百分比高于目标则额外提高伤害：每高<font color="#ed7950">1%</font>，伤害提高<font color="#ed7950">1%</font>，最多<font color="#ed7950">15%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">物/魔攻强化·克制
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">攻击[克制职能]的角色时，物攻/魔攻提高<font color="#ed7950">300</font>点。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px; text-align: center;" rowspan="3"><strong>突袭者</strong>
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">突袭者的致命
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;突袭者&gt;的己方，暴击伤害提高<font color="#ed7950">6%</font>，无视目标防御<font color="#ed7950">15%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">突袭者的直觉
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;突袭者&gt;的己方，获得效果：<br />① 暴击率、暴击伤害提高<font color="#ed7950">5%</font>；造成[背击]时，暴击率、暴击伤害额外提高<font color="#ed7950">3%</font>。<br />② 暴击、造成[背击]后，使自身受到伤害降低<font color="#ed7950">8%</font>，持续到下次行动开始。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">物/魔攻强化·克制
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">攻击[克制职能]的角色时，物攻/魔攻提高<font color="#ed7950">300</font>点。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px; text-align: center;" rowspan="4"><strong>防御者</strong>
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">防御者的怒火
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;防御者&gt;的己方，处于[<font color="#f3c156">受伤</font>]状态时，攻击提高<font color="#ed7950">12%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">防御者的武装
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;防御者&gt;的己方，拥有[<font color="#f3c156">物理护盾</font>]时，伤害提高<font color="#ed7950">20%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">防御者的坚定
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;防御者&gt;的己方，获得效果：<font color="#ed7950">3</font>格内存在队友时，伤害提高<font color="#ed7950">8%</font>、受到伤害降低<font color="#ed7950">8%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">物/魔攻强化·克制
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">攻击[克制职能]的角色时，物攻/魔攻提高<font color="#ed7950">300</font>点。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px; text-align: center;" rowspan="3"><strong>毁灭者</strong>
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">毁灭者的敏锐
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;毁灭者&gt;的己方，攻击拥有[减益]的敌人时，伤害提高<font color="#ed7950">20%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">毁灭者的阴影
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;毁灭者&gt;的己方，和敌方交战时，根据对方[减益]数量，产生效果：<br />① [减益]数量不少于自己时，自身伤害提高<font color="#ed7950">10%</font>。<br />② [减益]数量少于自己时，自身受到伤害降低<font color="#ed7950">10%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">物/魔攻强化·毁灭
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">攻击职能为&lt;粉碎者&gt;、&lt;突袭者&gt;或&lt;防御者&gt;的角色时，物攻/魔攻提高<font color="#ed7950">100</font>点。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px; text-align: center;" rowspan="4"><strong>守望者</strong>
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">守望者的从容
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;守望者&gt;的己方，攻击时，若自身生命值百分比大于目标，攻击提高<font color="#ed7950">12%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">守望者的决心
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;守望者&gt;的己方，自身拥有<font color="#ed7950">2</font>个及以上[增益]时，伤害提高<font color="#ed7950">20%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">守望者的从容
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">场上所有职能为&lt;守望者&gt;的己方，和敌方交战时，根据对方[增益]数量，产生效果：<br />① [增益]数量不少于自己时，自身伤害提高<font color="#ed7950">10%</font>。<br />② [增益]数量少于自己时，自身受到伤害降低<font color="#ed7950">10%</font>。
+</td></tr>
+<tr>
+<td style="border: 1px solid #d4c09a; padding: 8px;">物/魔攻强化·克制
+</td>
+<td style="border: 1px solid #d4c09a; padding: 8px;">攻击[克制职能]的角色时，物攻/魔攻提高<font color="#ed7950">300</font>点。
+</td></tr></tbody></table>
+</div>
+</div>
+<p><br />
+</p>
+<h2><span id=".E5.8E.9F.E4.BD.9C.E8.80.85"></span><span class="mw-headline" id="原作者"><img alt="笔记.png" src="https://patchwiki.biligame.com/images/llzj/thumb/d/de/4tfw9hhcf4do0mjejj67xr9so5959oe.png/40px-%E7%AC%94%E8%AE%B0.png" decoding="async" loading="lazy" width="40" height="40" srcset="https://patchwiki.biligame.com/images/llzj/thumb/d/de/4tfw9hhcf4do0mjejj67xr9so5959oe.png/60px-%E7%AC%94%E8%AE%B0.png 1.5x, https://patchwiki.biligame.com/images/llzj/thumb/d/de/4tfw9hhcf4do0mjejj67xr9so5959oe.png/80px-%E7%AC%94%E8%AE%B0.png 2x" data-file-width="128" data-file-height="128" />原作者</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/llzj/index.php?title=%E4%BC%A4%E5%AE%B3%E8%AE%A1%E7%AE%97%E5%99%A8&amp;action=edit&amp;section=2" title="编辑章节：原作者">编辑</a><span class="mw-editsection-bracket">]</span></span></h2>
+        <div class="user-follow-wrap">
+            <div class="user-item-detail report-wrap-module">
+                <a target="_blank" href="//space.bilibili.com/15565996/" class="detail-pic "><div alt="" style="background: url(https://i1.hdslb.com/bfs/face/151abe43105efed47e370de8b79edc36722cdc0d.jpg);"></div></a>
+                <div class="detail-des"><div class="des-name">颜笑丶</div>
+                    <div class="des-content"></div>
+                </div>
+                <div class="detail-follow detail-follow-normal" isfollow="0" fid="15565996">+关注</div></div>
+        </div>
+        <div class="user-follow-wrap">
+            <div class="user-item-detail report-wrap-module">
+                <a target="_blank" href="//space.bilibili.com/393326856/" class="detail-pic "><div alt="" style="background: url(https://i0.hdslb.com/bfs/face/5ba7776062db356cbb6945f8e3dde8ba29fbb226.jpg);"></div></a>
+                <div class="detail-des"><div class="des-name">铃LLan</div>
+                    <div class="des-content"></div>
+                </div>
+                <div class="detail-follow detail-follow-normal" isfollow="0" fid="393326856">+关注</div></div>
+        </div>
+
+<!-- 
+NewPP limit report
+Cached time: 20261021175308
+Cache expiry: 86400
+Reduced expiry: false
+Complications: []
+[SMW] In‐text annotation parser time: 0 seconds
+CPU time usage: 0.044 seconds
+Real time usage: 0.194 seconds
+Preprocessor visited node count: 230/1000000
+Post‐expand include size: 1723/2097152 bytes
+Template argument size: 90/2097152 bytes
+Highest expansion depth: 9/40
+Expensive parser function count: 0/100
+Unstrip recursion depth: 0/20
+Unstrip post‐expand size: 1216/5000000 bytes
+ExtLoops count: 0
+-->
+<!--
+Transclusion expansion time report (%,ms,calls,template)
+100.00%   39.162      1 -total
+ 54.75%   21.443      1 模板:面包屑
+ 44.80%   17.543      2 模板:中括号介绍
+-->
+
+<!-- Saved in parser cache with key gamecenter_wiki_llzj-pre_:pcache:idhash:7523-0!dateformat=default and timestamp 20261021175308 and revision id 22194. Serialized with PHP.
+ -->
+</div>

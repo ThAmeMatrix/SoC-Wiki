@@ -1,0 +1,11 @@
+/* Insets are applied by the native window, including the on-screen keyboard. */
+html{overscroll-behavior-y:contain}
+body{min-height:100dvh}
+@media(max-width:780px){
+  .topbar{min-height:58px;height:auto;padding-top:6px;padding-bottom:6px}
+  .top-actions .icon-button,.mobile-menu{min-width:42px;min-height:42px}
+  .global-search{min-height:40px}
+  .trait-view-switch button,.portrait-variants button,.catalog-view-switch button{min-height:42px}
+  .filter-chips .chip{min-height:34px}
+  input,textarea,select{font-size:max(14px,1em)}
+}

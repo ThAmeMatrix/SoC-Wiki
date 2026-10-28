@@ -1,0 +1,1389 @@
+<div class="mw-parser-output"><div id="bread-edit" class="bread-edit" style="float:right;margin-top:10px;margin-right:10px"><sup><a rel="nofollow" class="external text" href="https://wiki.biligame.com/llzj/index.php?title=%E9%82%82%E9%80%85%E6%A8%A1%E6%8B%9F%E5%99%A8&amp;action=edit">编</a></sup> <sup><a rel="nofollow" class="external text" href="https://wiki.biligame.com/llzj/index.php?title=%E9%82%82%E9%80%85%E6%A8%A1%E6%8B%9F%E5%99%A8&amp;action=purge">刷</a></sup> <sup><a rel="nofollow" class="external text" href="https://wiki.biligame.com/llzj/index.php?title=%E9%82%82%E9%80%85%E6%A8%A1%E6%8B%9F%E5%99%A8&amp;action=history">历</a></sup></div>
+<div style="padding: 5px 10px;margin: 10px 0;border: 1px solid #ebccd1;border-left-width: 5px;border-radius: 3px;background: rgb(255 255 255 / 40%);">
+<a href="/llzj/%E9%A6%96%E9%A1%B5" title="首页">首页</a>  &gt; <b>邂逅模拟器</b><br /></div>
+<hr />
+<div style="margin:0; padding:0;">
+<div class="sidebar-card" style="margin:15px 0px">本文章为红铃原创，未经作者允许，请勿擅自修改，转载请注明出处并附带本页链接。</div>
+</div>
+<div style="background-color: #FFEFD5; border-left: 4px solid #D2691E; padding: 12px 16px; margin: 10px 0; border-radius: 4px; color: #8B4513;">
+<p>祝亲爱的铃友们，卡池更新，欧气满满！但也要记得量力而行，理性抽卡哦(◍•ᴗ•◍)❤
+</p>
+</div>
+<p><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铃兰之剑 - 邂逅模拟器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Noto Serif SC', serif; }
+
+        /* 传说 - 柔和自然梦幻渐变 */
+.card-rarity-legend {
+    background: linear-gradient(0deg, 
+        /* 暖色区域 0-18% */
+        #798665 0%,      /* 底部：深草绿 */
+        #A1C091 10%,     /* 下部：柔和草绿 */
+        #DBCE86 18%,     /* 下中：暖黄（暖色结束） */
+        
+        /* 粉紫区域 18-65% */
+        #E8D4A8 25%,     /* 中下：黄粉过渡 */
+        #E8CACE 35%,     /* 下中部：玫瑰粉 */
+        #E7C3D7 45%,     /* 中部：柔和粉紫 */
+        #E0B7E0 55%,     /* 中中：粉紫加深 */
+        #D6C8E8 65%,     /* 中上部：紫蓝过渡（粉紫结束） */
+        
+        /* 天蓝区域 65-90%（完全不变！） */
+        #A0E0F5 77%,     /* 上部：梦幻浅蓝 */
+        #B3FAFD 90%,     /* 上顶部：天青色（天蓝结束） */
+        
+        /* 纯白区域 90-100% */
+        #C8F0F8 95%,     /* 顶部：浅天青 */
+        #E0F7FA 100%     /* 最顶：极浅青 */
+    ) !important;
+    box-shadow: 
+        0 0 25px rgba(121, 134, 101, 0.25),
+        0 0 45px rgba(231, 195, 215, 0.35),
+        0 0 40px rgba(179, 250, 253, 0.3),
+        inset 0 0 30px rgba(255, 255, 255, 0.4);
+    border: 2px solid #E7C3D7;
+}
+
+        /* 史诗 - 正常金色渐变（从下向上越来越浅） */
+.card-rarity-epic {
+    background: linear-gradient(0deg, 
+        #B8860B 0%,      /* 底部：深金色/暗金 */
+        #DAA520 25%,     /* 下部：金麒麟色 */
+        #F0C040 50%,     /* 中部：金黄色 */
+        #F5D580 75%,     /* 上中：浅金色 */
+        #F8E8B0 100%     /* 顶部：淡金/奶油色 */
+    ) !important;
+    box-shadow: 
+        0 0 15px rgba(184, 134, 11, 0.4),
+        0 0 30px rgba(240, 192, 64, 0.25),
+        inset 0 0 20px rgba(255, 255, 255, 0.3);
+    border: 2px solid #DAA520;
+}
+        
+        /* 精英 - 浅暗蓝色 */
+        .card-rarity-elite {
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+            border: 2px solid #87CEEB;
+        }
+        
+        /* 普通 - 浅暗棕色/灰色 */
+        .card-rarity-common {
+            background: linear-gradient(135deg, #8D6E63 0%, #6D4C41 100%);
+            border: 2px solid #A1887F;
+        }
+        
+        /* 邂逅按钮 - 中间浅金色向四周（含上下）渐变更浅 */
+.gacha-button {
+    background: radial-gradient(ellipse at center, #D4AF37 0%, #E5C048 30%, #F0D878 60%, #F9E8A8 100%);
+    color: white;
+    transition: all 0.3s ease;
+    border: none;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+}
+.gacha-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.5);
+    background: radial-gradient(ellipse at center, #E5C048 0%, #F6D659 30%, #FFE989 60%, #FFF5C8 100%);
+}
+.gacha-button:active { transform: translateY(0); }
+        
+        /* 重置按钮 - 蓝灰色调 */
+.reset-button {
+    background: radial-gradient(ellipse at center, #475569 0%, #576579 30%, #687589 60%, #798599 100%);
+    color: white;
+    transition: all 0.3s ease;
+    border: none;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(71, 85, 105, 0.3);
+}
+.reset-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(71, 85, 105, 0.5);
+    background: radial-gradient(ellipse at center, #576579 0%, #687589 30%, #798599 60%, #8A95A9 100%);
+}
+.reset-button:active { transform: translateY(0); }
+        
+        /* 卡池卡片 */
+.pool-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    border: 3px solid transparent;
+    background: transparent;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.pool-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.pool-card.active {
+    border-color: #D2691E;
+    box-shadow: 0 0 20px rgba(210, 105, 30, 0.4);
+}
+
+/* 卡池图片区域 */
+.pool-image-area {
+    width: 100%;
+    height: auto;
+    min-height: 80px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.pool-image-area img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.pool-image-area .placeholder-text {
+    color: #d7ccc8;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 30px 20px;
+}
+
+/* 电脑端优化 */
+@media (min-width: 768px) {
+        .container{
+max-width:1160px!important}
+    .pool-card {
+        padding: 0;
+        margin: 0;
+    }
+    
+    .pool-image-area {
+        max-height: unset;
+        min-height: unset;
+        padding: 0;
+        width: auto;
+        display: inline-flex;
+    }
+    
+    .pool-image-area img {
+        width: auto;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+    }
+}
+
+/* 手机端优化 */
+@media (max-width: 767px) {
+    .pool-image-area {
+        min-height: 60px;
+    }
+    
+    .pool-section .pool-image-area {
+        min-height: 50px;
+    }
+    
+    .pool-section .pool-image-area .placeholder-text {
+        font-size: 12px;
+        padding: 15px 10px;
+    }
+}
+
+        /* 电脑端按钮布局 - 放在卡池下方 */
+        @media (min-width: 768px) {
+            /* 电脑端按钮布局 */
+.buttons-desktop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    width: 100%;
+}
+
+/* 邂逅按钮容器（两个按钮的行） */
+.buttons-desktop > div {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    width: auto;
+}
+
+/* 邂逅按钮样式 */
+.buttons-desktop .gacha-button {
+    padding: 10px 24px;
+    font-size: 16px;
+    border-radius: 12px;
+    min-width: 100px;
+    flex: none;
+    max-width: none;
+}
+
+/* 重置按钮样式 */
+.buttons-desktop .reset-button {
+    padding: 10px 25px;
+    font-size: 16px;
+    border-radius: 12px;
+    width: auto;
+    max-width: none;
+    margin: 0 auto;
+}
+
+            .buttons-mobile {
+                display: none;
+            }
+            .pool-section {
+                display: flex;
+                flex-direction: column;
+            }
+            /* 电脑端容器宽度80% */
+            .desktop-container {
+                width: 70% ;
+                margin-left: auto;
+                margin-right: auto;
+                max-width: 1024px;
+            }
+.desktop-container .container{
+max-width:1160px !important;
+}
+        }
+
+        /* 手机端按钮布局 - 保持在原位置 */
+        @media (max-width: 767px) {
+            .buttons-desktop {
+                display: none;
+            }
+            .buttons-mobile {
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                margin-bottom: 32px;
+            }
+            /* 手机端保持原样，宽度100% */
+            .desktop-container {
+                width: 100%;
+            }
+            
+            /* 手机端卡池区域缩小为70% */
+            .pool-section {
+                width: 70% !important;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            /* 调整卡池类型标签间距 */
+            .pool-section .text-lg {
+                font-size: 0.875rem;  /* 14px */
+                margin-bottom: 0.25rem;
+            }
+            
+            /* 调整卡池卡片间距 */
+            .pool-section .flex-col {
+                margin-bottom: 0.5rem;
+            }
+            
+            /* 调整图片区域 */
+            .pool-section .pool-image-area {
+                min-height: 50px;
+            }
+            
+            /* 调整占位文字 */
+            .pool-section .pool-image-area .placeholder-text {
+                font-size: 12px;
+                padding: 15px 10px;
+            }
+        }
+        
+        .character-card { animation: fadeInUp 0.5s ease; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pity-bar { background: linear-gradient(90deg, #8B4513 0%, #D2691E 100%); }
+        .modal-backdrop { backdrop-filter: blur(5px); }
+        .rarity-legend { color: #FFD700; font-weight: bold; }
+        .rarity-epic { color: #9370DB; font-weight: bold; }
+        .rarity-elite { color: #4169E1; font-weight: bold; }
+        .rarity-common { color: #808080; }
+
+        /* UP角色头像样式 - 改为普通方形，去掉黄色背景和菱形裁剪 */
+        .up-character-avatar {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 8px;
+            display: block;
+            background: transparent;
+            border: none;
+        }
+        .up-character-avatar-fallback {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #8B4513;
+            font-size: 18px;
+            border: 1px solid #ddd;
+        }
+
+        /* 稀有度标签样式 */
+        .rarity-label {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        /* 像素人物图片样式 */
+        .pixel-character-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+        
+        /* 角色名样式 */
+        .character-name {
+            font-size: 11px;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+/* ==================== 卡池类型标签 - 鸢尾花纹饰版 ==================== */
+.pool-type-iris {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin-bottom: 12px !important;
+    position: relative !important;
+    font-family: 'Noto Serif SC', serif !important;
+}
+
+/* 鸢尾花 - 左侧 */
+.iris-left {
+    font-size: 18px !important;
+    color: currentColor !important;
+    opacity: 0.8 !important;
+    order: 1 !important;
+}
+
+/* 鸢尾花 - 右侧 */
+.iris-right {
+    font-size: 18px !important;
+    color: currentColor !important;
+    opacity: 0.8 !important;
+    order: 7 !important;
+}
+
+/* 短渐变横线 - 靠近花纹 */
+.iris-line-short {
+    width: 25px !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        currentColor 50%, 
+        transparent 100%
+    ) !important;
+    opacity: 0.4 !important;
+    order: 2 !important;
+}
+
+/* 右侧短横线 */
+.pool-type-iris .iris-line-short:nth-of-type(6) {
+    order: 6 !important;
+}
+
+/* 透明间隔 - 拉开距离 */
+.iris-spacer {
+    width: 40px !important;
+    height: 1px !important;
+    background: transparent !important;
+}
+
+/* 第一个 spacer（文字前面）*/
+.iris-line-short + .iris-spacer {
+    order: 3 !important;
+}
+
+/* 第二个 spacer（文字后面）*/
+.iris-text + .iris-spacer {
+    order: 5 !important;
+}
+
+/* 文字容器 */
+.iris-text {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    padding: 0 12px !important;
+    order: 4 !important;
+}
+
+/* 字间距 */
+.iris-text .char-spacer {
+    margin: 0 0.25em !important;
+}
+
+/* 文字两侧竖线装饰 | */
+.iris-text::before,
+.iris-text::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 1px !important;
+    height: 14px !important;
+    background: linear-gradient(180deg, 
+        transparent 0%, 
+        currentColor 20%, 
+        currentColor 80%, 
+        transparent 100%
+    ) !important;
+    opacity: 0.6 !important;
+}
+
+.iris-text::before { 
+    left: 4px !important; 
+}
+.iris-text::after { 
+    right: 4px !important; 
+}
+
+/* 初遇 - 绿色 */
+.chuyu-iris {
+    color: #81C784 !important;
+}
+
+.chuyu-iris .iris-text {
+    color: #2E7D32 !important;
+}
+
+/* 重逢 - 橙黄色 */
+.chongfeng-iris {
+    color: #FFB74D !important;
+}
+
+.chongfeng-iris .iris-text {
+    color: #E65100 !important;
+}
+
+/* 手机端适配 */
+@media (max-width: 767px) {
+    .pool-type-iris {
+        margin-bottom: 8px !important;
+    }
+    
+    .iris-line-short {
+        width: 18px !important;
+    }
+    
+    .iris-spacer {
+        width: 25px !important;
+    }
+    
+    .iris-left,
+    .iris-right {
+        font-size: 14px !important;
+    }
+    
+    .iris-text {
+        font-size: 14px !important;
+        padding: 0 10px !important;
+    }
+    
+    .iris-text::before,
+    .iris-text::after {
+        height: 12px !important;
+    }
+}
+
+/* 传说角色统计和历史记录布局 */
+.stats-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    width: 100%;
+}
+
+.stats-row > div {
+    flex: 1;
+    width: 50%;
+}
+
+/* 手机端适配 */
+@media (max-width: 767px) {
+    .stats-row {
+        display: none !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .mobile-only {
+        display: none !important;
+    }
+    
+    /* 电脑端传说角色统计每排3个 */
+    .legend-stats-grid-desktop {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+    }
+    .legend-stats-grid-desktop .text-amber-600 {
+        font-size: 7px !important;
+    }
+}
+    </style>
+</head>
+<body class="min-h-screen text-gray-800">
+
+    <!-- BWiki Widget 参数接收区 -->
+    <div id="widget-params" style="display:none;">
+        <!-- 卡池配置参数 -->
+        <span data-key="chuyu_img">https://patchwiki.biligame.com/images/llzj/b/b0/3acgtglekzbz5xo5cbog1rgfnvgiky0.png</span>
+        <span data-key="chongfeng_img">https://patchwiki.biligame.com/images/llzj/3/3f/aunzprltpxs5i6ivc4hrufyhwca9zr6.png</span>
+        <span data-key="chuyu_name">以乱世为阶</span>
+        <span data-key="chuyu_char">薇佩拉</span>
+        <span data-key="chongfeng_name">重逢之时</span>
+        <span data-key="chongfeng_chara">鲁特菲</span>
+        <span data-key="chongfeng_charb">爱莎</span>
+        <span data-key="chuyu_avatar">https://patchwiki.biligame.com/images/llzj/b/b2/gcyru93jk2xwxde8ynx0qkx17mvogxa.png</span>
+        <span data-key="chongfeng_avatara">https://patchwiki.biligame.com/images/llzj/0/04/t7nxot7sbb67xzv5iglsou2wsfagduk.png</span>
+        <span data-key="chongfeng_avatarb">https://patchwiki.biligame.com/images/llzj/4/4b/avapqa2vuo6ernxve07pidnrhletzcc.png</span>
+        
+        <!-- 角色数据库参数 - 从模块注入 -->
+        <span data-key="character_db">{&quot;legend&quot;:{&quot;奥古斯特&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/44/ezqu5j5zvw2p0vthzr51lwqbvqipji3.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;拉维耶•初夏记忆&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/0/03/nulvpked1tf94o5e0cuyiyp5ar652ky.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;罗格妮达&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/2/2b/mcd0379119val9qrs51149o4sbss97i.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;伊凡&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/be/gjfxxkdh952wf706kr6sotwjkhqoopw.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;乌莉娅&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/c/c7/q3mti7ae4qjxzwldqcfpwwui0epxcn7.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;帕西法尔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/fe/itu3i5xyipw39edryfo9g6jj5x2mnw0.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;鲁特菲&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/f3/gz3dglirnfsgl14x2e59lu3yb7onmic.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;萨曼莎&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/d4/2nbzf3xwn7m46a99rk9h5wn4j88ign7.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;阿加塔•凛冬极星&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/8/8d/ebt9dbvvcm65fipi6fn1g9dyyh7cn0o.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;法卡尔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/e/e3/2bkj352g2jxzbmq0q2l5wz7ds8mb2ct.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;迪塔利奥&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/6/6d/b610673hs43yfy9hblgopevt7n0r9ir.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;柯莱丹萨&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/f7/0242bdx59f8m94mr006husxyxcygg9b.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;歌洛莉亚&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/f8/i9s3ikfwzaunky8vhjrzfs64h3rlg4m.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;阿尔曼&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/b3/ju9k9d3aypkdq1dir8ccy6tzch0cdeb.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;列奥尼德&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/9b/bi1ke6cew5y3hq9k3buvizvkqtqaaz4.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;科尔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/12/fex0rrtdyc21bfa5vx7xs94nwjlw3lf.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;贝拉•魔术师&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/1a/i2av8dmgt7jismw9pp4s8ftl5fqbsd1.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;伊斯特拉&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a7/ofbfcl64i6pio4yu75icivgxkafh3uf.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;麦莎&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/1d/gs0fmkwtmeelvzxru1vi08zxanu5z25.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;科尔•破晓之影&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/2/2f/dvyjcps8qemjj8wnmtw0xaiugfhbvm8.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;霍玛&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/9c/r7ywbkvc5ftcbuxgv2lw9lrd0nzp8r3.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;萨曼莎•不灭微光&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/6/67/tuh5usp8f5nf4sk9s99879hh7sveh0s.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;塔埃尔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/0/02/58sgccanxuec7bqjiz8b2c7g9jaj2x0.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;菲娜塔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a2/2oeo6vo46sx5it222nriythyhnuaj18.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;伦伽勒&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a6/dxe0eqdixrivih1awjpgt8hrr518s92.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;蔻蔻娜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/1d/8nj7qpv08q9tm997fsdf5zpw0aob3ak.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;席梦娜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/e/e8/hqxekdduyqnm1pxram6wy0lmnx3spuh.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;阿列克谢•风雪孤行&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/92/m5qnxypakkqiqrj2slh3weoso6r7ahs.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;索菲亚•夏日约定&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a3/skswcrk3s477twkaoybgir0sskcf0xr.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;卡丽丝&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/43/cr5f3qm7z1aguqij7whta2tyex98zz7.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;奇亚&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a4/f4vg0w3kruyenmdn1x97ddsbs832tok.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;诺诺薇儿&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/41/3342n8h6lkfis6prfrb08pwjlmlplcs.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;波奇茸茸&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/c/c4/q9ugf9vgsge9pg71nbwsc07s7tftl5e.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;流星队&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/4a/a479dqclbbetbrf2b9qel727dxwk0tg.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;塞娜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/6/6c/r7sqvm74u1x1jblw6ebib2r2xx8eydt.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;狄奥娜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/8/81/l8rl9iy9xj5xpat3wk2rmxx3bji38hn.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;阿芙拉&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/5/50/okd0marmmp345etnehhgmlg4q02i44v.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;妮蒂娅&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/0/02/293n1dxv4npws9qcw902x3vaostrw29.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;赛琳娜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/39/ju6faj1p8ezcpelstx51z8fy6tfou5l.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;卡姆洛特&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/6/6f/pz03qeoaw8jfy0awsu8jbupnxt4k30z.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;帕米娜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/32/31pfe6faht6n28w6f1950zyikkjejke.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;伦伽勒•传承之枪&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/2/28/4e1lm3re7p9968x76e2z0u4lh4ai0pv.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;沙娜姿&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/5/58/q91m80xff4ufgopkjs1uh9my0fzjbg0.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;拉维耶&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/31/n9if053ex6pvpsm2s9kqmx9dccbqa57.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;夏可露露&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/98/737eh39wdeji0l2szuuphuo2v15brza.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;马格努斯&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/4d/hhb7l9kskitbf6lxxkykg2lzl44jwes.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;翠斯坦&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/92/onzyzko1ds2mczqyhu8tqztyhigza5g.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;莉莉薇儿&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a3/g3vwyrj10czvrqe1s6cgv2dvzm11b39.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;黎各&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/e/ec/huw1xjmckcf596mpz71rmrjfxs5ekii.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;古兹曼&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/18/rjwhqinzf6q7mtwle6fevxs72y1z36m.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;克拉拉&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/e/ea/g4ij015amt421rb6lfdhpnp7slzox11.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;薇佩拉&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/df/nt2twg5n40p88ft08jvpfpe6im1n6vx.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;柯瓦雷&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/2/2d/hr83g997v7fhwr0iowpuakbsbek1993.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;阿加塔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/8/81/hwufkvcqvshcos515d8z7fhmtgkcxz2.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;芬恩&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/7/73/5x4d8x6vsfe41yz80z43yv4mffoa4gu.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;泽维尔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/c/c4/lj9lwkay5sldwysr0ovkh9s9i8q8ij0.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;叶迦内&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/5/5d/hn3emus0z4dfbv9sg0dimkq2zx9ko0c.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;赫砂&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/2/22/gh1aobtny0nadtu8tzzcnd9jr08nwpi.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;泰登&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/dd/ryugrd31sbyp9f50h3mp0vjq0z2dtpx.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;露卡玛尔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/14/93hb30hg2uuea4re8tgcizqbf6i6oks.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;哈斯娜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/2/25/6xz9nwb8839cltgjjt0ztapwqr2erki.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;露维塔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/f9/hps9io0dccssen9yy2nul0fb920gont.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;伊瑟琳德&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/49/6rhy3j8gh4kc4c07njjpk7rs6bm5yma.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;基安希尔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a2/8m4i5e1rqpxwoirtaj5ulg3xupyjqlc.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;伊南娜•铃兰之剑&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/d9/9m9fo9a7v3hpcml4bm9h9yrsmvrfk8c.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;全装甲麦莎&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/12/nt408u0k69uf8mjdmbkskz6giidh7fz.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;阿坎贝&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/3a/6vojf1gl9gt9abd0oan74tod9si69vi.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;安娜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/9b/peh1k2c1rvxvqxq9sii1nabe3ww7h0d.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;克莱雅&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/0/05/pehv6lpigouwaapvm1nb7ltsalecgn2.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;安缇歌&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/4c/jq5ti90kk9to7eaqqsxwur98dvtiyox.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;米格尔&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/d4/nrdhgrsw7ju0dlqpis29r0akqr7gtwq.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;阿列克谢&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/6/6b/4xh0md040lve8ou986q25ilnun05srz.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;茉茉&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/b4/nwhwhyuzk6xtnfeuxnq4nd9eqddlv9d.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;爱莎&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/30/e0khirolvxdnf5qzhpca7zt6d7bst4n.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;卡丽丝•庇护之誓&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/5/58/gseb75rflyzc73a34mnlwk5lhm47zeu.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;珀列维特&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/19/igcx5abtihgzio573jf9g7yunc7oedz.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;嘉西娅&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/15/4woe52ddd4ew44zpqt2t07tfgqhwamb.png&quot;,&quot;type&quot;:&quot;突袭者&quot;},&quot;萨曼莎•审判&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/40/rlu448lqty9v19qav007cszujm3wxap.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;莉拉&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/3d/gi4m8i0755ujthip5l66gflyvezyk1f.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;艾达&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/2/2a/r18nh56r7b8sq3gw7xi9ggyfimoa7nh.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;贝拉&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/ad/fnfgreguwj9k0vbbzd53pzzhc0qh3b4.png&quot;,&quot;type&quot;:&quot;毁灭者&quot;},&quot;沙姆斯&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/8/89/bir7bnq7lgdmkaszt0dsx491k4lcsqj.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;伊奇&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/fb/l22s1tdrdm1ls0725whqstozswvx3ve.png&quot;,&quot;type&quot;:&quot;粉碎者&quot;},&quot;芙拉维娅&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/31/1a1jupri71rftzkzmqd6enls3nivg6q.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;法卡尔•卫国之箭&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/fc/agcepkgiw1goinqy1n4sks6u1i101dw.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;内尔伽勒&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/0/09/hjz54z4jkwr1ou70bm1alfebbf1f0cv.png&quot;,&quot;type&quot;:&quot;防御者&quot;},&quot;伊南娜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a4/tao0ggczgnof1yjh6xcdoqrvvobxr8p.png&quot;,&quot;type&quot;:&quot;守望者&quot;},&quot;索菲亚&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/be/q3wm0wduu73rmrf4vxmyhj532a7ddaj.png&quot;,&quot;type&quot;:&quot;突袭者&quot;}},&quot;epic&quot;:{&quot;神威&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/dd/ro00j9f7pyeruush4yyawtraz81q16u.png&quot;},&quot;绯砂&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/c/c3/p9rg8nv17mr76yyo8nj1pxhxj4a95dm.png&quot;},&quot;执剑者&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/c/cb/lvcb719whlgm3gwt46dr1s3bav8zk8t.png&quot;},&quot;神闪&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/7/7a/etrugq2l3rvuh0cnmiwydk7dltzdbb4.png&quot;},&quot;怒风&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/b0/oe2ugvt1svge3coreiw23xb2o8de1j1.png&quot;},&quot;摧城&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/7/7e/fscao6p5ktz1q6ergop4d7i5ujeys8u.png&quot;},&quot;天使&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/0/07/qwcf56trhxeykk9ia7hzkpdhanx61ns.png&quot;},&quot;红隼&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/91/5xnrf6bgiasaylvgpjfaeuxqh26mquq.png&quot;},&quot;志愿者&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/99/kg0yx9qgkyucqcsx5i2czh1yew3jdqt.png&quot;},&quot;耀光&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/b3/8irfu25566zbjmmxe5ert4ycw3f4c7k.png&quot;},&quot;烈啸&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/8/8e/m6c003ygsal7d4463kdw5ybryhwd37r.png&quot;},&quot;魔禁&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/5/58/rvpok7pg9dleijyelb3dovqwxj9lt2b.png&quot;},&quot;蝴蝶&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/ac/7n8zrw2n5h5tmnikjbm9d140o0vs9wc.png&quot;},&quot;神恩&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/d6/qac1vhvtanzov92vobkd8pl1jwdyie1.png&quot;},&quot;暗芒&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/e/ee/en4gcsz27wnvic5ny388k7kasals8n6.png&quot;},&quot;暗夜&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/46/7walz049yw3f21ltsw4wm2e5eyyk1cn.png&quot;},&quot;炎之魔女&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a4/ekslm056gl6jylu1u15wg6xx9v3fwtr.png&quot;},&quot;利刃&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/48/6glj4jx4d4ah1fyqj9s9pxx7c663dc8.png&quot;},&quot;噩骸&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/94/g2346ug1434xzj1eujuzjfd6q9ztsrl.png&quot;},&quot;狂鬃&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/6/66/3fbmq5fjyd6kx0ru4viku3s8p440cvd.png&quot;},&quot;烛火&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/a/a9/0a3qha1wcxqr154bokdt4mpr40pii72.png&quot;},&quot;圣眷&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/df/77fp2wrdkwwp9tkh8xs1o1z4rmlay81.png&quot;},&quot;苦药&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/8/85/51yc2i0153wjpfaprgq7zjp3ntpjpsi.png&quot;},&quot;黯心&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/b5/qjos3eva9vwweittvic95k0tzoclstz.png&quot;},&quot;铁卫&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/4b/mg706xb2pezej24e2l4gh0ybpwk7lvy.png&quot;},&quot;风暴神斧&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/7/7d/5bqn31fegrspa68amp9gfvenksi6pgw.png&quot;},&quot;锐眼&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/b4/h8srh8i603f0luf2y1ppic6fyvu5hcb.png&quot;},&quot;鞭笞&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/7/75/ng8pr12mkbx1ysoam32o4en3jivvyav.png&quot;},&quot;兵蜂&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/6/67/j1xuajul4xyveuw2iug16xqyga9vrd7.png&quot;},&quot;獠牙&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/d3/iultbcuj7mhibawxjp0irx3noqxsgd0.png&quot;}},&quot;elite&quot;:{&quot;王国军剑盾兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/8/8d/lj7vu0mqmjyiol4gzs7hmns2mpwm7lk.png&quot;},&quot;骑士同盟长枪兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/7/7f/3kwc9hozi3yfx0g70rae9buzg9t2sth.png&quot;},&quot;法皇国投枪兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/0/0d/1b1mnf0g46hpqkmb70s576elk2zdjta.png&quot;},&quot;黑暗之光冰术士&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/7/70/8az05v4msisnvpkpkt9wdwphi203xzo.png&quot;},&quot;露西亚雪鹿祭司&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/7/76/mk49mumymoi16trjujyz6emavyhzn2x.png&quot;},&quot;黑暗之光火术士&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/8/84/alek06ih85f8qi97a1uz6h1iv8wu40d.png&quot;},&quot;露西亚蛮熊盾卫&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/0/0c/28rqlb8267uupog8xvxz12flhlq5bb7.png&quot;},&quot;王国军弓箭手&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/36/mp7dcoc51sd7vld68rn7g4k4dflltd0.png&quot;},&quot;王国军光术士&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/b4/j5qojtvnxrx87ashrr3wzslfv57elwx.png&quot;},&quot;薇尔德斥候&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/6/60/o2k8v2skwgf7cxvagphtejjboxp1f5r.png&quot;},&quot;王国军长枪兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/c/c9/9ish8req10d5xndeotm0zl2kk9em9er.png&quot;},&quot;王国军火术士&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/1e/egexmnkcc7shorzd1zjn9omf6ajihmq.png&quot;},&quot;露西亚银狼猎手&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/9/96/631pihklmyxx98epdmf4bt1j60yuo5q.png&quot;},&quot;法皇国剑盾兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/38/alae4niisps7icp9r3fz934apcjs81j.png&quot;},&quot;法皇国冰术师&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/e/eb/hpctk53te04q59gm9hf7wh2b36shjcv.png&quot;},&quot;骑士团盾卫&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/3/37/chcb43a47gg1rdj5zd7cs9sshlf3tfn.png&quot;},&quot;埃拉曼商队盾卫&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/5/5c/ebz6iit0ecqu12z5c5setfy0khpe9e7.png&quot;},&quot;埃拉曼重斧斗士&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/40/isepuj1xeff0y130soqu7ba0aai8ly9.png&quot;},&quot;埃拉曼沙漠舞娘&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/42/bz1a3rj0xhm0svnjoo4xd5d8oc4v6we.png&quot;},&quot;露西亚野狐投枪兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/12/e0mwlqzds6ij50c40oeoahvy9hqpzh9.png&quot;}},&quot;common&quot;:{&quot;无法者弓兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/4/4c/e3lp7bhqbym9ej1zdsgrb3pbuumrtcp.png&quot;},&quot;无法者刺客&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/b/bb/5wpj438mssl62omnowzwiy7t5mjskx8.png&quot;},&quot;无法者巨斧兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/d/d0/pkdc6pqs4d0qqx6wrabhfs9qiuun5dd.png&quot;},&quot;雇佣剑盾兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/f2/h4lpk9ww7zrbpii9a7h9cus9jhut5es.png&quot;},&quot;雇佣刺客&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/0/0b/gx83e39tph3nxpsn5kicnkt7jufu4rf.png&quot;},&quot;雇佣长枪兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/f5/274l01h23k1ip1lu4rhiykhb4xwlikm.png&quot;},&quot;埃拉曼商队斥候队斥候&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/7/79/isfxp4jvlksp1lys4cir9bbhgdbyj0y.png&quot;},&quot;无法者弩兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/5/5b/ojkorv2yp1hgr4h1asqep9qu8qnxdlc.png&quot;},&quot;无法者斧盾兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/1/14/hgym0eukzn4216rysxhm4skd2gksacr.png&quot;},&quot;无法者长枪兵&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/f/f6/osja7xmjcdb9hhwgyz0xhpa4obzh693.png&quot;},&quot;雇佣弓手&quot;:{&quot;pixelUrl&quot;:&quot;https://patchwiki.biligame.com/images/llzj/c/c4/ieyp3qcglwchjvz2sd4tp73kj57csx8.png&quot;}}}</span>
+        <span data-key="legend_names">[&quot;贝拉&quot;,&quot;古兹曼&quot;,&quot;萨曼莎&quot;,&quot;米格尔&quot;,&quot;泽维尔&quot;,&quot;法卡尔&quot;,&quot;麦莎&quot;,&quot;科尔&quot;,&quot;迪塔利奥&quot;,&quot;拉维耶&quot;,&quot;莉莉薇儿&quot;,&quot;歌洛莉亚&quot;,&quot;泰登&quot;,&quot;诺诺薇儿&quot;,&quot;列奥尼德&quot;,&quot;伊奇&quot;,&quot;内尔伽勒&quot;,&quot;伦伽勒&quot;,&quot;伊南娜&quot;,&quot;嘉西娅&quot;,&quot;马格努斯&quot;,&quot;艾达&quot;,&quot;茉茉&quot;,&quot;索菲亚&quot;,&quot;奥古斯特&quot;,&quot;席梦娜&quot;,&quot;阿列克谢&quot;,&quot;蔻蔻娜&quot;,&quot;阿坎贝&quot;,&quot;哈斯娜&quot;,&quot;霍玛&quot;,&quot;卡丽丝&quot;,&quot;夏可露露&quot;,&quot;阿加塔&quot;,&quot;塔埃尔&quot;,&quot;拉维耶•初夏记忆&quot;,&quot;帕米娜&quot;,&quot;翠斯坦&quot;,&quot;莉拉&quot;,&quot;索菲亚•夏日约定&quot;,&quot;奇亚&quot;,&quot;柯瓦雷&quot;,&quot;露维塔&quot;,&quot;伊斯特拉&quot;,&quot;芙拉维娅&quot;,&quot;流星队&quot;,&quot;鲁特菲&quot;,&quot;爱莎&quot;,&quot;阿芙拉&quot;,&quot;伊南娜•铃兰之剑&quot;,&quot;妮蒂娅&quot;,&quot;黎各&quot;,&quot;柯莱丹萨&quot;,&quot;帕西法尔&quot;,&quot;萨曼莎•不灭微光&quot;,&quot;伊瑟琳德&quot;,&quot;全装甲麦莎&quot;,&quot;卡姆洛特&quot;,&quot;法卡尔•卫国之箭&quot;,&quot;伦伽勒•传承之枪&quot;,&quot;露卡玛尔&quot;,&quot;波奇茸茸&quot;,&quot;沙姆斯&quot;,&quot;克拉拉&quot;,&quot;赛琳娜&quot;,&quot;叶迦内&quot;,&quot;赫砂&quot;,&quot;沙娜姿&quot;,&quot;基安希尔&quot;,&quot;安娜&quot;,&quot;阿列克谢•风雪孤行&quot;,&quot;罗格妮达&quot;,&quot;乌莉娅&quot;,&quot;伊凡&quot;,&quot;芬恩&quot;,&quot;塞娜&quot;,&quot;阿加塔•凛冬极星&quot;,&quot;阿尔曼&quot;,&quot;贝拉•魔术师&quot;,&quot;珀列维特&quot;,&quot;菲娜塔&quot;,&quot;科尔•破晓之影&quot;,&quot;克莱雅&quot;,&quot;安缇歌&quot;,&quot;狄奥娜&quot;,&quot;卡丽丝•庇护之誓&quot;,&quot;萨曼莎•审判&quot;,&quot;薇佩拉&quot;]</span>
+        <span data-key="epic_names">[&quot;烛火&quot;,&quot;炎之魔女&quot;,&quot;蝴蝶&quot;,&quot;风暴神斧&quot;,&quot;志愿者&quot;,&quot;魔禁&quot;,&quot;摧城&quot;,&quot;鞭笞&quot;,&quot;怒风&quot;,&quot;天使&quot;,&quot;黯心&quot;,&quot;兵蜂&quot;,&quot;神威&quot;,&quot;耀光&quot;,&quot;锐眼&quot;,&quot;执剑者&quot;,&quot;红隼&quot;,&quot;暗夜&quot;,&quot;神恩&quot;,&quot;利刃&quot;,&quot;神闪&quot;,&quot;苦药&quot;,&quot;暗芒&quot;,&quot;烈啸&quot;,&quot;绯砂&quot;,&quot;噩骸&quot;,&quot;狂鬃&quot;,&quot;獠牙&quot;,&quot;铁卫&quot;,&quot;圣眷&quot;]</span>
+        <span data-key="elite_names">[&quot;薇尔德斥候&quot;,&quot;王国军弓箭手&quot;,&quot;黑暗之光火术士&quot;,&quot;王国军火术士&quot;,&quot;法皇国投枪兵&quot;,&quot;法皇国冰术师&quot;,&quot;骑士同盟长枪兵&quot;,&quot;王国军剑盾兵&quot;,&quot;王国军长枪兵&quot;,&quot;骑士团盾卫&quot;,&quot;黑暗之光冰术士&quot;,&quot;王国军光术士&quot;,&quot;法皇国剑盾兵&quot;,&quot;埃拉曼商队盾卫&quot;,&quot;埃拉曼沙漠舞娘&quot;,&quot;埃拉曼重斧斗士&quot;,&quot;露西亚蛮熊盾卫&quot;,&quot;露西亚雪鹿祭司&quot;,&quot;露西亚银狼猎手&quot;,&quot;露西亚野狐投枪兵&quot;]</span>
+        <span data-key="common_names">[&quot;无法者巨斧兵&quot;,&quot;雇佣剑盾兵&quot;,&quot;雇佣弓手&quot;,&quot;雇佣长枪兵&quot;,&quot;雇佣刺客&quot;,&quot;无法者斧盾兵&quot;,&quot;无法者长枪兵&quot;,&quot;无法者刺客&quot;,&quot;无法者弓兵&quot;,&quot;无法者弩兵&quot;,&quot;埃拉曼商队斥候队斥候&quot;]</span>
+    </div>
+
+    <header class="relative text-center pt-2 pb-8 overflow-hidden bg-transparent">
+        <div class="container mx-auto px-4 relative z-10">
+            <h1 class="text-5xl md:text-6xl font-bold tracking-[0.2em] mb-2" 
+                style="font-family: 'Noto Serif SC', serif; 
+                       background: linear-gradient(180deg, #fff8dc 0%, #ffd700 50%, #daa520 100%); 
+                       -webkit-background-clip: text; 
+                       -webkit-text-fill-color: transparent; 
+                       background-clip: text;
+                       text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+                       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+                       border: none !important;
+                       box-shadow: none !important;">
+                铃兰之剑
+            </h1>
+            <!-- 装饰分隔线：对称实线 -->
+<div class="my-4 flex items-center justify-center w-full px-4">
+    <!-- 左侧实线 -->
+    <div class="flex-1 h-px bg-amber-600 max-w-[200px]"></div>
+    <!-- 中间图片 -->
+    <div class="mx-1 flex-shrink-0">
+        <img src="https://patchwiki.biligame.com/images/llzj/f/fa/8xk4fb51ul5e9i5qngwwv53ctc175yl.png" 
+             alt="装饰" 
+             class="h-10 md:h-12 object-contain">
+    </div>
+    <!-- 右侧实线 -->
+    <div class="flex-1 h-px bg-amber-600 max-w-[200px]"></div>
+</div>
+
+            <div class="flex items-center justify-center gap-4">
+    <!-- 左边横线 -->
+    <span class="h-px w-12 bg-gradient-to-l from-transparent via-amber-400 to-transparent"></span>
+    <!-- 文字：使用等宽布局 -->
+    <p class="text-base md:text-lg text-amber-700 font-medium flex justify-center" style="width: 140px; letter-spacing: 0;">
+        <span class="inline-block text-center" style="width: 28px;">邂</span>
+        <span class="inline-block text-center" style="width: 28px;">逅</span>
+        <span class="inline-block text-center" style="width: 28px;">模</span>
+        <span class="inline-block text-center" style="width: 28px;">拟</span>
+        <span class="inline-block text-center" style="width: 28px;">器</span>
+    </p>
+    <!-- 右边横线 -->
+    <span class="h-px w-12 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></span>
+</div>
+        </div>
+    </header>
+
+    <div class="desktop-container">
+        <main class="container mx-auto px-4 py-6 max-w-6xl">
+            <div class="flex flex-col md:flex-row gap-6 mb-6">
+                <!-- 左侧：卡池选择 + 电脑端按钮 -->
+                <div class="w-full md:w-[40%] pool-section">
+                    <div class="flex flex-col items-center mb-4">
+    <div class="pool-type-iris chuyu-iris">
+        <span class="iris-left">⚜</span>
+        <span class="iris-line-short"></span>  <!-- 短渐变横线 -->
+        <span class="iris-spacer"></span>       <!-- 透明间隔 -->
+        <span class="iris-text">
+            <span class="char-spacer">初</span>
+            <span class="char-spacer">遇</span>
+        </span>
+        <span class="iris-spacer"></span>       <!-- 透明间隔 -->
+        <span class="iris-line-short"></span>   <!-- 短渐变横线 -->
+        <span class="iris-right">⚜</span>
+    </div>
+    <div onclick="switchPool('chuyu')" id="pool-card-chuyu" class="pool-card active w-full">
+        <div class="pool-image-area" id="chuyu-image-container"></div>
+    </div>
+</div>
+<div class="flex flex-col items-center">
+    <div class="pool-type-iris chongfeng-iris">
+        <span class="iris-left">⚜</span>
+        <span class="iris-line-short"></span>
+        <span class="iris-spacer"></span>
+        <span class="iris-text">
+            <span class="char-spacer">重</span>
+            <span class="char-spacer">逢</span>
+        </span>
+        <span class="iris-spacer"></span>
+        <span class="iris-line-short"></span>
+        <span class="iris-right">⚜</span>
+    </div>
+    <div onclick="switchPool('chongfeng')" id="pool-card-chongfeng" class="pool-card w-full">
+        <div class="pool-image-area" id="chongfeng-image-container"></div>
+    </div>
+</div>
+
+                    <div class="buttons-desktop">
+                        <div class="flex gap-3 justify-center">
+                            <button onclick="gacha(1)" class="gacha-button px-6 py-3 rounded-xl text-lg shadow-lg flex-1 max-w-[120px]">
+                                邂逅1次
+                            </button>
+                            <button onclick="gacha(10)" class="gacha-button px-6 py-3 rounded-xl text-lg shadow-lg flex-1 max-w-[120px]">
+                                邂逅10次
+                            </button>
+                        </div>
+                        <button onclick="resetStats()" class="reset-button px-6 py-3 rounded-xl text-lg shadow-lg w-full max-w-[252px] mx-auto">
+                            🔄 重置
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-[60%]">
+                    <div class="bg-white rounded-2xl shadow-lg p-6 border border-amber-100 h-full">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                            <div>
+                                <h2 id="pool-name" class="text-2xl font-bold text-amber-900 mb-1"></h2>
+                                <p id="pool-type" class="text-amber-600 text-sm"></p>
+                            </div>
+                            <button onclick="showDetails()" class="mt-2 md:mt-0 px-4 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition text-sm font-semibold">
+                                📋 查看详情
+                            </button>
+                        </div>
+
+                        <div id="up-characters" class="flex flex-wrap gap-4 mb-6"></div>
+
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm font-semibold text-amber-800">全局保底</span>
+                                    <span class="text-xs text-amber-600">100抽内必得传说</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                                    <div id="global-pity-bar" class="pity-bar h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                                <div class="flex justify-between text-xs text-amber-700">
+                                    <span>当前: <span id="global-pity-count" class="font-bold">0</span>抽</span>
+                                    <span>剩余: <span id="global-pity-remain" class="font-bold">100</span>抽</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span id="special-pity-title" class="text-sm font-semibold text-amber-800">初遇保底</span>
+                                    <span id="special-pity-desc" class="text-xs text-amber-600">180抽内必得UP角色</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                                    <div id="special-pity-bar" class="pity-bar h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                                <div class="flex justify-between text-xs text-amber-700">
+                                    <span>当前: <span id="special-pity-count" class="font-bold">0</span>抽</span>
+                                    <span>剩余: <span id="special-pity-remain" class="font-bold">180</span>抽</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="buttons-mobile">
+                <button onclick="gacha(1)" class="gacha-button px-6 py-3 rounded-xl text-lg shadow-lg min-w-[100px]">
+                    邂逅1次
+                </button>
+                <button onclick="gacha(10)" class="gacha-button px-6 py-3 rounded-xl text-lg shadow-lg min-w-[100px]">
+                    邂逅10次
+                </button>
+                <button onclick="resetStats()" class="reset-button px-4 py-3 rounded-xl text-lg shadow-lg min-w-[80px]">
+                    🔄 重置
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-4 shadow-md border border-amber-100 text-center">
+                    <div class="text-2xl font-bold text-amber-900" id="stat-total">0</div>
+                    <div class="text-xs text-gray-600">总抽数</div>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-md border border-amber-100 text-center">
+                    <div class="text-2xl font-bold rarity-legend" id="stat-legend">0</div>
+                    <div class="text-xs text-gray-600">传说角色</div>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-md border border-amber-100 text-center">
+                    <div class="text-2xl font-bold rarity-epic" id="stat-epic">0</div>
+                    <div class="text-xs text-gray-600">史诗角色</div>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-md border border-amber-100 text-center">
+                    <div class="text-2xl font-bold text-amber-700" id="stat-avg">0</div>
+                    <div class="text-xs text-gray-600">平均出货</div>
+                </div>
+            </div>
+
+            <div id="result-area" class="hidden bg-white rounded-2xl shadow-lg pt-1 pb-12 px-2 mb-2 border border-amber-100">
+                <h3 class="text-lg font-bold text-amber-900 flex items-center" style="margin:0px 0 7px 0;">
+    <img src="https://patchwiki.biligame.com/images/llzj/8/81/lxht69ujupvx62vwuifmdy9godmu7ub.png" 
+         alt="星星" 
+         class="w-16 h-16 object-contain" 
+         style="margin:0 -8px 0 -3px;" 
+         id="result-star-icon">
+    邂逅结果
+    <span id="result-count" class="ml-2 text-sm font-normal text-amber-600"></span>
+</h3>
+                <div id="result-grid" class="grid grid-cols-5 md:grid-cols-10 gap-2"></div>
+            </div>
+
+            <!-- 手机端：传说角色统计 -->
+            <div class="mobile-only bg-white rounded-2xl shadow-lg pt-1 pb-12 px-6 border border-amber-100 mb-2">
+                <h3 class="text-lg font-bold text-amber-900" style="margin: 0px 0 7px 0;">
+    <img src="https://patchwiki.biligame.com/images/llzj/a/a9/abs45fkpnewex091qqvafa7ynzndejo.png" alt="传说图标" class="w-14 h-14 object-contain inline-block align-middle" style="margin:0 -3px 0 -7px;" id="legend-icon-mobile"><span class="align-middle">传说角色统计</span>
+</h3>
+                <div id="legend-stats-list-mobile" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                    <div class="text-center text-gray-400 py-8 col-span-2">暂无传说角色</div>
+                </div>
+            </div>
+
+            <!-- 电脑端：传说角色统计 -->
+            <div class="stats-row">
+                <!-- 传说角色统计（左侧） -->
+                <div class="bg-white rounded-2xl shadow-lg pt-1 pb-12 px-6 border border-amber-100">
+                    <h3 class="text-lg font-bold text-amber-900" style="margin: 0px 0 7px 0;">
+    <img src="https://patchwiki.biligame.com/images/llzj/a/a9/abs45fkpnewex091qqvafa7ynzndejo.png" alt="传说图标" class="w-14 h-14 object-contain inline-block align-middle" style="margin:0 -3px 0 -7px;" id="legend-icon-desktop"><span class="align-middle">传说角色统计</span>
+</h3>
+                    <div id="legend-stats-list-desktop" class="legend-stats-grid-desktop max-h-64 overflow-y-auto">
+                        <div class="text-center text-gray-400 py-8 col-span-3">暂无传说角色</div>
+                    </div>
+                </div>
+
+                <!-- 历史记录（右侧） -->
+                <div class="bg-white rounded-2xl shadow-lg pt-1 pb-12 px-6 border border-amber-100">
+                    <h3 class="text-lg font-bold text-amber-900 flex items-center" style="margin:0px 0 7px 0;">
+    <img src="https://patchwiki.biligame.com/images/llzj/d/de/4tfw9hhcf4do0mjejj67xr9so5959oe.png" alt="历史图标" class="w-14 h-14 object-contain" style="margin:0 -4px 0 -7px;" id="history-icon-desktop">
+    历史记录
+</h3>
+
+                    <div id="history-list" class="space-y-2 max-h-64 overflow-y-auto">
+                        <div class="text-center text-gray-400 py-8">暂无记录</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 手机端：历史记录 -->
+            <div class="mobile-only bg-white rounded-2xl shadow-lg pt-1 pb-12 px-6 border border-amber-100">
+                <h3 class="text-lg font-bold text-amber-900 flex items-center" style="margin:0px 0 7px 0;">
+    <img src="https://patchwiki.biligame.com/images/llzj/d/de/4tfw9hhcf4do0mjejj67xr9so5959oe.png" alt="历史图标" class="w-14 h-14 object-contain" style="margin:0 -4px 0 -7px;" id="history-icon-mobile">
+    历史记录
+</h3>
+
+                <div id="history-list-mobile" class="space-y-2 max-h-64 overflow-y-auto">
+                    <div class="text-center text-gray-400 py-8">暂无记录</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="details-modal" class="hidden fixed inset-0 z-50 modal-backdrop bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="sticky top-0 bg-white border-b border-amber-200 p-4 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-amber-900">概率公示</h2>
+                <button onclick="closeDetails()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <div class="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200 text-sm text-amber-800">
+                    <p>💡 显示概率为依据法律规定的四舍五入后数值，因此合计数值可能不等于100%</p>
+                </div>
+                <div class="mb-6">
+    <h3 class="text-lg font-bold rarity-legend mb-3">
+        <img src="https://patchwiki.biligame.com/images/llzj/1/11/a9p2rsox65qsoegwep0y3ng71udi8nm.png" alt="传说" class="w-14 h-14 object-contain inline-block align-middle" style="margin:0 -1px 0 4px;" onerror="this.style.display='none'">
+        <span class="align-middle">- 综合出率2%</span>
+    </h3>
+    <div id="legend-list" class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm"></div>
+</div>
+<div class="mb-6">
+    <h3 class="text-lg font-bold rarity-epic mb-3">
+        <img src="https://patchwiki.biligame.com/images/llzj/8/8b/253mcy07zwz49ti302bvlki1zkk0sds.png" alt="史诗" class="w-14 h-14 object-contain inline-block align-middle" style="margin:0 -1px 0 4px;" onerror="this.style.display='none'">
+        <span class="align-middle">- 综合出率20%</span>
+    </h3>
+    <div id="epic-list" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm max-h-48 overflow-y-auto"></div>
+</div>
+<div class="mb-6">
+    <h3 class="text-lg font-bold rarity-elite mb-3">
+        <img src="https://patchwiki.biligame.com/images/llzj/4/41/44114hts10wk5wrldav5s4rvxtdij5z.png" alt="精英" class="w-14 h-14 object-contain inline-block align-middle" style="margin:0 -1px 0 4px;" onerror="this.style.display='none'">
+        <span class="align-middle">- 综合出率40%</span>
+    </h3>
+    <div id="elite-list" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm max-h-48 overflow-y-auto"></div>
+</div>
+<div class="mb-6">
+    <h3 class="text-lg font-bold rarity-common mb-3">
+        <img src="https://patchwiki.biligame.com/images/llzj/0/0e/8fokkkhotvd0586ksjo2kb38jlkzvdk.png" alt="普通" class="w-14 h-14 object-contain inline-block align-middle" style="margin:0 -1px 0 4px;" onerror="this.style.display='none'">
+        <span class="align-middle">- 综合出率38%</span>
+    </h3>
+    <div id="common-list" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm max-h-48 overflow-y-auto"></div>
+</div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <h4 class="font-bold text-gray-800 mb-2">保底规则</h4>
+                    <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                        <li>全局保底：100抽内必得随机传说角色</li>
+                        <li id="special-rule">初遇保底：180抽内必得UP角色</li>
+                        <li>触发特殊保底时，不会同时触发全局保底</li>
+                        <li>同类型卡池保底计数互通</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 从模块获取数据 ====================
+        
+        // 解析注入的JSON数据
+        const CHARACTER_DB = JSON.parse(document.querySelector('#widget-params [data-key="character_db"]').textContent || '{}');
+        const LEGEND_NAMES = JSON.parse(document.querySelector('#widget-params [data-key="legend_names"]').textContent || '[]');
+        const EPIC_NAMES = JSON.parse(document.querySelector('#widget-params [data-key="epic_names"]').textContent || '[]');
+        const ELITE_NAMES = JSON.parse(document.querySelector('#widget-params [data-key="elite_names"]').textContent || '[]');
+        const COMMON_NAMES = JSON.parse(document.querySelector('#widget-params [data-key="common_names"]').textContent || '[]');
+        
+        // 构建 ALL_LEGEND_CHARACTERS 数组
+        const ALL_LEGEND_CHARACTERS = LEGEND_NAMES.map(name => ({
+            name: name,
+            type: CHARACTER_DB.legend[name]?.type || '未知'
+        }));
+        
+        // 辅助函数
+        function getCharacterInfo(name, rarity) {
+            const db = CHARACTER_DB[rarity];
+            if (db && db[name]) {
+                return db[name];
+            }
+            return { type: '未知', pixelUrl: '' };
+        }
+
+        function getCharacterType(charName) {
+            const char = ALL_LEGEND_CHARACTERS.find(c => c.name === charName);
+            return char ? char.type : '未知';
+        }
+
+        // ==================== 原有配置代码（保持不变）====================
+
+        function getWidgetParam(key, defaultValue) {
+            const paramEl = document.querySelector(`#widget-params [data-key="${key}"]`);
+            if (paramEl) {
+                const value = paramEl.textContent.trim();
+                if (value && !value.includes('{$') && value !== '') {
+                    return value;
+                }
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has(key)) {
+                return decodeURIComponent(urlParams.get(key));
+            }
+            return defaultValue;
+        }
+
+        function getImageUrl(imgValue) {
+            if (!imgValue) return '';
+            if (imgValue.startsWith('http')) return imgValue;
+            if (imgValue.startsWith('//')) return imgValue;
+            if (imgValue.startsWith('/')) return imgValue;
+            return imgValue;
+        }
+
+        function getAvatarUrl(charName, customUrl) {
+            if (customUrl && (customUrl.startsWith('http') || customUrl.startsWith('//'))) {
+                return customUrl;
+            }
+            return `头像${charName}.png`;
+        }
+
+        // 配置对象
+        const WIDGET_CONFIG = {
+            chuyu: {
+                name: getWidgetParam('chuyu_name', '露西亚之血永存'),
+                char: getWidgetParam('chuyu_char', '罗格妮达'),
+                img: getWidgetParam('chuyu_img', ''),
+                avatar: getWidgetParam('chuyu_avatar', '')
+            },
+            chongfeng: {
+                name: getWidgetParam('chongfeng_name', '重逢之时'),
+                chara: getWidgetParam('chongfeng_chara', '帕米娜'),
+                charb: getWidgetParam('chongfeng_charb', '卡丽丝'),
+                img: getWidgetParam('chongfeng_img', ''),
+                avatara: getWidgetParam('chongfeng_avatara', ''),
+                avatarb: getWidgetParam('chongfeng_avatarb', '')
+            }
+        };
+
+        // 卡池配置
+        const CHUYU_CONFIG = {
+            poolName: WIDGET_CONFIG.chuyu.name,
+            upCharacter: {
+                name: WIDGET_CONFIG.chuyu.char,
+                type: getCharacterType(WIDGET_CONFIG.chuyu.char),
+                avatar: WIDGET_CONFIG.chuyu.avatar
+            },
+            img: WIDGET_CONFIG.chuyu.img
+        };
+
+        const CHONGFENG_CONFIG = {
+            poolName: WIDGET_CONFIG.chongfeng.name,
+            upCharacters: [
+                { 
+                    name: WIDGET_CONFIG.chongfeng.chara, 
+                    type: getCharacterType(WIDGET_CONFIG.chongfeng.chara),
+                    avatar: WIDGET_CONFIG.chongfeng.avatara
+                },
+                { 
+                    name: WIDGET_CONFIG.chongfeng.charb, 
+                    type: getCharacterType(WIDGET_CONFIG.chongfeng.charb),
+                    avatar: WIDGET_CONFIG.chongfeng.avatarb
+                }
+            ],
+            img: WIDGET_CONFIG.chongfeng.img
+        };
+
+        function buildCharactersDB() {
+            const upNames = new Set([CHUYU_CONFIG.upCharacter.name, ...CHONGFENG_CONFIG.upCharacters.map(c => c.name)]);
+            const legendList = [];
+            
+            legendList.push({ ...CHUYU_CONFIG.upCharacter, isUp: true, pool: 'chuyu' });
+            CHONGFENG_CONFIG.upCharacters.forEach(char => legendList.push({ ...char, isUp: true, pool: 'chongfeng' }));
+            
+            ALL_LEGEND_CHARACTERS.forEach(char => {
+                if (!upNames.has(char.name)) legendList.push({ name: char.name, type: char.type, isUp: false });
+            });
+            
+            return { legend: legendList, epic: EPIC_NAMES, elite: ELITE_NAMES, common: COMMON_NAMES };
+        }
+
+        let characters = buildCharactersDB();
+
+        function buildPoolConfig() {
+            return {
+                chuyu: {
+                    name: CHUYU_CONFIG.poolName,
+                    type: "初遇",
+                    upCharacters: [CHUYU_CONFIG.upCharacter],
+                    upRate: 0.5,
+                    specialPity: 180,
+                    specialPityText: "180抽内必得UP角色",
+                    img: CHUYU_CONFIG.img
+                },
+                chongfeng: {
+                    name: CHONGFENG_CONFIG.poolName,
+                    type: "重逢",
+                    upCharacters: CHONGFENG_CONFIG.upCharacters,
+                    upRate: 0.75,
+                    specialPity: 180,
+                    specialPityText: "180抽内必得未拥有UP角色",
+                    img: CHONGFENG_CONFIG.img
+                }
+            };
+        }
+
+        let pools = buildPoolConfig();
+
+        let currentPool = 'chuyu';
+        let globalPity = 0;
+        let specialPity = { chuyu: 0, chongfeng: 0 };
+        let ownedCharacters = new Set();
+        let stats = { total: 0, legend: 0, epic: 0, elite: 0, common: 0, history: [], legendStats: {} };
+
+        function init() { 
+            const chuyuImgContainer = document.getElementById('chuyu-image-container');
+            const chuyuImgUrl = getImageUrl(pools.chuyu.img);
+            if (chuyuImgUrl) {
+                chuyuImgContainer.innerHTML = `<img src="${chuyuImgUrl}" alt="初遇卡池" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'placeholder-text\'>初遇卡池</div>';">`;
+            } else {
+                chuyuImgContainer.innerHTML = '<div class="placeholder-text">初遇卡池</div>';
+            }
+            
+            const chongfengImgContainer = document.getElementById('chongfeng-image-container');
+            const chongfengImgUrl = getImageUrl(pools.chongfeng.img);
+            if (chongfengImgUrl) {
+                chongfengImgContainer.innerHTML = `<img src="${chongfengImgUrl}" alt="重逢卡池" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'placeholder-text\'>重逢卡池</div>';">`;
+            } else {
+                chongfengImgContainer.innerHTML = '<div class="placeholder-text">重逢卡池</div>';
+            }
+            
+            updateUI(); 
+        }
+
+        function switchPool(pool) {
+            currentPool = pool;
+            document.querySelectorAll('.pool-card').forEach(card => card.classList.remove('active'));
+            document.getElementById(`pool-card-${pool}`).classList.add('active');
+            updateUI();
+        }
+
+        function resetStats() {
+            if (!confirm('确定要重置所有统计数据吗？')) return;
+            globalPity = 0;
+            specialPity = { chuyu: 0, chongfeng: 0 };
+            ownedCharacters.clear();
+            stats = { total: 0, legend: 0, epic: 0, elite: 0, common: 0, history: [], legendStats: {} };
+            updateUI();
+            updateStats();
+            document.getElementById('result-area').classList.add('hidden');
+            alert('统计已重置！');
+        }
+
+        function updateUI() {
+            const pool = pools[currentPool];
+            document.getElementById('pool-name').textContent = pool.name;
+            document.getElementById('pool-type').textContent = `邂逅类型：${pool.type}`;
+            
+            const upContainer = document.getElementById('up-characters');
+            upContainer.innerHTML = pool.upCharacters.map(char => {
+                const avatarUrl = getAvatarUrl(char.name, char.avatar);
+                return `
+                <div class="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
+                    <img src="${avatarUrl}" alt="${char.name}" class="up-character-avatar mr-3" 
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="up-character-avatar-fallback mr-3" style="display:none;">${char.name[0]}</div>
+                    <div>
+                        <div class="font-bold text-amber-900">${char.name}</div>
+                        <div class="text-xs text-amber-600">${char.type}</div>
+                    </div>
+                    <div class="ml-3 text-xs bg-amber-200 text-amber-800 px-2 py-1 rounded">UP</div>
+                </div>
+            `;
+            }).join('');
+            
+            document.getElementById('global-pity-count').textContent = globalPity;
+            document.getElementById('global-pity-remain').textContent = Math.max(0, 100 - globalPity);
+            document.getElementById('global-pity-bar').style.width = `${Math.min((globalPity / 100) * 100, 100)}%`;
+            
+            const currentSpecialPity = specialPity[currentPool];
+            document.getElementById('special-pity-title').textContent = `${pool.type}保底`;
+            document.getElementById('special-pity-desc').textContent = pool.specialPityText;
+            document.getElementById('special-pity-count').textContent = currentSpecialPity;
+            document.getElementById('special-pity-remain').textContent = Math.max(0, pool.specialPity - currentSpecialPity);
+            document.getElementById('special-pity-bar').style.width = `${Math.min((currentSpecialPity / pool.specialPity) * 100, 100)}%`;
+            
+            document.getElementById('special-rule').textContent = 
+                pool.type === '初遇' ? '初遇保底：180抽内必得UP角色' : '重逢保底：180抽内必得未拥有UP角色';
+        }
+
+        function gacha(times) {
+            const results = [];
+            const pool = pools[currentPool];
+            
+            for (let i = 0; i < times; i++) {
+                globalPity++;
+                specialPity[currentPool]++;
+                let result;
+                
+                if (specialPity[currentPool] >= pool.specialPity) {
+                    if (pool.type === '初遇') {
+                        result = { ...pool.upCharacters[0], rarity: 'legend', isUp: true };
+                    } else {
+                        const unowned = pool.upCharacters.filter(c => !ownedCharacters.has(c.name));
+                        const target = unowned.length > 0 ? unowned[Math.floor(Math.random() * unowned.length)] : pool.upCharacters[Math.floor(Math.random() * pool.upCharacters.length)];
+                        result = { ...target, rarity: 'legend', isUp: true };
+                    }
+                    specialPity[currentPool] = 0;
+                } else if (globalPity >= 100) {
+                    result = getRandomLegend(pool);
+                    globalPity = 0;
+                } else {
+                    const rand = Math.random();
+                    if (rand < 0.02) { result = getRandomLegend(pool); globalPity = 0; }
+                    else if (rand < 0.22) result = { name: characters.epic[Math.floor(Math.random() * characters.epic.length)], rarity: 'epic' };
+                    else if (rand < 0.62) result = { name: characters.elite[Math.floor(Math.random() * characters.elite.length)], rarity: 'elite' };
+                    else result = { name: characters.common[Math.floor(Math.random() * characters.common.length)], rarity: 'common' };
+                }
+                
+                if (result.isUp) specialPity[currentPool] = 0;
+                if (result.rarity === 'legend') {
+                    ownedCharacters.add(result.name);
+                    // 更新传说角色统计
+                    if (!stats.legendStats[result.name]) {
+                        stats.legendStats[result.name] = 0;
+                    }
+                    stats.legendStats[result.name]++;
+                }
+                
+                results.push(result);
+                stats.total++;
+                if (result.rarity === 'legend') stats.legend++;
+                else if (result.rarity === 'epic') stats.epic++;
+                else if (result.rarity === 'elite') stats.elite++;
+                else stats.common++;
+                
+                stats.history.unshift({
+                    time: new Date().toLocaleTimeString(),
+                    name: result.name,
+                    rarity: result.rarity,
+                    isUp: result.isUp,
+                    pool: pool.name
+                });
+            }
+            
+            if (stats.history.length > 50) stats.history = stats.history.slice(0, 50);
+            displayResults(results);
+            updateStats();
+            updateUI();
+        }
+
+        function getRandomLegend(pool) {
+            const isUp = Math.random() < pool.upRate;
+            if (isUp) {
+                const upChar = pool.upCharacters[Math.floor(Math.random() * pool.upCharacters.length)];
+                return { ...upChar, rarity: 'legend', isUp: true };
+            } else {
+                const nonUp = characters.legend.filter(c => !c.isUp);
+                const char = nonUp[Math.floor(Math.random() * nonUp.length)];
+                return { name: char.name, type: char.type || '未知', rarity: 'legend', isUp: false };
+            }
+        }
+
+        function displayResults(results) {
+            const area = document.getElementById('result-area');
+            const grid = document.getElementById('result-grid');
+            const count = document.getElementById('result-count');
+            
+            area.classList.remove('hidden');
+            count.textContent = `(${results.length}次)`;
+            
+            grid.innerHTML = results.map((r, i) => {
+                const rarityClass = `card-rarity-${r.rarity}`;
+                const rarityText = r.rarity === 'legend' ? '传说' : r.rarity === 'epic' ? '史诗' : r.rarity === 'elite' ? '精英' : '普通';
+                const upBadge = r.isUp ? '<div class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1 rounded z-10">UP</div>' : '';
+                
+                const charInfo = getCharacterInfo(r.name, r.rarity);
+                const pixelUrl = charInfo.pixelUrl || `像素人物 ${r.name}.png`;
+                
+                return `
+    <div class="character-card relative ${rarityClass} rounded-lg text-white text-center cursor-pointer transform hover:scale-105 transition flex flex-col items-center justify-between p-0" style="animation-delay: ${i * 0.05}s; min-height: 120px;">
+        ${upBadge}
+        <div class="rarity-label w-full text-center mb-1">${rarityText}</div>
+        <div class="flex-1 flex items-center justify-center w-full">
+            <img src="${pixelUrl}" alt="${r.name}" class="pixel-character-img" 
+                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'text-2xl\'>?</div>';">
+        </div>
+        <div class="character-name w-full text-center mt-1">${r.name}</div>
+    </div>
+`;
+            }).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('stat-total').textContent = stats.total;
+            document.getElementById('stat-legend').textContent = stats.legend;
+            document.getElementById('stat-epic').textContent = stats.epic;
+            document.getElementById('stat-avg').textContent = stats.legend > 0 ? (stats.total / stats.legend).toFixed(1) : 0;
+            
+            // 更新历史记录（电脑端）
+            const historyList = document.getElementById('history-list');
+            if (stats.history.length === 0) {
+                historyList.innerHTML = '<div class="text-center text-gray-400 py-8">暂无记录</div>';
+            } else {
+                historyList.innerHTML = stats.history.map(h => {
+                    const colorClass = h.rarity === 'legend' ? 'text-amber-600 font-bold' : h.rarity === 'epic' ? 'text-purple-600' : h.rarity === 'elite' ? 'text-blue-600' : 'text-gray-500';
+                    const upMark = h.isUp ? ' <span class="text-red-500 text-xs">[UP]</span>' : '';
+                    return `
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100 text-sm">
+                            <div>
+                                <span class="text-gray-400 text-xs mr-2">${h.time}</span>
+                                <span class="${colorClass}">${h.name}</span>${upMark}
+                            </div>
+                            <span class="text-xs text-gray-400">${h.pool}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // 更新历史记录（手机端）
+            const historyListMobile = document.getElementById('history-list-mobile');
+            if (stats.history.length === 0) {
+                historyListMobile.innerHTML = '<div class="text-center text-gray-400 py-8">暂无记录</div>';
+            } else {
+                historyListMobile.innerHTML = stats.history.map(h => {
+                    const colorClass = h.rarity === 'legend' ? 'text-amber-600 font-bold' : h.rarity === 'epic' ? 'text-purple-600' : h.rarity === 'elite' ? 'text-blue-600' : 'text-gray-500';
+                    const upMark = h.isUp ? ' <span class="text-red-500 text-xs">[UP]</span>' : '';
+                    return `
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100 text-sm">
+                            <div>
+                                <span class="text-gray-400 text-xs mr-2">${h.time}</span>
+                                <span class="${colorClass}">${h.name}</span>${upMark}
+                            </div>
+                            <span class="text-xs text-gray-400">${h.pool}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // 更新传说角色统计
+            updateLegendStats();
+        }
+
+        function updateLegendStats() {
+            const legendStats = stats.legendStats;
+            const legendEntries = Object.entries(legendStats);
+            
+            // 手机端
+            const mobileContainer = document.getElementById('legend-stats-list-mobile');
+            if (legendEntries.length === 0) {
+                mobileContainer.innerHTML = '<div class="text-center text-gray-400 py-8 col-span-2">暂无传说角色</div>';
+            } else {
+                mobileContainer.innerHTML = legendEntries.map(([name, count]) => {
+                    const countDisplay = count > 1 ? `×${count}` : '';
+                    return `
+                        <div class="flex items-center justify-between p-2 bg-amber-50 rounded border border-amber-200">
+                            <span class="text-amber-600 font-semibold text-sm">${name}</span>
+                            ${countDisplay ? `<span class="text-amber-600 font-bold text-sm">${countDisplay}</span>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // 电脑端
+            const desktopContainer = document.getElementById('legend-stats-list-desktop');
+            if (legendEntries.length === 0) {
+                desktopContainer.innerHTML = '<div class="text-center text-gray-400 py-8 col-span-3">暂无传说角色</div>';
+            } else {
+                desktopContainer.innerHTML = legendEntries.map(([name, count]) => {
+                    const countDisplay = count > 1 ? `×${count}` : '';
+                    return `
+                        <div class="flex items-center justify-between p-2 bg-amber-50 rounded border border-amber-200">
+                            <span class="text-amber-600 font-semibold text-sm">${name}</span>
+                            ${countDisplay ? `<span class="text-amber-600 font-bold text-sm">${countDisplay}</span>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function renderCharacterLists() {
+            const pool = pools[currentPool];
+            const legendContainer = document.getElementById('legend-list');
+            let legendHTML = '';
+            
+            // 获取当前卡池的UP角色名集合
+            const currentUpNames = new Set(pool.upCharacters.map(c => c.name));
+            
+            // 1. 先显示UP角色（按照 pool.upCharacters 的顺序）
+            if (pool.type === '初遇') {
+                const upChar = pool.upCharacters[0];
+                legendHTML += `<div class="flex justify-between items-center p-2 bg-amber-50 rounded border border-amber-200"><span class="font-semibold text-amber-900">${upChar.name} <span class="text-xs bg-red-500 text-white px-1 rounded">UP</span></span><span class="text-amber-700 font-mono">1.000%</span></div>`;
+            } else {
+                pool.upCharacters.forEach(char => {
+                    legendHTML += `<div class="flex justify-between items-center p-2 bg-amber-50 rounded border border-amber-200"><span class="font-semibold text-amber-900">${char.name} <span class="text-xs bg-red-500 text-white px-1 rounded">UP</span></span><span class="text-amber-700 font-mono">0.750%</span></div>`;
+                });
+            }
+            
+            // 2. 显示非UP传说角色（按照 LEGEND_NAMES 数组的原始顺序）
+            const nonUpRate = pool.type === '初遇' ? '0.014%' : '0.007%';
+            LEGEND_NAMES.forEach(name => {
+                // 跳过当前卡池的UP角色
+                if (!currentUpNames.has(name)) {
+                    legendHTML += `<div class="flex justify-between items-center p-2 bg-gray-50 rounded"><span class="text-gray-700">${name}</span><span class="text-gray-500 font-mono text-xs">${nonUpRate}</span></div>`;
+                }
+            });
+            legendContainer.innerHTML = legendHTML;
+            
+            // 3. 史诗角色（按照 EPIC_NAMES 数组的原始顺序）
+            document.getElementById('epic-list').innerHTML = EPIC_NAMES.map(name => `<div class="flex justify-between items-center p-2 bg-gray-50 rounded"><span class="text-gray-700 text-xs">${name}</span><span class="text-gray-500 font-mono text-xs">0.741%</span></div>`).join('');
+            
+            // 4. 精英角色（按照 ELITE_NAMES 数组的原始顺序）
+            document.getElementById('elite-list').innerHTML = ELITE_NAMES.map(name => `<div class="flex justify-between items-center p-2 bg-gray-50 rounded"><span class="text-gray-700 text-xs">${name}</span><span class="text-gray-500 font-mono text-xs">2.222%</span></div>`).join('');
+            
+            // 5. 普通角色（按照 COMMON_NAMES 数组的原始顺序）
+            document.getElementById('common-list').innerHTML = COMMON_NAMES.map(name => `<div class="flex justify-between items-center p-2 bg-gray-50 rounded"><span class="text-gray-700 text-xs">${name}</span><span class="text-gray-500 font-mono text-xs">3.455%</span></div>`).join('');
+        }
+
+        function showDetails() { renderCharacterLists(); document.getElementById('details-modal').classList.remove('hidden'); }
+        function closeDetails() { document.getElementById('details-modal').classList.add('hidden'); }
+        document.getElementById('details-modal').addEventListener('click', function(e) { if (e.target === this) closeDetails(); });
+
+        init();
+    </script>
+</body>
+</html>
+</p><p><br />
+</p>
+<h2><span id=".E5.8E.9F.E4.BD.9C.E8.80.85"></span><span class="mw-headline" id="原作者">原作者</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/llzj/index.php?title=%E9%82%82%E9%80%85%E6%A8%A1%E6%8B%9F%E5%99%A8&amp;action=edit&amp;section=1" title="编辑章节：原作者">编辑</a><span class="mw-editsection-bracket">]</span></span></h2>
+        <div class="user-follow-wrap">
+            <div class="user-item-detail report-wrap-module">
+                <a target="_blank" href="//space.bilibili.com/393326856/" class="detail-pic "><div alt="" style="background: url(https://i0.hdslb.com/bfs/face/5ba7776062db356cbb6945f8e3dde8ba29fbb226.jpg);"></div></a>
+                <div class="detail-des"><div class="des-name">铃LLan</div>
+                    <div class="des-content"></div>
+                </div>
+                <div class="detail-follow detail-follow-normal" isfollow="0" fid="393326856">+关注</div></div>
+        </div>
+
+<!-- 
+NewPP limit report
+Cached time: 20261022114442
+Cache expiry: 86400
+Reduced expiry: false
+Complications: []
+[SMW] In‐text annotation parser time: 0 seconds
+CPU time usage: 0.052 seconds
+Real time usage: 0.135 seconds
+Preprocessor visited node count: 119/1000000
+Post‐expand include size: 22714/2097152 bytes
+Template argument size: 39/2097152 bytes
+Highest expansion depth: 5/40
+Expensive parser function count: 0/100
+Unstrip recursion depth: 0/20
+Unstrip post‐expand size: 608/5000000 bytes
+ExtLoops count: 0
+Lua time usage: 0.030/4 seconds
+Lua virtual size: 9138176/104857600 bytes
+Lua estimated memory usage: 0 bytes
+-->
+<!--
+Transclusion expansion time report (%,ms,calls,template)
+100.00%   36.810      1 -total
+ 68.06%   25.051      1 模板:面包屑
+ 31.62%   11.640      1 模板:文章戳
+-->
+
+<!-- Saved in parser cache with key gamecenter_wiki_llzj-pre_:pcache:idhash:8027-0!dateformat=default and timestamp 20261022114441 and revision id 22669. Serialized with PHP.
+ -->
+</div>

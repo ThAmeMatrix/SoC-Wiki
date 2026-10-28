@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2680]={"id":2680,"title":"技能图鉴库/投掷酒桶","html":"<div class=\"mw-parser-output\">\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5725,"date":"2023-06-29","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=技能图鉴库/投掷酒桶&oldid=5725","hasOnlineMedia":false};

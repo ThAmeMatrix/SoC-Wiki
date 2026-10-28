@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2197]={"id":2197,"title":"天赋/威压","html":"<div class=\"mw-parser-output\">\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5386,"date":"2023-06-27","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=天赋/威压&oldid=5386","hasOnlineMedia":false};

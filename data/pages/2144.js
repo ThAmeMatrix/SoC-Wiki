@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2144]={"id":2144,"title":"天赋/附魔圣物","html":"<div class=\"mw-parser-output\">\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5335,"date":"2023-06-27","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=天赋/附魔圣物&oldid=5335","hasOnlineMedia":false};

@@ -1,0 +1,33 @@
+{
+  "builtAt": "2026-10-23T14:32:08.208692+08:00",
+  "source": "https://wiki.biligame.com/llzj",
+  "expectedPages": 3718,
+  "pages": 3718,
+  "expectedImages": 4320,
+  "images": 4320,
+  "bytes": 521066465,
+  "counts": {
+    "news": 88,
+    "guide": 179,
+    "talent": 624,
+    "status": 847,
+    "skill": 1609,
+    "equipment": 166,
+    "character": 176,
+    "monster": 29
+  },
+  "missingImages": [],
+  "unavailableImages": [],
+  "onlineMediaPages": 284,
+  "types": {
+    "character": "角色图鉴",
+    "equipment": "装备图鉴",
+    "skill": "技能图鉴",
+    "status": "状态词条",
+    "monster": "魔物图鉴",
+    "talent": "天赋与个性",
+    "guide": "攻略与资料",
+    "news": "资讯与公告"
+  },
+  "complete": true
+}

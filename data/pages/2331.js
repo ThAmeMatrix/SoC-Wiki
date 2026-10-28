@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2331]={"id":2331,"title":"辰纱","html":"<div class=\"mw-parser-output\"><p>bwiki项目组抠脚程序员<br/>目前因不明原因被软禁在办公室内，时刻有爆炸风险。\n</p>\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5121,"date":"2023-05-06","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=辰纱&oldid=5121","hasOnlineMedia":false};

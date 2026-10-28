@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2168]={"id":2168,"title":"天赋/支援射击","html":"<div class=\"mw-parser-output\">\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5707,"date":"2023-06-29","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=天赋/支援射击&oldid=5707","hasOnlineMedia":false};

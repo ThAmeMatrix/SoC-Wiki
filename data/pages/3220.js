@@ -1,0 +1,1 @@
+window.WIKI_PAGES[3220]={"id":3220,"title":"命运之门技能","html":"<div class=\"mw-parser-output\"><p>特殊训练技能库\n</p>\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":6972,"date":"2023-12-30","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=命运之门技能&oldid=6972","hasOnlineMedia":false};

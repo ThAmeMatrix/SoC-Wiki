@@ -1,0 +1,5 @@
+Convallaria Blade / 铃兰刃光, version 2.000. SIL OFL 1.1.
+A new display derivative of Adobe Source Han Serif SC Heavy.
+https://github.com/adobe-fonts/source-han-serif
+Rebuilt curved stems, crescent crown contours and wide sweeping terminals are baked into the outlines.
+The poster adds color, metallic texture, outlines, and highlights. Not the original game typeface.

@@ -1,0 +1,3 @@
+Vipera title: extracted from the image supplied by the user (坏女人字体样板.png).
+Chinese signature font: Zhi Mang Xing, SIL OFL 1.1. https://github.com/googlefonts/zhimangxing
+Latin signature font: Dancing Script, SIL OFL 1.1. https://github.com/googlefonts/DancingScript

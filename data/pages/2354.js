@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2354]={"id":2354,"title":"测试","html":"<div class=\"mw-parser-output\"><div class=\"text5\">WIKI建议留言板(必回)</div>\n\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":18428,"date":"2026-02-15","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=测试&oldid=18428","hasOnlineMedia":false};

@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2175]={"id":2175,"title":"技能图鉴库/堑壕战","html":"<div class=\"mw-parser-output\">\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5720,"date":"2023-06-29","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=技能图鉴库/堑壕战&oldid=5720","hasOnlineMedia":false};

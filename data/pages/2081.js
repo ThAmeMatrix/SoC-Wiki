@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2081]={"id":2081,"title":"技能图鉴库/战地慰问","html":"<div class=\"mw-parser-output\">\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5378,"date":"2023-06-27","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=技能图鉴库/战地慰问&oldid=5378","hasOnlineMedia":false};

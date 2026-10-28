@@ -1,0 +1,74 @@
+plugins { id 'com.android.application' }
+
+def signingFile = rootProject.file('.signing/release.properties')
+def signing = new Properties()
+if (signingFile.exists()) signingFile.withInputStream { signing.load(it) }
+
+android {
+    namespace 'com.socwiki.offline'
+    compileSdk 36
+    buildToolsVersion '36.0.0'
+    defaultConfig {
+        applicationId 'com.socwiki.offline'
+        minSdk 26
+        targetSdk 36
+        versionCode 18
+        versionName '1.13.3'
+        testInstrumentationRunner 'com.socwiki.offline.OfflineSmokeTest'
+    }
+    signingConfigs {
+        release {
+            if (signingFile.exists()) {
+                storeFile rootProject.file('.signing/release.jks')
+                storePassword signing.getProperty('storePassword')
+                keyAlias signing.getProperty('keyAlias')
+                keyPassword signing.getProperty('keyPassword')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            debuggable false
+        }
+    }
+    buildFeatures { buildConfig true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    androidResources { noCompress += ['webp', 'png', 'jpg', 'jpeg', 'woff2'] }
+    sourceSets.main.assets.srcDirs = [layout.buildDirectory.dir('generated/wikiAssets')]
+    testBuildType 'release'
+}
+
+dependencies { implementation 'androidx.webkit:webkit:1.14.0' }
+
+def syncWikiAssets = tasks.register('syncWikiAssets', Sync) {
+    from('../..') {
+        include 'index.html', 'app.js', 'styles.css', 'refinements.css', 'character-ui.css', 'character-ui.js'
+        include 'semantic-core.js', 'semantic-ui.js', 'wiki-update-convert.js', 'wiki-updates.js', 'updates-search.css', 'data/advanced-search.js', 'data/update-baseline.js', 'THIRD_PARTY_NOTICES.md'
+        include 'tools-core.js', 'tools-ui.js', 'personal-data.js'
+        include 'infographic-core.js', 'infographic-canvas.js', 'infographic-ui.js', 'infographic-title-image.js', 'infographic.css', 'data/infographic.js', 'data/infographic-assets/*.js'
+        include 'assets/**', 'data/index.js', 'data/tools.js', 'data/search.js', 'data/archive.json', 'data/pages/*.js'
+        // Retire the blade font; only the unmodified normal font is used now.
+        exclude 'assets/fonts/infographic-title-font.js', 'assets/fonts/ConvallariaBlade-Regular.ttf', 'assets/fonts/ConvallariaBlade-Regular.woff2', 'assets/fonts/ConvallariaBlade-README.txt'
+        // Content-hashed poster payloads can outlive a rebuild. Ship only the current catalog.
+        def catalogFile = rootProject.file('../data/infographic.js')
+        def catalogText = catalogFile.getText('UTF-8')
+        def catalog = new groovy.json.JsonSlurper().parseText(catalogText.substring(catalogText.indexOf('=') + 1).trim().replaceAll(';$', ''))
+        def currentPayloads = catalog.assets.values().toSet()
+        exclude { entry -> entry.path.startsWith('data/infographic-assets/') && !entry.directory && !currentPayloads.contains(entry.path) }
+    }
+    from('src/main/web') { include 'android.js', 'android.css' }
+    into(layout.buildDirectory.dir('generated/wikiAssets/wiki'))
+    doLast {
+        def entry = layout.buildDirectory.file('generated/wikiAssets/wiki/index.html').get().asFile
+        def source = entry.getText('UTF-8')
+        source = source.replace('<script src="app.js" defer></script>', '<script src="android.js" defer></script>\n  <script src="app.js" defer></script>')
+        source = source.replace('<link rel="stylesheet" href="character-ui.css">', '<link rel="stylesheet" href="character-ui.css">\n  <link rel="stylesheet" href="android.css">')
+        entry.setText(source, 'UTF-8')
+    }
+}
+tasks.named('preBuild') { dependsOn syncWikiAssets }

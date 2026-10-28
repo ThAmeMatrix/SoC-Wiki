@@ -1,0 +1,1 @@
+window.WIKI_PAGES[2147]={"id":2147,"title":"技能图鉴库/普攻-痛击","html":"<div class=\"mw-parser-output\">\n\n\n\n</div>","fields":{},"rawFields":{},"related":[],"recoveredFields":[],"revision":5356,"date":"2023-06-27","sections":[],"source":"https://wiki.biligame.com/llzj/index.php?title=技能图鉴库/普攻-痛击&oldid=5356","hasOnlineMedia":false};
