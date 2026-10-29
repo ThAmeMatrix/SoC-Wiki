@@ -20,9 +20,16 @@
     return /普攻/.test(category)?'basic':/反应/.test(category)?'reaction':'skill';
   }
   function pool(model,slot){return model.skills.filter(s=>s.kind===(slot===0?'basic':slot===1?'reaction':'skill'));}
+  function loadout(model,index=0){return {name:'搭配 '+(index+1),slots:[model.initialBasic||null,null,null,null,null]};}
+  function commentary(value={}){
+    if(!object(value))value={};const color=(v,fallback)=>/^#[0-9a-f]{6}$/i.test(v||'')?v:fallback;
+    return {enabled:value.enabled===true,text:short(value.text,2400),font:['sans','serif'].includes(value.font)?value.font:'sans',size:number(value.size,10,48,18),color:color(value.color,'#e9efed'),bold:value.bold===true,italic:value.italic===true,align:['left','center','right'].includes(value.align)?value.align:'left',lineHeight:number(value.lineHeight,1,2.4,1.5),outlineWidth:number(value.outlineWidth,0,3,0),outlineColor:color(value.outlineColor,'#071018')};
+  }
+  function addLoadout(state,model){let index=state.loadouts.length;while(state.loadouts.some(row=>row.name==='搭配 '+(index+1)))index++;state.loadouts.push(loadout(model,index));return true;}
+  function removeLoadout(state,index){if(!Number.isInteger(index)||index<0||index>=state.loadouts.length||state.loadouts.length<=1)return false;state.loadouts.splice(index,1);return true;}
   function defaults(model){
-    return {version:6,background:{portrait:model.character.portraits?.some(p=>p.key==='awakened')?'awakened':'base',x:0,y:0,scale:1},customTitle:null,titleName:'',titleMode:model.character.id===9296?'reference':'text',titleFont:'serif',bodyFont:'sans',bodyBold:false,bodyItalic:false,bodyOutlineWidth:0,bodyOutlineColor:'#071018',titleItalic:false,titleBold:false,titleScale:1,titleOutlineWidth:0,titleOutlineColor:'#08121b',titleShadow:true,generatedDate:'',datePrefix:'',roleText:'',layout:{},topText:'',topTextX:1000,topTextY:152,topTextSize:22,topTextColor:'#e8dbc0',branchWidth:1.5,branchLength:100,titleImageTint:false,characterId:model.character.id,subtitle:'角色养成一图流',titleColor:'#ef9b73',treeNotes:'',author:'',notes:'',
-      backgroundOpacity:.65,panelOpacity:.92,markWidth:3,exclusive:null,marks:{},loadouts:Array.from({length:3},(_,i)=>({name:'搭配 '+(i+1),slots:[model.initialBasic||null,null,null,null,null]})),
+    return {version:6,canvas:{width:1920,height:1080},composition:'auto',decoration:{style:'gilded',intensity:.65},background:{portrait:model.character.portraits?.some(p=>p.key==='awakened')?'awakened':'base',x:0,y:0,scale:1},customTitle:null,titleName:'',titleMode:model.character.id===9296?'reference':'text',titleFont:'serif',bodyFont:'sans',bodyBold:false,bodyItalic:false,bodyOutlineWidth:0,bodyOutlineColor:'#071018',titleItalic:false,titleBold:false,titleScale:1,titleOutlineWidth:0,titleOutlineColor:'#08121b',titleShadow:true,generatedDate:'',datePrefix:'',roleText:'',layout:{},topText:'',topTextX:1000,topTextY:152,topTextSize:22,topTextColor:'#e8dbc0',branchWidth:1.5,branchLength:100,titleImageTint:false,characterId:model.character.id,subtitle:'角色养成一图流',titleColor:'#ef9b73',treeNotes:'',author:'',notes:'',
+      backgroundOpacity:.65,panelOpacity:.92,markWidth:3,exclusive:null,marks:{},loadouts:[loadout(model)],loadoutCommentary:commentary(),
       weapons:[null],accessories:[null],tarot:[null],engravings:[],gearNotes:{weapons:[''],accessories:[''],tarot:['']},groupNotes:{weapons:'',accessories:'',tarot:''},scores:[0,0,0,0,0,0],rated:false,scoreText:''};
   }
   function restore(value,model,catalog){
@@ -34,12 +41,14 @@
     state.subtitle=short(value.subtitle,48,state.subtitle);if(state.subtitle==='角色养成 · 一图流')state.subtitle='角色养成一图流';
     state.titleName=Array.from(short(value.titleName,96).replace(/[\u0000-\u001f\u007f]/g,'').trim()).slice(0,24).join('');
     state.titleColor=/^#[0-9a-f]{6}$/i.test(value.titleColor||'')?value.titleColor.toLowerCase():state.titleColor;state.treeNotes=short(value.treeNotes,160);
+    state.canvas=canvasSize(value.canvas);state.composition=['auto','spotlight'].includes(value.composition)?value.composition:'auto';
+    state.decoration={style:value.decoration?.style==='plain'?'plain':'gilded',intensity:number(value.decoration?.intensity,0,1,.65)};
     state.roleText=short(value.roleText,100);
-    if(object(value.layout))for(const key of layoutKeys)if(object(value.layout[key]))state.layout[key]=layoutRect(value.layout[key]);
+    if(object(value.layout))for(const key of layoutKeys)if(object(value.layout[key]))state.layout[key]=layoutRect(value.layout[key],state.canvas);
     state.author=short(value.author,24);state.notes=short(value.notes,320);
     const background=object(value.background)?value.background:{};
     if(['base','awakened'].includes(background.portrait)&&model.character.portraits?.some(p=>p.key===background.portrait))state.background.portrait=background.portrait;
-    state.background.x=number(background.x,-3840,3840,0);state.background.y=number(background.y,-2160,2160,0);state.background.scale=number(background.scale,.15,4,1);
+    state.background.x=number(background.x,-state.canvas.width*2,state.canvas.width*2,0);state.background.y=number(background.y,-state.canvas.height*2,state.canvas.height*2,0);state.background.scale=number(background.scale,.15,4,1);
     if(typeof value.customTitle==='string'&&value.customTitle.length<=1000000&&/^data:image\/(png|webp);base64,[a-z0-9+/]+=*$/i.test(value.customTitle))state.customTitle=value.customTitle;
     const reference=model.character.id===9296&&(!state.titleName||state.titleName===model.character.name);
     state.titleMode=['text','image','reference'].includes(value.titleMode)?value.titleMode:state.customTitle?'image':reference?'reference':'text';
@@ -52,12 +61,14 @@
     state.titleOutlineColor=/^#[0-9a-f]{6}$/i.test(value.titleOutlineColor||'')?value.titleOutlineColor:state.titleOutlineColor;
     state.branchWidth=number(value.branchWidth,.5,5,1.5);state.branchLength=number(value.branchLength,0,100,100);
     state.generatedDate=validDate(value.generatedDate)?value.generatedDate:'';state.datePrefix=short(value.datePrefix,24).replace(/[\r\n]/g,' ');
-    state.topText=short(value.topText,80).replace(/[\r\n]/g,' ');state.topTextX=number(value.topTextX,24,1850,1000);state.topTextY=number(value.topTextY,8,158,152);state.topTextSize=number(value.topTextSize,12,40,22);
+    state.topText=short(value.topText,80).replace(/[\r\n]/g,' ');state.topTextX=number(value.topTextX,0,state.canvas.width-20,Math.min(1000,state.canvas.width-20));state.topTextY=number(value.topTextY,0,state.canvas.height-20,152);state.topTextSize=number(value.topTextSize,12,40,22);
     state.topTextColor=/^#[0-9a-f]{6}$/i.test(value.topTextColor||'')?value.topTextColor:state.topTextColor;
     state.backgroundOpacity=number(value.backgroundOpacity??value.brightness,0,1,.65);state.panelOpacity=number(value.panelOpacity,0,1,.92);state.markWidth=number(value.markWidth,1,6,3);state.exclusive=validEquipment(value.exclusive)?value.exclusive:null;
     if(object(value.marks))for(const skill of [...model.skills,...(model.liberations||[])])if(canMark(model,skill.id)&&['required','optional'].includes(value.marks[skill.id]))state.marks[skill.id]=value.marks[skill.id];
-    state.loadouts=state.loadouts.map((row,i)=>{
-      const saved=value.loadouts?.[i];if(!object(saved))return row;
+    state.loadoutCommentary=commentary(value.loadoutCommentary);
+    const savedLoadouts=Array.isArray(value.loadouts)&&value.loadouts.length?value.loadouts:[null];
+    state.loadouts=savedLoadouts.map((saved,i)=>{
+      const row=loadout(model,i);if(!object(saved))return row;
       const used=new Set();return {name:short(saved.name,24,row.name),slots:row.slots.map((fallback,j)=>{
         const id=saved.slots?.[j];if(id===null)return null;
         if(pool(model,j).some(s=>s.id===id)&&!used.has(id)){used.add(id);return id;}
@@ -83,22 +94,23 @@
     if(next)state.marks[id]=next;else delete state.marks[id];return true;
   }
   function setSlot(state,model,row,index,id){
-    if(!Number.isInteger(row)||row<0||row>2||!Number.isInteger(index)||index<0||index>4)return false;
+    if(!Number.isInteger(row)||row<0||row>=state.loadouts.length||!Number.isInteger(index)||index<0||index>4)return false;
     if(id!==null&&!pool(model,index).some(s=>s.id===id))return false;
     const slots=state.loadouts[row].slots,old=slots[index],other=id===null?-1:slots.indexOf(id);
     slots[index]=id;if(other!==-1&&other!==index)slots[other]=old;return true;
   }
   function moveSlot(state,row,index,delta){
-    const target=index+delta;if(row<0||row>2||index<2||index>4||target<2||target>4)return false;
+    const target=index+delta;if(!Number.isInteger(row)||row<0||row>=state.loadouts.length||!Number.isInteger(index)||!Number.isInteger(delta)||index<2||index>4||target<2||target>4)return false;
     const s=state.loadouts[row].slots;[s[index],s[target]]=[s[target],s[index]];return true;
   }
-  const layoutKeys=['logo','title','subtitle','cv','sprite','badges','role','topText','tree','trait','exclusive','loadouts','gear','scores','stats','engravings','notes','author','date'];
-  function layoutRect(v){const w=number(v.w,20,1920,200),h=number(v.h,16,1080,100);return {x:number(v.x,0,1920-w,0),y:number(v.y,0,1080-h,0),w,h};}
+  const layoutKeys=['logo','title','subtitle','cv','sprite','badges','role','topText','tree','trait','exclusive','loadouts','loadoutNotes','gear','scores','stats','engravings','notes','author','date'];
+  function canvasSize(value={}){return {width:Math.round(number(value?.width,480,4096,1920)),height:Math.round(number(value?.height,320,8192,1080))};}
+  function layoutRect(v,canvas){const {width:W,height:H}=canvasSize(canvas),w=number(v.w,20,W,200),h=number(v.h,16,H,100);return {x:number(v.x,0,W-w,0),y:number(v.y,0,H-h,0),w,h};}
   // edges: {x:-1|0|1, y:-1|0|1} — -1 moves the leading edge, 1 the trailing edge, 0 leaves the axis alone.
-  function snapLayout(rect,others,resize=false,enabled=true,edges=null){
-    const r=layoutRect(rect),guides=[];if(!enabled)return {rect:r,guides};
+  function snapLayout(rect,others,resize=false,enabled=true,edges=null,canvas){
+    const {width:W,height:H}=canvasSize(canvas),r=layoutRect(rect,canvas),guides=[];if(!enabled)return {rect:r,guides};
     const axis=(key,fallback)=>resize?Math.sign(Number(edges?.[key]??fallback)||0):0;
-    for(const [key,size,limit,edge] of [['x','w',1920,axis('x',1)],['y','h',1080,axis('y',1)]]){
+    for(const [key,size,limit,edge] of [['x','w',W,axis('x',1)],['y','h',H,axis('y',1)]]){
       const targets=[0,limit/2,limit,...others.flatMap(o=>[o[key],o[key]+o[size]/2,o[key]+o[size]])];
       const sources=edge>0?[r[key]+r[size]]:edge<0?[r[key]]:[r[key],r[key]+r[size]/2,r[key]+r[size]];
       let best=9,delta=0,guide=null;
@@ -109,24 +121,29 @@
       else r[key]+=delta;
       guides.push({axis:key,value:guide});
     }
-    return {rect:layoutRect(r),guides};
+    return {rect:layoutRect(r,canvas),guides};
   }
-  const baseStatDefinitions=[['attack','物攻'],['magic','魔攻'],['agility','速度'],['movement','移动'],['jump','跳跃']];
-  function baseStats(character,fields={}){const text=v=>String(v??'').trim();return {attack:text(character.stats?.['物攻']||fields['满级满星物攻']),magic:text(character.stats?.['魔攻']||fields['满级满星魔攻']),agility:text(character.stats?.['敏捷']||fields['满级满星敏捷']||fields['初始敏捷']),movement:text(fields['移动']),jump:text(fields['跳跃高度']),jumpFar:text(fields['跳跃远度'])};}
+  const combatStatDefinitions=[['attack','物攻'],['magic','魔攻'],['defense','物防'],['resistance','魔防'],['health','生命'],['agility','速度']];
+  const mobilityStatDefinitions=[['movement','移动'],['jump','跳跃']];
+  const baseStatDefinitions=[...combatStatDefinitions,...mobilityStatDefinitions];
+  const speedIconPath='M3 5C10 8 17 6 23 2C21 9 16 13 8 12L11 16C16 16 19 13 21 11C20 17 17 20 13 20L15 25C9 21 5 14 3 5ZM6 6L12 23L10 13Z';
+  function baseStats(character,fields={}){const text=v=>String(v??'').trim();return {attack:text(character.stats?.['物攻']||fields['满级满星物攻']),magic:text(character.stats?.['魔攻']||fields['满级满星魔攻']),defense:text(character.stats?.['物防']||fields['满级满星物防']),resistance:text(character.stats?.['魔防']||fields['满级满星魔防']),health:text(character.stats?.['生命']||fields['满级满星生命']),agility:text(character.stats?.['敏捷']||fields['满级满星敏捷']||fields['初始敏捷']),movement:text(fields['移动']),jump:text(fields['跳跃高度']),jumpFar:text(fields['跳跃远度'])};}
   function statRatio(value,max){const n=Number(value),m=Number(max);return String(value??'').trim()!==''&&Number.isFinite(n)&&n>=0&&Number.isFinite(m)&&m>0?Math.min(100,n/m*100):null;}
   function validDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const d=new Date(value+'T12:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;}
   function posterDate(state,now=new Date()){return validDate(state.generatedDate)?state.generatedDate:[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');}
   function branchEnds(center,cx,width=3,length=100){const sign=Math.sign(cx-center),start=center+sign*22,limit=cx-sign*(30.5+width/2+3);return {start,end:start+(limit-start)*length/100};}
   function branchSpan(rank){return [1,5,9].includes(rank)?65:rank===0?89:109;}
-  function backgroundRect(width,height,background){
-    const base=Math.max(1250/width,1080/height),baseW=width*base,baseH=height*base;
-    const cx=1325+background.x,cy=-(baseH-1080)*.24+baseH/2+background.y;
+  function backgroundRect(width,height,background,canvas,hero=null){
+    const {width:W=1920,height:H=1080}=canvas||{},target=hero||{x:W*.365,y:0,w:W*.635,h:H};
+    const base=hero?Math.max(target.w/width,target.h/height)*(hero.focusScale||1):Math.max(1250/1920*W/width,H/height),baseW=width*base,baseH=height*base;
+    const cx=(hero?target.x+target.w/2:1325/1920*W)+background.x,cy=(hero?target.y+target.h/2+(hero.focusY||0):-(baseH-H)*.24+baseH/2)+background.y;
     const w=baseW*background.scale,h=baseH*background.scale;
     return {x:cx-w/2,y:cy-h/2,w,h,naturalWidth:width,naturalHeight:height};
   }
-  function zoomBackground(background,rect,factor,anchor){
+  function zoomBackground(background,rect,factor,anchor,canvas){
+    const {width:W,height:H}=canvasSize(canvas);
     const scale=number(background.scale*factor,.15,4,background.scale),ratio=scale/background.scale;
-    return {...background,scale,x:number(background.x+(1-ratio)*(anchor.x-(rect.x+rect.w/2)),-3840,3840,0),y:number(background.y+(1-ratio)*(anchor.y-(rect.y+rect.h/2)),-2160,2160,0)};
+    return {...background,scale,x:number(background.x+(1-ratio)*(anchor.x-(rect.x+rect.w/2)),-W*2,W*2,0),y:number(background.y+(1-ratio)*(anchor.y-(rect.y+rect.h/2)),-H*2,H*2,0)};
   }
-  return {baseStatDefinitions,baseStats,statRatio,layoutKeys,layoutRect,snapLayout,axes,ranks,treeNames,kind,pool,defaults,restore,canMark,cycleMark,setSlot,moveSlot,branchSpan,branchEnds,posterDate,validDate,backgroundRect,zoomBackground};
+  return {canvasSize,commentary,addLoadout,removeLoadout,combatStatDefinitions,mobilityStatDefinitions,speedIconPath,baseStatDefinitions,baseStats,statRatio,layoutKeys,layoutRect,snapLayout,axes,ranks,treeNames,kind,pool,defaults,restore,canMark,cycleMark,setSlot,moveSlot,branchSpan,branchEnds,posterDate,validDate,backgroundRect,zoomBackground};
 });

@@ -31,7 +31,7 @@ def main():
     adb('shell','cmd','connectivity','airplane-mode','enable')
     assert adb('shell','settings','get','global','airplane_mode_on').stdout.strip()=='1'
     adb('shell','input','keyevent','82')
-    app=ROOT/'release/SoCwiki-offline-1.13.3.apk'
+    app=ROOT/'release/SoCwiki-offline-1.16.0.apk'
     test=ROOT/'android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk'
     print(adb('install','-r','--no-streaming',str(app),timeout=240).stdout,flush=True)
     print(adb('install','-r','-t',str(test),timeout=120).stdout,flush=True)

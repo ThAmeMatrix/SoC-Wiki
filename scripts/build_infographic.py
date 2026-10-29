@@ -38,7 +38,8 @@ def main():
     equipment_icons={str(p['id']):original.get('装备_'+p['name']+'.png',{}).get('path',p['image']) for p in data['pages'] if p['type']=='equipment'}
     logo=original['铃兰之剑logo.png']['path']
     badges={kind:{name[len(prefix):-4]:asset['path'] for name,asset in original.items() if name.startswith(prefix) and name.endswith('.png')}
-            for kind,prefix in [('rarities','文字_'),('professions','职业图标_'),('factions','阵营图标_')]}
+            for kind,prefix in [('rarities','文字_'),('professions','职业图标_'),('professionBackgrounds','职业图标背景_'),('factions','阵营图标_')]}
+    stat_icons={key:original['Icon_'+name+'.png']['path'] for key,name in [('attack','物攻'),('magic','魔攻'),('defense','物防'),('resistance','魔防'),('health','生命')]}
     reference_titles={'9296':'assets/brand/vipera-reference-title.png'}
     portraits=json.loads((ROOT/'data/raw/infographic-portraits.json').read_text(encoding='utf8'))
     limits={logo:640,**{path:1600 for path in reference_titles.values()}}
@@ -53,6 +54,7 @@ def main():
         elif page['type'] in ('skill','equipment','talent'):add(page['image'],192)
     for group in badges.values():
         for path in group.values():add(path,160)
+    for path in stat_icons.values():add(path,64)
     for path in equipment_icons.values():add(path,192)
     for t in tarot:add(t['image'],192)
     for e in engravings:
@@ -90,7 +92,7 @@ def main():
     for code in sorted(map(ord,font_manifest['charset'])):
         if ranges and ranges[-1][1]+1==code:ranges[-1][1]=code
         else:ranges.append([code,code])
-    result={'version':7,'signatureFont':'assets/fonts/infographic-signature.js','signatureLatinFont':'assets/fonts/infographic-signature-latin.js','nameFont':{'family':font_manifest['family'],'glyphs':font_manifest['glyphCount'],'script':font_manifest['script'],'version':font_manifest['version'],'ranges':ranges},'portraitSizes':{path:{'width':p['width'],'height':p['height']} for path,p in portraits.items()},'referenceTitles':reference_titles,'logo':logo,'badges':badges,'tarot':tarot,'engravings':engravings,'equipmentIcons':equipment_icons,'starEffects':star_effects,'assets':assets}
+    result={'version':7,'signatureFont':'assets/fonts/infographic-signature.js','signatureLatinFont':'assets/fonts/infographic-signature-latin.js','nameFont':{'family':font_manifest['family'],'glyphs':font_manifest['glyphCount'],'script':font_manifest['script'],'version':font_manifest['version'],'ranges':ranges},'portraitSizes':{path:{'width':p['width'],'height':p['height']} for path,p in portraits.items()},'referenceTitles':reference_titles,'logo':logo,'statIcons':stat_icons,'badges':badges,'tarot':tarot,'engravings':engravings,'equipmentIcons':equipment_icons,'starEffects':star_effects,'assets':assets}
     (ROOT/'data/infographic.js').write_text('window.WIKI_INFOGRAPHIC_DATA='+dump(result)+';\n',encoding='utf8')
     print(f'Built {len(tarot)} tarot cards, {len(engravings)} engraving combinations, {len(assets)} canvas images ({total/1024/1024:.1f} MiB).',flush=True)
 

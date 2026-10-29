@@ -66,7 +66,7 @@ def main():
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
             canvas=page.locator('#ig-canvas').bounding_box()
             if canvas:
-                overlay=page.locator('.ig-hotspots').bounding_box()
+                overlay=page.locator('.ig-canvas-wrap .ig-hotspots').bounding_box()
                 assert abs(overlay['height']-canvas['height'])<2 and abs(overlay['width']-canvas['width'])<2
         page.locator('[data-ig-view=preview]').click()
         page.locator('.ig-hotspots [data-ig-jump=tree]').click()
@@ -83,7 +83,7 @@ def main():
         png.value.save_as(OUT/'infographic-v110-date-prefix.png')
         assert not errors,errors
         browser.close()
-    report={'status':'passed','checks':['21 searchable navigation destinations, aliases, no results and keyboard Enter','main preview hotspot jumps without altering PNG pixels','full preview coordinates and modal dismissal','mobile preview returns to editor and expands target','360–1600px layout and hotspot alignment','custom/empty date prefix in canvas, saved draft and JSON roundtrip'],'errors':errors}
+    report={'status':'passed','checks':[f'{len(keys)} searchable navigation destinations, aliases, no results and keyboard Enter','main preview hotspot jumps without altering PNG pixels','full preview coordinates and modal dismissal','mobile preview returns to editor and expands target','360–1600px layout and hotspot alignment','custom/empty date prefix in canvas, saved draft and JSON roundtrip'],'errors':errors}
     (OUT/'infographic-navigation-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
     print(json.dumps(report,ensure_ascii=False),flush=True)
 

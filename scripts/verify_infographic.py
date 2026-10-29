@@ -73,7 +73,8 @@ def run():
         for values in ['5%/10%/10%/15%/20%','0/0/0/0/15%','1/1/1/2/2','0/1/1/1/2','0/0/1/1/1']:assert values in effect,values
         assert '12%/16%/16%/20%/24%' in page.locator('.ig-effect-preview').last.text_content()
         checks.append('Exclusive weapon, compatible weapon filter, accessories, 22 tarot and all 10 engravings')
-        # Fill all three loadouts through the pickers, including initial basic attack.
+        # Add the two optional builds and fill all three through the pickers.
+        for _ in range(2):page.locator('[data-ig=loadout-add]').click();ready(page)
         for row in range(3):
             page.locator(f'[data-ig-loadout="{row}"]').fill(['大招爆发流','隐身消能量','挂机备选'][row])
             pick(page,'skill','平射' if row==2 else '蚀骨击',0,row);choose_first(page)
@@ -144,10 +145,10 @@ def run():
             assert 10<=note_draw['y']-name_draw['y']<=20,(name,name_draw,note_draw)
             assert abs(note_draw['x']+note_draw['width']/2-(name_draw['x']+name_draw['width']/2))<1
         badges=page.locator('.ig-profile-badges img')
-        assert badges.evaluate_all('(els)=>els.map(e=>e.alt)')==['突袭者','法皇国','锐疾如风']
+        assert badges.evaluate_all('(els)=>els.map(e=>e.alt).filter(Boolean)')==['突袭者','法皇国','锐疾如风']
         assert badges.evaluate_all('(els)=>els.every(e=>e.complete&&e.naturalWidth>0)')
-        assert page.locator('.ig-profile-badges .ig-badge-profession').evaluate('(e)=>e.getBoundingClientRect().width')>=38
-        badge_draws=page.evaluate('window.posterBadges');assert len(badge_draws)>=3 and all(abs(b[1]+b[3]/2-86)<1 for b in badge_draws) and all(b[2]<=62 for b in badge_draws)
+        assert page.locator('.ig-profile-badges .ig-profession-badge').evaluate('(e)=>e.getBoundingClientRect().width')==38
+        badge_draws=page.evaluate('window.posterBadges');assert len(badge_draws)>=4 and all(abs(b[1]+b[3]/2-82.5)<1 for b in badge_draws) and all(b[2]<=56 for b in badge_draws)
 
         assert not any(t['y']<186 and any(word in t['text'] for word in ['传说','突袭者','法皇国','锐疾如风']) for t in painted)
         assert any(t['text']=='角色养成一图流' for t in painted)
@@ -251,7 +252,7 @@ def run():
         page.locator('#ig-import-file').set_input_files(title_plan);ready(page)
         page.wait_for_function("()=>document.querySelector('[data-ig-field=titleName]').value==='霁月·瑟蕾妮娅'")
         page.locator('[data-ig=title-reset]').click();ready(page)
-        checks.append('Enlarged badges; new names render without a baked wordmark, export transparent PNG and persist through JSON/reload')
+        checks.append('Smaller profession badge centered with faction icons; new names render without a baked wordmark, export transparent PNG and persist through JSON/reload')
 
         pick(page,'character','贝拉');choose_first(page);ready(page)
         assert page.locator('.ig-lib-mark>span').all_text_contents()==['火力打击之道','轰隆隆！','停不下来啦！']

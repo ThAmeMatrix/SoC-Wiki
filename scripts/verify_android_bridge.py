@@ -72,8 +72,8 @@ def run():
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         go('#/tools/infographic','.ig-character')
         page.wait_for_function("()=>document.querySelector('#ig-canvas').width===1920 && !document.querySelector('[data-ig=export]').disabled",timeout=60000)
-        assert page.locator('.ig-stat-max').all_text_contents()==['/ 1718','/ 1718','/ 288','/ 5','/ 3']
-        assert page.locator('.ig-stat-current').count()==5
+        assert page.locator('.ig-stat-max').all_text_contents()==['/ 1718','/ 1718','/ 814','/ 800','/ 4335','/ 288']
+        assert page.locator('.ig-stat-current').count()==8
         page.locator('[data-ig-pick=character]').click()
         assert page.evaluate('WikiAndroid.back()') is True
         assert not page.locator('.ig-picker').is_visible()
@@ -157,9 +157,38 @@ def run():
         page.locator('[data-ig-view=preview]').click()
         page.screenshot(path=str(ROOT/'test-results/android-infographic-preview.png'))
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+        # A poster at the largest supported canvas must pass the native download path.
+        page.locator('[data-ig-view=edit]').click()
+        if page.locator('.ig-nav details').get_attribute('open') is None:
+            page.locator('.ig-nav summary').click()
+        page.locator('.ig-nav [data-ig-jump=canvas]').click()
+        page.get_by_label('画布宽度',exact=True).fill('4096')
+        page.get_by_label('画布高度',exact=True).fill('8192')
+        page.locator('[data-ig=canvas-apply]').click()
+        page.wait_for_function("()=>document.querySelector('#ig-canvas').width===4096&&!document.querySelector('[data-ig=export]').disabled",timeout=60000)
+        before=len(saved)
+        page.locator('[data-ig=export]').first.click()
+        for _ in range(60):
+            if len(saved)>before:break
+            page.wait_for_timeout(250)
+        assert len(saved)==before+1 and saved[-1][1]=='image/png'
+        large_png=base64.b64decode(saved[-1][2])
+        assert int.from_bytes(large_png[16:20],'big')==4096 and int.from_bytes(large_png[20:24],'big')==8192
+        assert len(large_png)<64*1024*1024
+        # Verify the former 16 MiB limit is removed even for highly compressible art.
+        before=len(saved)
+        page.evaluate("(()=>{const b=new Blob([new Uint8Array(17*1024*1024)],{type:'image/png'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='large-export-test.png';a.click();URL.revokeObjectURL(u)})()")
+        for _ in range(60):
+            if len(saved)>before:break
+            page.wait_for_timeout(250)
+        assert len(saved)==before+1 and saved[-1][0]=='large-export-test.png'
+        assert len(base64.b64decode(saved[-1][2]))==17*1024*1024
+        before=len(saved)
+        page.evaluate("(()=>{const b=new Blob([new Uint8Array(65*1024*1024)],{type:'image/png'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='oversize-test.png';a.click();URL.revokeObjectURL(u)})()")
+        assert len(saved)==before and '64 MB' in page.locator('#toast').inner_text()
         assert not errors,errors
         browser.close()
-    report={'status':'passed','checks':['JSON backup including notes/favorites','Blob PNG export from detached anchor','Original local image save','External links delegated to browser','Back closes dialog/menu before navigation','Native dark theme synchronization','390px packaged layout','Infographic assets and 1920x1080 PNG/JSON through Android save bridge','Android back closes infographic selector','Infographic v6 background transforms, arbitrary name generation, legible cursive font and saved plan'],'errors':errors,'titleImageImport':'Offline OCR, Android back cancellation and imported PNG in native JSON export passed','requests':'All intercepted from APK assets; no network access'}
+    report={'status':'passed','checks':['JSON backup including notes/favorites','Blob PNG export from detached anchor','Original local image save','External links delegated to browser','Back closes dialog/menu before navigation','Native dark theme synchronization','390px packaged layout','Infographic assets and 1920x1080 PNG/JSON through Android save bridge','Android back closes infographic selector','Infographic v6 background transforms, arbitrary name generation, legible cursive font and saved plan','4096x8192 PNG and 17 MiB file accepted; 65 MiB file rejected before native save'],'largePosterBytes':len(large_png),'errors':errors,'titleImageImport':'Offline OCR, Android back cancellation and imported PNG in native JSON export passed','requests':'All intercepted from APK assets; no network access'}
     (ROOT/'test-results/android-bridge-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
     for check in report['checks']:print('PASS '+check)
 

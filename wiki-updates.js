@@ -102,7 +102,7 @@ window.WikiUpdates=(()=>{
       const t=document.createElement('template');t.innerHTML=engravingDoc.html;const rows=[...t.content.querySelectorAll('table')].at(-1)?.querySelectorAll('tr')||[],byName=new Map(data.engravings.map(e=>[e.name,e]));
       const entries=[...rows].map(r=>[...r.children]).filter(c=>c.length===2&&c[0].textContent.includes('+')).map(c=>{const name=c[0].textContent.trim(),parts=name.split('+').map(s=>s.trim()),old=byName.get(name);return {id:old?.id||'engraving-name-'+name,name,parts,images:parts.map((p,i)=>active.images?.[p+'刻印.png']?.path||BASE.images[p+'刻印.png']?.path||old?.images[i]||''),description:c[1].innerHTML,sourceId:2736};});if(entries.length)data.engravings=entries;
     }
-    for(const [name,item] of Object.entries(active.images||{}))for(const [group,prefix] of [['professions','职业图标_'],['factions','阵营图标_'],['rarities','文字_']])if(name.startsWith(prefix))data.badges[group][name.slice(prefix.length).replace(/\.[^.]+$/,'')]=urls.get(item.path)||item.path;
+    for(const [name,item] of Object.entries(active.images||{}))for(const [group,prefix] of [['professions','职业图标_'],['professionBackgrounds','职业图标背景_'],['factions','阵营图标_'],['rarities','文字_']])if(name.startsWith(prefix))(data.badges[group]||={})[name.slice(prefix.length).replace(/\.[^.]+$/,'')]=urls.get(item.path)||item.path;
     return resolveValue(data);
   }
   function mount(root){

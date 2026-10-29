@@ -51,7 +51,7 @@ public final class MainActivity extends Activity {
     static final String ORIGIN = "https://appassets.androidplatform.net";
     static final String HOME_URL = ORIGIN + "/assets/wiki/index.html";
     private static final int PICK_FILE = 4101, SAVE_FILE = 4102;
-    private static final int MAX_EXPORT_BYTES = 16 * 1024 * 1024;
+    private static final int MAX_EXPORT_BYTES = 64 * 1024 * 1024;
     private final ExecutorService files = Executors.newSingleThreadExecutor();
     private final AtomicBoolean exporting = new AtomicBoolean();
     private WebView browser;

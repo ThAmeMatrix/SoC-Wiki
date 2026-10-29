@@ -213,16 +213,78 @@ window.WikiInfographicCanvas=(()=>{
     const ends=window.WikiInfographicRules.branchEnds(center,cx,state.markWidth??3,state.branchLength??100);
     line(c,ends.start,cy,ends.end,cy,mark==='required'?gold:mark==='optional'?cyan:initial?'#6b786d':'#3d4b53',state.branchWidth??1.5,mark==='optional'?[3,4]:[]);
   }
+  function gildedPanel(c,x,y,w,h,opacity,decoration){
+    if(decoration?.style==='plain'){paintPanel(c,x,y,w,h,opacity);return;}
+    const strength=decoration?.intensity??.65,cut=Math.min(10,w/8,h/8);
+    const frame=(inset)=>{const l=x+inset,t=y+inset,r=x+w-inset,b=y+h-inset;c.beginPath();c.moveTo(l+cut,t);c.lineTo(r-cut,t);c.lineTo(r,t+cut);c.lineTo(r,b-cut);c.lineTo(r-cut,b);c.lineTo(l+cut,b);c.lineTo(l,b-cut);c.lineTo(l,t+cut);c.closePath();};
+    c.save();frame(1);c.fillStyle=`rgba(5,15,22,${opacity})`;c.fill();c.strokeStyle=`rgba(201,171,104,${.35+strength*.45})`;c.lineWidth=1.2;c.stroke();
+    frame(5);c.strokeStyle=`rgba(165,130,65,${strength*.3})`;c.lineWidth=.7;c.stroke();
+    if(strength>0)for(const [px,py,flipX,flipY] of [[x+7,y+7,1,1],[x+w-7,y+7,-1,1],[x+7,y+h-7,1,-1],[x+w-7,y+h-7,-1,-1]]){c.save();c.translate(px,py);c.scale(flipX,flipY);c.strokeStyle=`rgba(239,210,139,${strength})`;c.lineWidth=.8;c.beginPath();c.moveTo(0,16);c.lineTo(0,4);c.lineTo(4,0);c.lineTo(24,0);c.stroke();c.fillStyle=`rgba(220,186,110,${strength*.8})`;c.beginPath();c.moveTo(2,2);c.lineTo(8,2);c.lineTo(2,8);c.fill();c.restore();}
+    c.restore();
+  }
+  function posterOrnaments(c,W,H,decoration){
+    if(decoration?.style==='plain')return;const strength=decoration?.intensity??.65;if(!strength)return;
+    c.save();c.strokeStyle=`rgba(205,170,98,${strength*.65})`;c.lineWidth=1;c.strokeRect(9,9,W-18,H-18);c.strokeStyle=`rgba(205,170,98,${strength*.25})`;c.strokeRect(15,15,W-30,H-30);
+    for(const [x,y,sx,sy] of [[19,19,1,1],[W-19,19,-1,1],[19,H-19,1,-1],[W-19,H-19,-1,-1]]){c.save();c.translate(x,y);c.scale(sx,sy);c.strokeStyle=`rgba(240,207,129,${strength})`;c.beginPath();c.moveTo(0,55);c.lineTo(0,15);c.lineTo(15,0);c.lineTo(82,0);c.stroke();c.beginPath();c.moveTo(9,30);c.lineTo(9,13);c.lineTo(13,9);c.lineTo(42,9);c.stroke();c.restore();}
+    c.globalAlpha=strength*.22;c.strokeStyle='#d7b36b';c.lineWidth=.7;
+    for(const r of [84,95,146,153]){c.beginPath();c.arc(95,100,r,-Math.PI*.75,Math.PI*.75);c.stroke();}
+    for(let i=0;i<16;i++){const a=-1.8+i*.23;const px=95+Math.cos(a)*153,py=100+Math.sin(a)*153;c.beginPath();c.moveTo(px,py);c.lineTo(95+Math.cos(a)*161,100+Math.sin(a)*161);c.stroke();}
+    c.restore();
+  }
+  function gearContent(c,state,w,equipmentMap,tarotMap){
+    const gearCols=Math.max(1,Math.min(8,Math.round((w-70)/108)||1)),gearPitch=Math.min(108,(w-70)/gearCols),gearCell=Math.min(92,gearPitch-6),gearIconSize=Math.min(40,gearPitch-14);
+    const gearRows=[['weapons','武器',equipmentMap],['accessories','装具',equipmentMap],['tarot','塔罗',tarotMap]].map(([key,label,map])=>{
+      const items=state[key].map((id,j)=>{const item=map.get(id),name=labelLayout(c,item?.name||'待选择',gearCell,item?ink:muted,12.5,2),caption=state.gearNotes[key][j]?wrap(c,[{text:state.gearNotes[key][j],color:colors.red}],gearCell,12.5,16):null;return {item,name,caption,bottom:gearIconSize+4+name.height+(caption?1+caption.height:0)};});
+      const cellH=Math.max(...items.map(item=>item.bottom))+8,contentH=cellH*Math.ceil(items.length/gearCols),group=state.groupNotes[key]?wrap(c,[{text:state.groupNotes[key],color:colors.red}],w-40,14,18):null;
+      return {label,items,cellH,group,groupY:contentH+2,height:contentH+(group?2+group.height:0)+6};
+    });
+    return {gearCols,gearPitch,gearCell,gearIconSize,gearRows};
+  }
+  function posterFrames(c,state,W,H,traitParts,weaponParts,engravings,equipmentMap,tarotMap){
+    const portrait=H>W,spotlight=state.composition==='spotlight',frames={},m=24,gap=14;
+    if(!portrait&&!spotlight)return {frames,hero:null,minHeight:0};
+    let minBody=0;
+    const flow=(items,x,y,w,h)=>{minBody=Math.max(minBody,items.reduce((n,item)=>n+item[1],0)+gap*(items.length-1));const free=Math.max(30,h-gap*(items.length-1)),sum=items.reduce((n,item)=>n+item[1],0),flex=items.filter(([key])=>['tree','trait','gear','notes','loadoutNotes'].includes(key)).length;let py=y;for(const [key,weight] of items){const rh=free<=sum||!flex?free*weight/sum:weight+(['tree','trait','gear','notes','loadoutNotes'].includes(key)?(free-sum)/flex:0);frames[key]={x,y:py,w,h:rh};py+=rh+gap;}};
+    const traitWeight=w=>{const columns=effectColumns(c,traitParts,w-36,20);return Math.max(145,Math.max(...columns.parts.map(parts=>wrap(c,parts,columns.width,14,19.04).height))+61);};
+    const weaponWeight=w=>Math.max(115,wrap(c,weaponParts,Math.max(40,w-124),14,19.04).height+57);
+    const gearWeight=w=>48+gearContent(c,state,w,equipmentMap,tarotMap).gearRows.reduce((n,row)=>n+row.height,0);
+    const engravingWeight=w=>{
+      if(!engravings.length)return 100;
+      const maxCols=Math.max(1,Math.floor((w-32)/180)),cols=Math.min(engravings.length<=3?engravings.length:Math.ceil(engravings.length/2),maxCols),rows=Math.ceil(engravings.length/cols),cellW=(w-32)/cols;
+      return 51+rows*(38+Math.max(...engravings.map(e=>wrap(c,[...runs(e.description),...(e.note?[{text:'\n'+e.note,color:ink}]:[])],cellW-14,14,19.04).height)));
+    };
+    const textWeight=(text,w)=>Math.max(68,wrap(c,[{text:text||'',color:ink}],w-32,14,19.04).height+52);
+    const buildWeight=w=>{const cols=Math.max(1,Math.min(Math.floor((w-24)/330),Math.ceil(state.loadouts.length/4)));return 48+Math.ceil(state.loadouts.length/cols)*82;};
+    let hero;
+    if(portrait){
+      const header=Math.min(H*.32,spotlight?570:390),bodyY=header+18,bodyH=Math.max(500,H-bodyY-45),usable=W-2*m-2*gap,leftW=usable*.29,centerW=usable*.40,rightW=usable-leftW-centerW,cx=m+leftW+gap,rx=cx+centerW+gap;
+      hero={x:W*.51,y:15,w:W*.47,h:header,focusScale:3,focusY:header*.4};
+      frames.logo={x:m,y:28,w:100,h:100};frames.title={x:142,y:25,w:W*.53-142,h:150};frames.subtitle={x:m+10,y:183,w:W*.57-32,h:65};frames.cv={x:m+10,y:header-64,w:W*.58,h:25};frames.topText={x:m+10,y:header-33,w:W*.58,h:25};
+      frames.sprite={x:W-215,y:20,w:180,h:215};frames.badges={x:W-238,y:244,w:210,h:55};frames.role={x:W-305,y:305,w:280,h:50};
+      flow([['tree',850],['engravings',engravingWeight(leftW)]],m,bodyY,leftW,bodyH);
+      flow([['trait',traitWeight(centerW)],['exclusive',weaponWeight(centerW)],['loadouts',buildWeight(centerW)],...(state.loadoutCommentary.enabled?[['loadoutNotes',textWeight(state.loadoutCommentary.text,centerW)]]:[]),['notes',textWeight(state.notes,centerW)]],cx,bodyY,centerW,bodyH);
+      flow([['scores',310],['gear',gearWeight(rightW)],['stats',245],['author',state.author?95:55]],rx,bodyY,rightW,bodyH);
+    }else{
+      const bodyY=Math.max(186,H*.17),bodyH=H-bodyY-40,usable=W-2*m-3*gap,treeW=usable*.17,infoW=usable*.30,heroW=usable*.30,rightW=usable-treeW-infoW-heroW,ix=m+treeW+gap,hx=ix+infoW+gap,rx=hx+heroW+gap;
+      hero={x:hx,y:0,w:heroW,h:H,focusScale:1.65,focusY:-H*.10};frames.topText={x:Math.min(570,ix+infoW*.3),y:bodyY-44,w:ix+infoW-Math.min(570,ix+infoW*.3),h:32};minBody=Math.max(minBody,850);frames.tree={x:m,y:bodyY,w:treeW,h:bodyH};
+      flow([['trait',traitWeight(infoW)],['exclusive',weaponWeight(infoW)],['loadouts',buildWeight(infoW)],...(state.loadoutCommentary.enabled?[['loadoutNotes',textWeight(state.loadoutCommentary.text,infoW)]]:[]),['engravings',engravingWeight(infoW)]],ix,bodyY,infoW,bodyH);
+      flow([['scores',240],['gear',gearWeight(rightW)],['stats',235],['notes',textWeight(state.notes,rightW)],['author',state.author?85:20]],rx,bodyY,rightW,bodyH);
+    }
+    frames.date={x:W-624,y:H-29,w:600,h:24};
+    return {frames,hero,minHeight:portrait?minBody+Math.min(H*.32,spotlight?570:390)+63:Math.max(minBody+226,(minBody+40)/.83)};
+  }
   async function draw(model,state,data,exclusive){
-    const panel=(c,x,y,w,h)=>paintPanel(c,x,y,w,h,state.panelOpacity??.92);
+    const outputSize=window.WikiInfographicRules.canvasSize(state.canvas),W=outputSize.height>outputSize.width?1280:1920,outputScale=outputSize.width/W,H=outputSize.height/outputScale;
+    state={...state,layout:Object.fromEntries(Object.entries(state.layout||{}).map(([key,r])=>[key,Object.fromEntries(Object.entries(r).map(([axis,n])=>[axis,n/outputScale]))])),background:{...state.background,x:state.background.x/outputScale,y:state.background.y/outputScale},topTextX:state.topTextX/outputScale,topTextY:state.topTextY/outputScale};
+    const panel=(c,x,y,w,h)=>gildedPanel(c,x,y,w,h,state.panelOpacity??.92,state.decoration);
     const icon=(c,image,cx,cy,size,mark='',placeholder='＋',dim=false)=>skillIcon(c,image,cx,cy,size,mark,placeholder,dim,state.markWidth??3);
-    const W=1920,H=1080,margin=24,treeW=330,x=370,right=1526,top=186,bottom=1056;
+    const margin=24,treeW=330,x=370,right=1526,top=186,bottom=1056;
     const character=model.character,skillMap=new Map(model.skills.map(s=>[s.id,s]));
     const equipmentMap=new Map(model.equipment.map(e=>[e.id,e])),tarotMap=new Map(data.tarot.map(e=>[e.id,e]));
     const engravings=state.engravings.map(item=>({...data.engravings.find(e=>e.id===item.id),note:item.note})).filter(e=>e.id);
     const portrait=model.character.portraits?.find(p=>p.key===state.background.portrait)?.src||model.portrait,liberations=model.liberations||[];
     const referenceTitle=!state.titleName?.trim()||titleText(model,state)===character.name?data.referenceTitles?.[character.id]:null;
-    const paths=new Set([data.logo,portrait,referenceTitle,character.sprite,...model.badges.map(b=>b.image),model.trait?.image,...liberations.map(s=>s.image)]);
+    const paths=new Set([data.logo,portrait,referenceTitle,character.sprite,...model.badges.flatMap(b=>[b.background,b.image]),...Object.values(data.statIcons||{}),model.trait?.image,...liberations.map(s=>s.image)]);
     for(const skill of model.skills)paths.add(skill.image);
     for(const id of [state.exclusive,...state.weapons,...state.accessories])paths.add(equipmentMap.get(id)?.image);
     for(const id of state.tarot)paths.add(tarotMap.get(id)?.image);
@@ -232,25 +294,25 @@ window.WikiInfographicCanvas=(()=>{
       signatureFont(data.signatureLatinFont,'WikiSignatureLatin','WIKI_SIGNATURE_LATIN_FONT','签名字体',{weight:'400 700'}),
       ...(/[^\u0000-\u024f]/u.test(state.author)?[signatureFont(data.signatureFont,'WikiSignature','WIKI_SIGNATURE_FONT')]:[])
     ]);
-    if(state.bodyFont==='serif')await signatureFont(data.nameFont.script,'WikiTitleNormal','WIKI_NORMAL_TITLE_FONT','正文字体');
+    if(state.bodyFont==='serif'||state.loadoutCommentary?.enabled&&state.loadoutCommentary.font==='serif')await signatureFont(data.nameFont.script,'WikiTitleNormal','WIKI_NORMAL_TITLE_FONT','正文字体');
     const titleResult=await titleArtwork(model,state,data);
-    const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const c=canvas.getContext('2d');c.bodyStyle=state;
-    const layoutRegions=[];
+    const canvas=document.createElement('canvas');canvas.width=outputSize.width;canvas.height=outputSize.height;const c=canvas.getContext('2d');c.scale(outputScale,outputScale);c.bodyStyle=state;
+    const layoutRegions=[];let compositionFrames={},heroArea=null,minHeight=0;
     let box=null;
     // A block is a frame, not a zoom lens: content keeps its own size and reflows inside the frame,
     // so stretching a block rearranges its contents instead of scaling them.
     function block(key,x,y,w,h){
-      const base={x,y,w,h},rect=state.layout?.[key]||base;
+      const base={x,y,w,h},rect=state.layout?.[key]||compositionFrames[key]||(key==='topText'?base:{x:x*W/1920,y:y*H/1080,w:w*W/1920,h:h*H/1080});
       layoutRegions.push({key,...rect,base});
       c.save();c.beginPath();c.rect(rect.x,rect.y,rect.w,rect.h);c.clip();c.translate(rect.x-x,rect.y-y);
       return box={key,x,y,w:rect.w,h:rect.h,base};
     }
     function endBlock(){c.restore();box=null;}
-    function mapped(region,key=region.key){const b=layoutRegions.find(b=>b.key===key);if(!b)return region;const a=b.base;return {...region,x:b.x+(region.x-a.x)*b.w/a.w,y:b.y+(region.y-a.y)*b.h/a.h,w:region.w*b.w/a.w,h:region.h*b.h/a.h};}
+    function mapped(region,key=region.key){const b=layoutRegions.find(b=>b.key===key);if(!b)return region;const a=b.base;return {...region,x:b.x+(region.x-a.x),y:b.y+(region.y-a.y),w:region.w,h:region.h};}
     const rectOf=key=>{const b=layoutRegions.find(b=>b.key===key);return b?{x:b.x,y:b.y,w:b.w,h:b.h}:{x:0,y:0,w:0,h:0};};
     let minTextSize=18;
     const content=(parts,px,py,w,h,size=18)=>{const box=fitted(c,parts,w,h,size);minTextSize=Math.min(minTextSize,box.size*box.scale);textBox(c,box,px,py);return box;};
-    const heading=(label,px,py)=>{font(c,20,700);c.fillStyle=cyan;styledText(c,label,px,py);};
+    const heading=(label,px,py)=>{font(c,20,700);c.fillStyle=state.decoration?.style==='plain'?cyan:'#efe4c9';styledText(c,label,px,py);};
     const traitParts=runs(data.starEffects?.[model.trait?.id]?.html||'当前离线资料未收录个性星级描述。');
     const weaponParts=runs(data.starEffects?.[state.exclusive]?.html||(state.exclusive?'当前离线资料未收录装备星级技能。':'选择专武，展示图标和完整星级效果。'));
     const traitColumns=effectColumns(c,traitParts,right-36,20);
@@ -258,13 +320,14 @@ window.WikiInfographicCanvas=(()=>{
     const weaponH=Math.max(94,Math.min(158,wrap(c,weaponParts,right-124,18,24.48).height+54));
     const weaponY=top+traitH+12,middleY=weaponY+weaponH+12,remaining=bottom-middleY;
     const middleH=Math.min(342,Math.max(252,remaining*.62)),footerY=middleY+middleH+12,footerH=bottom-footerY;
+    ({frames:compositionFrames,hero:heroArea,minHeight}=posterFrames(c,state,W,H,traitParts,weaponParts,engravings,equipmentMap,tarotMap));
     // A fixed frame always contains the complete text. Dense selections receive an editor notice.
     c.fillStyle='#08121b';c.fillRect(0,0,W,H);
     const art=images.get(portrait);
-    const backgroundRect=art?window.WikiInfographicRules.backgroundRect(art.width,art.height,state.background):null;
+    const backgroundRect=art?window.WikiInfographicRules.backgroundRect(art.width,art.height,state.background,{width:W,height:H},heroArea):null;
     if(art){c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.globalAlpha=state.backgroundOpacity??state.brightness??.65;c.drawImage(art,backgroundRect.x,backgroundRect.y,backgroundRect.w,backgroundRect.h);c.restore();}
-    const shade=c.createLinearGradient(0,0,W,0);shade.addColorStop(0,'rgba(4,12,19,.96)');shade.addColorStop(.35,'rgba(4,12,19,.34)');shade.addColorStop(1,'rgba(4,12,19,.18)');c.fillStyle=shade;c.fillRect(0,0,W,H);
-    c.fillStyle='#25404b';c.fillRect(0,0,W,5);c.fillStyle=gold;c.fillRect(24,0,180,5);
+    const shade=c.createLinearGradient(0,0,W,0);shade.addColorStop(0,'rgba(4,12,19,.88)');shade.addColorStop(.35,state.composition==='spotlight'?'rgba(4,12,19,.12)':'rgba(4,12,19,.30)');shade.addColorStop(.65,state.composition==='spotlight'?'rgba(4,12,19,0)':'rgba(4,12,19,.12)');shade.addColorStop(1,'rgba(4,12,19,.25)');c.fillStyle=shade;c.fillRect(0,0,W,H);
+    c.fillStyle='#25404b';c.fillRect(0,0,W,5);c.fillStyle=gold;c.fillRect(24,0,180,5);posterOrnaments(c,W,H,state.decoration);
     const logoBox=block('logo',24,24,132,118);contain(c,images.get(data.logo),24,24,logoBox.w,logoBox.h);endBlock();
     line(c,166,34,166,148,'#42606a',1);
     const titleBox=block('title',185,5,titleResult.width+12,145),titleScale=Math.min((titleBox.w-10)/Math.max(1,titleResult.width),(titleBox.h-10)/Math.max(1,titleResult.height));
@@ -277,10 +340,13 @@ window.WikiInfographicCanvas=(()=>{
     endBlock();const cvBox=block('cv',193,150,1260,30);plain(c,`CV  中：${model.cvZh||'未收录'}    日：${model.cvJa||'未收录'}`,193,157,cvBox.w,17,ink);
     endBlock();const spriteBox=block('sprite',1505,0,210,190);c.save();c.imageSmoothingEnabled=false;contain(c,images.get(character.sprite),1505,0,spriteBox.w,spriteBox.h);c.restore();
     endBlock();const badgeBox=block('badges',1718,50,178,65),badges=model.badges.filter(b=>b.kind!=='rarity'),gap=8;
-    const badgeSize=Math.min(56,(190-Math.max(0,badges.length-1)*gap)/Math.max(1,badges.length),(badgeBox.w+12-Math.max(0,badges.length-1)*gap)/Math.max(1,badges.length)),badgeY=Math.max(50,58+Math.round((badgeBox.h-65)/2));
-    badges.forEach((b,i)=>contain(c,images.get(b.image),1718+badgeBox.w-badges.length*badgeSize-(badges.length-1)*gap+i*(badgeSize+gap),badgeY,badgeSize,badgeSize));
+    const badgeSize=Math.max(1,Math.min(56,(badgeBox.w-Math.max(0,badges.length-1)*gap)/Math.max(1,badges.length),badgeBox.h-8)),badgeY=50+(badgeBox.h-badgeSize)/2;
+    badges.forEach((b,i)=>{const bx=1718+badgeBox.w-badges.length*badgeSize-(badges.length-1)*gap+i*(badgeSize+gap);
+      if(b.background){const size=badgeSize*.82,offset=(badgeSize-size)/2,inset=size*.18;contain(c,images.get(b.background),bx+offset,badgeY+offset,size,size);contain(c,images.get(b.image),bx+offset+inset,badgeY+offset+inset,size-inset*2,size-inset*2);}
+      else contain(c,images.get(b.image),bx,badgeY,badgeSize,badgeSize);
+    });
     endBlock();const roleBox=block('role',1718,120,178,54);if(state.roleText?.trim())content([{text:state.roleText,color:ink}],1720,122,Math.max(20,roleBox.w-4),Math.max(20,roleBox.h-4),20);endBlock();
-    const topBox=block('topText',state.topText?.trim()?state.topTextX:980,state.topText?.trim()?Math.min(state.topTextY,178-state.topTextSize):144,state.topText?.trim()?Math.min(1896-state.topTextX,Math.max(120,state.topText.length*state.topTextSize)):500,state.topText?.trim()?state.topTextSize+6:34);
+    const topBox=block('topText',state.topText?.trim()?state.topTextX:980,state.topText?.trim()?state.topTextY:144,state.topText?.trim()?Math.max(20,Math.min(W-24-state.topTextX,Math.max(120,state.topText.length*state.topTextSize))):500,state.topText?.trim()?state.topTextSize+6:34);
     if(state.topText?.trim()){
       c.save();font(c,state.topTextSize??22,600);c.textBaseline='alphabetic';c.strokeStyle='#071019';c.lineWidth=3;c.lineJoin='round';
       const tx=topBox.x,ty=topBox.y,m=c.measureText(state.topText),pad=4,ascent=m.actualBoundingBoxAscent||state.topTextSize,descent=Math.max(0,m.actualBoundingBoxDescent||0),left=Math.max(0,m.actualBoundingBoxLeft||0),width=Math.max(m.width,left+(m.actualBoundingBoxRight||m.width));
@@ -290,7 +356,7 @@ window.WikiInfographicCanvas=(()=>{
     endBlock();    const treeBox=block('tree',margin,top,treeW,bottom-top);
     // Straight alternating branches retain the original left/right skill assignments.
     panel(c,margin,top,treeBox.w,treeBox.h);heading('技能加点',margin+16,top+16);
-    font(c,12);c.fillStyle=gold;styledText(c,'● 必点',margin+132,top+23);c.fillStyle=cyan;styledText(c,'◌ 选点',margin+194,top+23);c.fillStyle=muted;styledText(c,'○ 未点亮',margin+253,top+23);
+    font(c,12);c.fillStyle=gold;styledText(c,'● 必点',margin+treeBox.w*.40,top+23);c.fillStyle=cyan;styledText(c,'◌ 选点',margin+treeBox.w*.59,top+23);c.fillStyle=muted;styledText(c,'○ 未点亮',margin+treeBox.w*.77,top+23);
     const center=margin+treeBox.w/2,libY=top+87,libPitch=Math.min(99,Math.max(34,(treeBox.w-30)/Math.max(1,liberations.length||1))),libLabel=Math.min(92,libPitch-6);
     font(c,13,700);c.fillStyle=gold;c.textAlign='center';styledText(c,'极限解放',center,top+49);c.textAlign='left';
     if(liberations.length){liberations.forEach((s,i)=>{const cx=center+(i-(liberations.length-1)/2)*libPitch;const dx=cx-center,dy=libY-(top+139),distance=Math.hypot(dx,dy),clearance=26.5+(state.markWidth??3)/2+3;line(c,center,top+139,cx-dx/distance*clearance,libY-dy/distance*clearance,state.marks[s.id]==='required'?gold:state.marks[s.id]==='optional'?cyan:'#506565',state.branchWidth??1.5);icon(c,images.get(s.image),cx,libY,45,state.marks[s.id]||'','?',!state.marks[s.id]);smallLabel(c,s.name,cx-libLabel/2,libY+32,libLabel,ink,13,2);});}
@@ -320,24 +386,31 @@ window.WikiInfographicCanvas=(()=>{
     contain(c,images.get(equipmentMap.get(state.exclusive)?.image),x+17,weaponY+22,weaponIcon,weaponIcon);
     heading(state.exclusive?'专武 · '+equipmentMap.get(state.exclusive)?.name:'专武 · 待选择',x+106,weaponY+12);
     content(weaponParts,x+106,weaponY+43,Math.max(40,weaponBox.w-124),Math.max(24,weaponBox.h-53),18);
-    // Three loadouts, equipment, and radar share one row so the poster stays landscape.
-    const buildsW=690,gearX=1072,gearW=520,radarX=1604,radarW=292;
-    endBlock();const loadoutBox=block('loadouts',x,middleY,buildsW,middleH);panel(c,x,middleY,loadoutBox.w,loadoutBox.h);heading('技能搭配',x+16,middleY+13);
+    // Loadouts grow with the chosen count; an optional independent text frame follows below.
+    const buildsW=690,gearX=1072,gearW=520,radarX=1604,radarW=292,note=state.loadoutCommentary||{enabled:false};
+    const noteReserve=note.enabled?Math.min(136,Math.max(90,middleH*.38))+12:0,defaultBuildH=Math.min(middleH-noteReserve,48+90*state.loadouts.length);
+    endBlock();const loadoutBox=block('loadouts',x,middleY,buildsW,defaultBuildH);panel(c,x,middleY,loadoutBox.w,loadoutBox.h);heading('技能搭配',x+16,middleY+13);
     font(c,13);c.fillStyle=muted;styledText(c,'普攻 / 反应 / 三项技能',x+122,middleY+19);
-    const rowH=(loadoutBox.h-48)/3,pitch=Math.min(105,Math.max(30,(loadoutBox.w-120)/5)),slotIcon=Math.max(22,Math.min(49,pitch-8,rowH-30)),slotLabel=Math.min(98,pitch-6);
-    state.loadouts.forEach((row,i)=>{const y=middleY+48+i*rowH;
-      smallLabel(c,row.name||'搭配 '+(i+1),x+10,y+20,Math.min(128,loadoutBox.w*.22),cyan,16,3);
-      row.slots.forEach((id,j)=>{const cx=x+190+j*pitch,skill=skillMap.get(id);icon(c,images.get(skill?.image),cx,y+slotIcon/2,slotIcon,window.WikiInfographicRules.canMark(model,id)?state.marks[id]:'');smallLabel(c,skill?.name||['普攻','反应','技能 1','技能 2','技能 3'][j],cx-slotLabel/2,y+slotIcon+9,slotLabel,skill?ink:muted,12,2);});
-      if(i<2)line(c,x+16,y+rowH-3,x+loadoutBox.w-16,y+rowH-3,'#2c424b',1);
+    const buildCols=Math.max(1,Math.min(Math.floor((loadoutBox.w-24)/330),Math.ceil(state.loadouts.length/4))),buildRows=Math.ceil(state.loadouts.length/buildCols),buildW=(loadoutBox.w-24-(buildCols-1)*12)/buildCols;
+    const rowH=Math.max(4,(loadoutBox.h-48)/buildRows),nameW=Math.max(40,Math.min(128,buildW*.22)),slotW=Math.max(25,buildW-nameW-12),pitch=Math.min(105,slotW/5),slotIcon=Math.max(3,Math.min(49,pitch-8,rowH*.56)),labelSize=Math.max(3,Math.min(12,rowH*.18)),slotLabel=Math.min(98,pitch-6);
+    state.loadouts.forEach((row,i)=>{const px=x+12+(i%buildCols)*(buildW+12),y=middleY+48+Math.floor(i/buildCols)*rowH;
+      smallLabel(c,row.name||'搭配 '+(i+1),px,y+slotIcon*.32,nameW,cyan,Math.min(16,rowH*.24),3);
+      row.slots.forEach((id,j)=>{const cx=px+nameW+12+(slotW-pitch*5)/2+(j+.5)*pitch,skill=skillMap.get(id);icon(c,images.get(skill?.image),cx,y+slotIcon/2,slotIcon,window.WikiInfographicRules.canMark(model,id)?state.marks[id]:'');smallLabel(c,skill?.name||['普攻','反应','技能 1','技能 2','技能 3'][j],cx-slotLabel/2,y+slotIcon+Math.min(7,rowH*.08),slotLabel,skill?ink:muted,labelSize,2);});
+      if(Math.floor(i/buildCols)<buildRows-1)line(c,px,y+rowH-3,px+buildW,y+rowH-3,'#2c424b',1);
     });
+    if(note.enabled){
+      const builds=rectOf('loadouts'),baseNotes={x:x,y:middleY+defaultBuildH+12,w:buildsW,h:Math.max(96,middleH-defaultBuildH-12)};
+      endBlock();const noteBox=block('loadoutNotes',baseNotes.x,baseNotes.y,baseNotes.w,baseNotes.h);panel(c,baseNotes.x,baseNotes.y,noteBox.w,noteBox.h);font(c,16,600);c.fillStyle=cyan;styledText(c,'搭配解说',baseNotes.x+16,baseNotes.y+12);
+      c.bodyStyle={bodyFont:note.font,bodyBold:note.bold,bodyItalic:note.italic,bodyOutlineWidth:note.outlineWidth,bodyOutlineColor:note.outlineColor};
+      const textW=Math.max(8,noteBox.w-32),textH=Math.max(4,noteBox.h-46);let size=note.size,paragraph=wrap(c,[{text:note.text,color:note.color}],textW,size,size*note.lineHeight);
+      while(paragraph.height>textH&&size>6){size-=.5;paragraph=wrap(c,[{text:note.text,color:note.color}],textW,size,size*note.lineHeight);}
+      minTextSize=Math.min(minTextSize,size);font(c,size);let py=baseNotes.y+37;
+      for(const row of paragraph.lines){const width=row.reduce((sum,part)=>sum+part.width,0);let px=baseNotes.x+16+(note.align==='center'?(textW-width)/2:note.align==='right'?textW-width:0);for(const part of row){c.fillStyle=part.color;styledText(c,part.text,px,py);px+=part.width;}py+=paragraph.lineHeight;}
+      c.bodyStyle=state;
+    }
     endBlock();const gearBox=block('gear',gearX,middleY,gearW,middleH);panel(c,gearX,middleY,gearBox.w,gearBox.h);heading('装备 · 塔罗推荐',gearX+16,middleY+13);
     // Columns follow the available width; a narrower block stacks the same picks instead of shrinking them.
-    const gearCols=Math.max(1,Math.min(8,Math.round((gearBox.w-70)/108)||1)),gearPitch=Math.min(108,(gearBox.w-70)/gearCols),gearCell=Math.min(92,gearPitch-6),gearIconSize=Math.min(40,gearPitch-14);
-    const gearRows=[['weapons','武器',equipmentMap],['accessories','装具',equipmentMap],['tarot','塔罗',tarotMap]].map(([key,label,map])=>{
-      const items=state[key].map((id,j)=>{const item=map.get(id),name=labelLayout(c,item?.name||'待选择',gearCell,item?ink:muted,12.5,2),caption=state.gearNotes[key][j]?wrap(c,[{text:state.gearNotes[key][j],color:colors.red}],gearCell,12.5,16):null;return {item,name,caption,bottom:gearIconSize+4+name.height+(caption?1+caption.height:0)};});
-      const cellH=Math.max(...items.map(item=>item.bottom))+8,contentH=cellH*Math.ceil(items.length/gearCols),group=state.groupNotes[key]?wrap(c,[{text:state.groupNotes[key],color:colors.red}],gearBox.w-40,14,18):null;
-      return {label,items,cellH,group,groupY:contentH+2,height:contentH+(group?2+group.height:0)+6};
-    });
+    const {gearCols,gearPitch,gearCell,gearIconSize,gearRows}=gearContent(c,state,gearBox.w,equipmentMap,tarotMap);
     const gearScale=Math.min(1,Math.max(40,gearBox.h-46)/Math.max(1,gearRows.reduce((a,b)=>a+b.height,0)));minTextSize=Math.min(minTextSize,12.5*gearScale);
     c.save();c.translate(gearX+gearBox.w*(1-gearScale)/2,middleY+45);c.scale(gearScale,gearScale);let gy=0;
     for(const row of gearRows){plain(c,row.label,10,gy+18,Math.min(38,gearCell),15,gold);
@@ -345,7 +418,7 @@ window.WikiInfographicCanvas=(()=>{
       if(row.group)paintCentered(c,row.group,gearBox.w/2,gy+row.groupY);gy+=row.height;
     }c.restore();
     endBlock();const scoreBox=block('scores',radarX,middleY,radarW,middleH);panel(c,radarX,middleY,scoreBox.w,scoreBox.h);heading('角色评级',radarX+16,middleY+13);
-    const rcx=radarX+scoreBox.w/2,rcy=middleY+scoreBox.h*.56,rr=Math.min(70,(scoreBox.h-95)/2,scoreBox.w/2-40),axes=window.WikiInfographicRules.axes;
+    const rr=Math.max(8,Math.min(70,(scoreBox.h-150)/2,scoreBox.w/2-50)),rcx=radarX+scoreBox.w/2,rcy=middleY+75+rr,axes=window.WikiInfographicRules.axes;
     const point=(i,radius)=>[rcx+Math.cos(-Math.PI/2+i*Math.PI/3)*radius,rcy+Math.sin(-Math.PI/2+i*Math.PI/3)*radius];
     for(let n=1;n<=5;n++){c.beginPath();for(let i=0;i<6;i++){const [px,py]=point(i,rr*n/5);i?c.lineTo(px,py):c.moveTo(px,py);}c.closePath();c.strokeStyle=n===5?'#67848d':'#324f59';c.lineWidth=1;c.stroke();}
     for(let i=0;i<6;i++){const [px,py]=point(i,rr);line(c,rcx,rcy,px,py,'#36535d',1);const [lx,ly]=point(i,rr+25);font(c,14,600);c.fillStyle=ink;c.textAlign='center';styledText(c,axes[i]+(state.rated?' '+state.scores[i]:' —'),lx,ly-7);c.textAlign='left';}
@@ -370,21 +443,30 @@ window.WikiInfographicCanvas=(()=>{
       if(i%cols!==cols-1)line(c,px+cellW-7,py,px+cellW-7,py+cellH-10,'#2d454f',1);
     });
     endBlock();const notesBox=block('notes',notesX,footerY,notesW,footerH);panel(c,notesX,footerY,notesBox.w,notesBox.h);heading('养成手记',notesX+16,footerY+13);
-    const signatureH=state.author.trim()?81:8;
+    const signatureH=state.author.trim()&&!heroArea?81:8;
     if(state.notes)content([{text:state.notes,color:ink}],notesX+16,footerY+41,Math.max(40,notesBox.w-32),Math.max(24,notesBox.h-48-signatureH),15);
     endBlock();const authorBox=block('author',notesX+12,bottom-85,notesW-24,83);if(state.author.trim())signature(c,state.author,notesX+24,bottom-83,Math.max(40,authorBox.w-18),Math.max(24,authorBox.h-4));
     endBlock();const statsBox=block('stats',statsX,footerY,statsW,footerH);panel(c,statsX,footerY,statsBox.w,statsBox.h);heading('基础属性',statsX+12,footerY+12);
-    const base=model.baseStats||{},statRows=window.WikiInfographicRules.baseStatDefinitions,statRowH=Math.max(10,(statsBox.h-64)/statRows.length),fs=Math.max(7,Math.min(12,statRowH*.52)),barW=Math.max(10,statsBox.w-24);
-    statRows.forEach(([key,label],i)=>{const sy=footerY+40+i*statRowH,value=base[key],maximum=model.statMaxima?.[key],pct=window.WikiInfographicRules.statRatio(value,maximum);
-      font(c,fs,500);c.fillStyle=ink;styledText(c,label,statsX+12,sy);
-      const current=String(value||'—'),reference=` / ${maximum||'—'}`,share=`  ${pct===null?'—':pct.toFixed(1)+'%'}`,referenceW=c.measureText(reference).width;
-      font(c,fs,600);const shareW=c.measureText(share).width;const right=statsX+statsBox.w-12;
-      font(c,fs,700);const currentW=c.measureText(current).width;c.fillStyle=gold;styledText(c,current,right-shareW-referenceW-currentW,sy);
-      font(c,fs,500);c.fillStyle=muted;styledText(c,reference,right-shareW-referenceW,sy);
-      font(c,fs,600);c.fillStyle=cyan;styledText(c,share,right-shareW,sy);
-      const by=sy+fs+3,bh=Math.max(2,Math.min(5,statRowH-fs-5));c.fillStyle='#29424e';c.fillRect(statsX+12,by,barW,bh);if(pct!==null){c.fillStyle=cyan;c.fillRect(statsX+12,by,barW*pct/100,bh);}
+    {const base=model.baseStats||{},statRows=window.WikiInfographicRules.combatStatDefinitions;
+    const statGap=6,innerW=Math.max(28,statsBox.w-24),cellW=(innerW-statGap)/2,gridY=footerY+37,cellH=Math.max(25,Math.min(54,(statsBox.h-87)/3)),valueSize=Math.min(18,cellH*.49,cellW*.17),detailSize=Math.min(10,cellH*.26,cellW*.09);
+    function statShape(px,py,w,h){const bevel=Math.min(9,h*.28);c.beginPath();c.moveTo(px+bevel,py);c.lineTo(px+w-bevel,py);c.lineTo(px+w,py+h/2);c.lineTo(px+w-bevel,py+h);c.lineTo(px+bevel,py+h);c.lineTo(px,py+h/2);c.closePath();}
+    statRows.forEach(([key,label],i)=>{
+      const px=statsX+12+(i%2)*(cellW+statGap),py=gridY+Math.floor(i/2)*(cellH+3),value=base[key],maximum=model.statMaxima?.[key],pct=window.WikiInfographicRules.statRatio(value,maximum);
+      statShape(px,py,cellW,cellH);c.fillStyle=`rgba(20,42,53,${Math.max(.35,state.panelOpacity??.92)})`;c.fill();c.strokeStyle='#3a5d67';c.lineWidth=.8;c.stroke();
+      const iconSize=Math.min(20,cellH*.52,cellW*.18),iconX=px+7,iconY=py+4,source=images.get(data.statIcons?.[key]);
+      c.save();c.translate(iconX,iconY);c.fillStyle='#9ebfc7';
+      if(source){const mask=document.createElement('canvas');mask.width=26;mask.height=26;const mc=mask.getContext('2d');mc.drawImage(source,0,0,26,26);mc.globalCompositeOperation='source-in';mc.fillStyle='#9ebfc7';mc.fillRect(0,0,26,26);c.drawImage(mask,0,0,iconSize,iconSize);}
+      else{c.scale(iconSize/26,iconSize/26);c.fill(new Path2D(window.WikiInfographicRules.speedIconPath));}c.restore();
+      // Compact labels identify the icons while the current value remains the visual focus.
+      c.save();c.bodyStyle={...state,bodyOutlineWidth:0};font(c,Math.min(8,detailSize),500);c.fillStyle='#adc4c9';c.textAlign='left';styledText(c,label,iconX+iconSize+2,py+5);
+      font(c,valueSize,700);c.fillStyle='#e7c479';c.textAlign='right';styledText(c,String(value||'—'),px+cellW-9,py+3);
+      const detailY=py+cellH-detailSize-5; font(c,detailSize,500);c.fillStyle='#91aab2';c.textAlign='left';styledText(c,`/ ${maximum||'—'}`,px+9,detailY);
+      font(c,detailSize,600);c.fillStyle='#85d5e7';c.textAlign='right';styledText(c,pct===null?'—':pct.toFixed(1)+'%',px+cellW-9,detailY);c.textAlign='left';c.restore();
+      const barX=px+9,barY=py+cellH-3,barW=cellW-18;c.fillStyle='#25424d';c.fillRect(barX,barY,barW,2);if(pct!==null){c.fillStyle='#6badbb';c.fillRect(barX,barY,barW*pct/100,2);}
     });
-    plain(c,'当前 / 角色最高（不含召唤物）· 占比',statsX+12,footerY+statsBox.h-16,barW,9,muted);
+    const mobilityY=gridY+3*(cellH+3)+4;
+    window.WikiInfographicRules.mobilityStatDefinitions.forEach(([key,label],i)=>{const px=statsX+12+i*(cellW+statGap);font(c,11,500);c.fillStyle=muted;styledText(c,label,px+9,mobilityY);font(c,14,700);c.fillStyle=gold;c.textAlign='right';styledText(c,String(base[key]||'—'),px+cellW-9,mobilityY-1);c.textAlign='left';});
+    plain(c,'最高值不含召唤物 · 高亮为当前值',statsX+12,footerY+statsBox.h-14,innerW,8,muted);}
     endBlock();const dateBox=block('date',1304,1057,600,23);c.save();font(c,14,500);c.fillStyle='#cbd9de';c.textAlign='right';c.strokeStyle='#08121b';c.lineWidth=2;const dateText=(state.datePrefix?.trim()?state.datePrefix.trim()+' ':'')+window.WikiInfographicRules.posterDate(state),dateX=1304+dateBox.w-8;c.strokeText(dateText,dateX,1062);styledText(c,dateText,dateX,1062);const dateHitWidth=Math.max(220,c.measureText(dateText).width+8);c.restore();
     endBlock();
     // Hit regions follow the same measured layout as the PNG, but are never painted.
@@ -396,11 +478,12 @@ window.WikiInfographicCanvas=(()=>{
       {key:'role',...rectOf('role'),absolute:true},
       {key:'topText',...rectOf('topText'),absolute:true},
       {key:'tree',...rectOf('tree'),absolute:true},
-      {key:'liberation',x:margin+5,y:top+42,w:treeW-10,h:106},
-      {key:'treeNotes',x:margin+10,y:noteY+5,w:treeW-20,h:bottom-noteY-10},
+      {key:'liberation',x:margin+5,y:top+42,w:treeBox.w-10,h:106},
+      {key:'treeNotes',x:margin+10,y:noteY+5,w:treeBox.w-20,h:top+treeBox.h-noteY-10},
       {key:'trait',...rectOf('trait'),absolute:true},
       {key:'exclusive',...rectOf('exclusive'),absolute:true},
       {key:'loadouts',...rectOf('loadouts'),absolute:true},
+      ...(note.enabled?[{key:'loadoutNotes',...rectOf('loadoutNotes'),absolute:true}]:[]),
       {key:'gear',...rectOf('gear'),absolute:true},
       {key:'scores',...rectOf('scores'),absolute:true},
       {key:'stats',...rectOf('stats'),absolute:true},
@@ -409,7 +492,8 @@ window.WikiInfographicCanvas=(()=>{
       {key:'author',...rectOf('author'),absolute:true},
       {key:'date',...rectOf('date'),absolute:true}
     ];
-    return {canvas,width:W,height:H,layoutRegions,hitRegions:hitRegions.map(r=>r.absolute?r:mapped(r,'tree')),dense:minTextSize<11,minTextSize,backgroundRect,titleMissing:titleResult.missing,titleSource:titleResult.source};
+    const scaled=r=>({...r,x:r.x*outputScale,y:r.y*outputScale,w:r.w*outputScale,h:r.h*outputScale,...(r.focusY!==undefined?{focusY:r.focusY*outputScale}:{})});
+    return {canvas,width:outputSize.width,height:outputSize.height,recommendedHeight:Math.ceil(minHeight*outputScale/16)*16,layoutRegions:layoutRegions.map(r=>({...scaled(r),base:scaled(r.base)})),hitRegions:hitRegions.map(r=>scaled(r.absolute?r:mapped(r,'tree'))),dense:minTextSize*outputScale<11,minTextSize:minTextSize*outputScale,heroArea:heroArea?scaled(heroArea):null,backgroundRect:backgroundRect?scaled(backgroundRect):null,titleMissing:titleResult.missing,titleSource:titleResult.source};
   }
   return {draw,runs,wrap,titleArtwork,titleText};
 })();

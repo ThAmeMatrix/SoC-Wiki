@@ -115,3 +115,31 @@ assert.equal(R.statRatio(50,100),50);assert.equal(R.statRatio(0,100),0);assert.e
 console.log("PASS stat percentages, missing data, zero and upper bound");
 
 assert.equal(R.baseStatDefinitions.filter(([key])=>key.startsWith("jump")).length,1);assert(R.baseStatDefinitions.some(([key,label])=>key==="jump"&&label==="跳跃"));
+
+// Real saved builds must survive growth past the former three-row limit and deletion.
+const flexible=R.defaults(model);assert.equal(flexible.loadouts.length,1);assert(!R.removeLoadout(flexible,0));
+for(let i=0;i<4;i++)R.addLoadout(flexible,model);
+assert.equal(flexible.loadouts.length,5);assert(R.setSlot(flexible,model,4,2,skills[0].id));assert(R.setSlot(flexible,model,4,3,skills[1].id));assert(R.moveSlot(flexible,4,3,-1));
+flexible.loadouts[4].name='持续输出';const tail=JSON.parse(JSON.stringify(flexible.loadouts[4]));assert(R.removeLoadout(flexible,2));assert.deepEqual(flexible.loadouts[3],tail);
+assert(!R.setSlot(flexible,model,4,2,skills[0].id));assert(!R.removeLoadout(flexible,-1));
+flexible.loadoutCommentary=R.commentary({enabled:true,text:'先控场，再爆发。',font:'serif',size:24,bold:true,italic:true,align:'center',lineHeight:1.8,outlineWidth:1,color:'#d5e8ff'});
+flexible.layout.loadoutNotes={x:400,y:700,w:600,h:150};assert.deepEqual(R.restore(flexible,model,catalog),flexible);
+const legacyThree={...flexible,loadouts:flexible.loadouts.slice(0,3)};delete legacyThree.loadoutCommentary;assert.deepEqual(R.restore(legacyThree,model,catalog).loadouts,legacyThree.loadouts);assert.equal(R.restore(legacyThree,model,catalog).loadoutCommentary.enabled,false);
+assert.equal(R.restore({...flexible,loadouts:[]},model,catalog).loadouts.length,1);
+const badNote=R.commentary({size:99,lineHeight:9,outlineWidth:99,color:'bad',align:'bogus',font:'bogus'});assert.equal(badNote.size,48);assert.equal(badNote.lineHeight,2.4);assert.equal(badNote.outlineWidth,3);assert.equal(badNote.color,'#e9efed');assert.equal(badNote.font,'sans');
+console.log('PASS variable loadouts beyond three, deletion preserves other builds, minimum one, legacy drafts and independent commentary settings');
+
+// Canvas migrations and coordinates must preserve real pixels outside the old 1080px height.
+assert.deepEqual(R.canvasSize(),{width:1920,height:1080});
+assert.deepEqual(R.canvasSize({width:1400.4,height:2100.1}),{width:1400,height:2100});
+assert.deepEqual(R.canvasSize({width:99999,height:-9}),{width:4096,height:320});
+const tall=R.restore({...state,canvas:{width:1280,height:2400},layout:{stats:{x:900,y:2000,w:300,h:240}},composition:'spotlight',decoration:{style:'plain',intensity:.4},topTextY:1900},model,catalog);
+assert.deepEqual(tall.layout.stats,{x:900,y:2000,w:300,h:240});assert.equal(tall.topTextY,1900);assert.equal(tall.composition,'spotlight');assert.equal(tall.decoration.style,'plain');
+assert.deepEqual(R.restore(tall,model,catalog),tall);
+assert.equal(R.snapLayout({x:902,y:2005,w:300,h:240},[{x:900,y:2000,w:100,h:100}],false,true,null,tall.canvas).rect.y,2000);
+assert.equal(R.layoutRect({x:1100,y:2399,w:300,h:240},tall.canvas).y,2160);
+const hero={x:650,y:15,w:600,h:570,focusScale:3,focusY:228},position={portrait:'awakened',x:12,y:38,scale:1.1},artRect=R.backgroundRect(3000,2539,position,tall.canvas,hero),point={x:850,y:340};
+const zoom=R.zoomBackground(position,artRect,1.3,point,tall.canvas),zoomRect=R.backgroundRect(3000,2539,zoom,tall.canvas,hero);
+assert(Math.abs((point.x-artRect.x)/artRect.w-(point.x-zoomRect.x)/zoomRect.w)<1e-8);
+assert(Math.abs((point.y-artRect.y)/artRect.h-(point.y-zoomRect.y)/zoomRect.h)<1e-8);
+console.log('PASS custom canvas validation/migration, tall-frame coordinates and snapping, gold/plain styles, artwork focus and stable zoom anchors');

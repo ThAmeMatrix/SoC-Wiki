@@ -18,7 +18,7 @@
     const name=anchor.download || decodeURIComponent(url.pathname.split('/').pop()) || '铃兰档案馆图片.webp';
     const blob=objects.get(anchor.href);
     if (blob) {
-      if (blob.size>16*1024*1024) {message('文件超过 16 MB，无法保存。');return true;}
+      if (blob.size>64*1024*1024) {message('文件超过 64 MB，请缩小画布尺寸后保存。');return true;}
       const reader=new FileReader();
       reader.onload=()=>native.saveBase64(name,blob.type||'application/octet-stream',String(reader.result).split(',')[1]);
       reader.onerror=()=>message('读取导出内容失败，请重试。');
