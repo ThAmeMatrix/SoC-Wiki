@@ -56,7 +56,7 @@ window.WikiCharacter = (() => {
     for (const layer of layers) layer.nodes = layer.names.map((name, side) => {
       let page = name && (h.find('技能图鉴库/'+name) || h.find('技能/'+name) || h.find('技能图鉴/'+name));
       if (page) page = h.resolve(page);
-      const node = {key:layer.rank+'-'+side, name, side, rank:layer.rank, page};
+      const node = {key:layer.rank+'-'+side, name:page?.name || name, side, rank:layer.rank, page};
       nodes.push(node); return node;
     });
     const available = nodes.filter(n=>n.name);

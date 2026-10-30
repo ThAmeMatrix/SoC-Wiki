@@ -143,3 +143,13 @@ const zoom=R.zoomBackground(position,artRect,1.3,point,tall.canvas),zoomRect=R.b
 assert(Math.abs((point.x-artRect.x)/artRect.w-(point.x-zoomRect.x)/zoomRect.w)<1e-8);
 assert(Math.abs((point.y-artRect.y)/artRect.h-(point.y-zoomRect.y)/zoomRect.h)<1e-8);
 console.log('PASS custom canvas validation/migration, tall-frame coordinates and snapping, gold/plain styles, artwork focus and stable zoom anchors');
+
+// Old drafts keep the established signature. New typography and artwork travel with a plan.
+const oldAuthor={...state,author:'ThAme'};delete oldAuthor.authorFont;delete oldAuthor.authorMode;
+assert.equal(R.restore(oldAuthor,model,catalog).authorFont,'signature');assert.equal(R.restore(oldAuthor,model,catalog).authorMode,'text');
+const authorPlan=R.restore({...state,author:'ThAme',authorFont:'custom',authorCustomFont:{name:'sample.woff2',data:'data:font/woff2;base64,AA=='},authorMode:'image',authorImage:'data:image/png;base64,AA==',composition:'information'},model,catalog);
+assert.equal(authorPlan.authorFont,'custom');assert.equal(authorPlan.composition,'information');assert.deepEqual(R.restore(authorPlan,model,catalog),authorPlan);
+const badAuthor=R.restore({...authorPlan,authorImage:'https://example.com/name.png',authorCustomFont:{name:'external',data:'url(https://example.com/font.woff2)'}},model,catalog);
+assert.equal(badAuthor.authorImage,null);assert.equal(badAuthor.authorCustomFont,null);assert.equal(badAuthor.authorFont,'signature');
+assert.equal(R.restore({...state,authorFont:'unsupported',composition:'unknown'},model,catalog).authorFont,'signature');
+console.log('PASS legacy author defaults, font/image plan roundtrip, information layout persistence and external asset rejection');

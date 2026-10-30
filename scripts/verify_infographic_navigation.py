@@ -27,7 +27,7 @@ def main():
         search.press('Enter')
         assert page.get_by_label('顶部自定义文字',exact=True).evaluate("(e)=>e===document.activeElement")
         assert page.locator('.ig-nav-list [aria-current]').get_attribute('data-ig-jump')=='topText'
-        search.fill('描边');search.press('Enter');assert page.locator('.ig-typography').get_attribute('open') is not None
+        search.fill('描边');search.press('Enter');assert page.locator('.ig-title-typography').get_attribute('open') is not None
         search.fill('');keys=page.locator('.ig-nav-list button').evaluate_all('(els)=>els.map(e=>e.dataset.igJump)')
         for key in keys:
             page.locator(f'.ig-nav-list [data-ig-jump={key}]').click()

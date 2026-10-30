@@ -119,6 +119,7 @@ with sync_playwright() as pw:
     ready(p)
     complete_layout(p, spotlight=True)
     export(p, 'portrait-focus')
+    navigation(p, 'layout')
     p.locator('[data-ig=composition-auto]').click()
     ready(p)
     complete_layout(p)

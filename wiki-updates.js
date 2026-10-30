@@ -12,8 +12,14 @@ window.WikiUpdates=(()=>{
     if(typeof v==='string')return v.replace(/assets\/(?:wiki|updates)\/[^\s"'<>]+/g,path=>urls.get(path)||path);
     if(Array.isArray(v))return v.map(resolveValue);if(v&&typeof v==='object')return Object.fromEntries(Object.entries(v).map(([k,value])=>[k,resolveValue(value)]));return v;
   }
+  // Locally imported client pages take precedence over cached BWIKI revisions.
+  function preserveClientPages(snapshot){
+    if(!snapshot)return snapshot;
+    const local=new Set(window.WIKI_DATA.pages.filter(p=>p.clientManaged).map(p=>p.id));
+    return {...snapshot,records:Object.fromEntries(Object.entries(snapshot.records||{}).filter(([id])=>!local.has(Number(id)))),deleted:(snapshot.deleted||[]).filter(id=>!local.has(Number(id)))};
+  }
   async function activate(snapshot){
-    active=snapshot;if(!active)return;let downloadedBytes=0;
+    active=preserveClientPages(snapshot);if(!active)return;let downloadedBytes=0;
     for(const [path,key] of Object.entries(active.assetKeys||{})){const blob=await read('blobs',key);if(!blob)throw new Error('更新图片缺失，无法启用这份更新');urls.set(path,URL.createObjectURL(blob));downloadedBytes+=blob.size;}
     const data=window.WIKI_DATA,deleted=new Set(active.deleted||[]),entries=new Map(data.pages.filter(p=>!deleted.has(p.id)).map(p=>[p.id,p]));
     for(const [id,record] of Object.entries(active.records||{})){if(!deleted.has(Number(id)))entries.set(Number(id),record.entry);}

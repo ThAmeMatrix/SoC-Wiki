@@ -28,7 +28,7 @@
   function addLoadout(state,model){let index=state.loadouts.length;while(state.loadouts.some(row=>row.name==='搭配 '+(index+1)))index++;state.loadouts.push(loadout(model,index));return true;}
   function removeLoadout(state,index){if(!Number.isInteger(index)||index<0||index>=state.loadouts.length||state.loadouts.length<=1)return false;state.loadouts.splice(index,1);return true;}
   function defaults(model){
-    return {version:6,canvas:{width:1920,height:1080},composition:'auto',decoration:{style:'gilded',intensity:.65},background:{portrait:model.character.portraits?.some(p=>p.key==='awakened')?'awakened':'base',x:0,y:0,scale:1},customTitle:null,titleName:'',titleMode:model.character.id===9296?'reference':'text',titleFont:'serif',bodyFont:'sans',bodyBold:false,bodyItalic:false,bodyOutlineWidth:0,bodyOutlineColor:'#071018',titleItalic:false,titleBold:false,titleScale:1,titleOutlineWidth:0,titleOutlineColor:'#08121b',titleShadow:true,generatedDate:'',datePrefix:'',roleText:'',layout:{},topText:'',topTextX:1000,topTextY:152,topTextSize:22,topTextColor:'#e8dbc0',branchWidth:1.5,branchLength:100,titleImageTint:false,characterId:model.character.id,subtitle:'角色养成一图流',titleColor:'#ef9b73',treeNotes:'',author:'',notes:'',
+    return {version:6,canvas:{width:1920,height:1080},composition:'auto',decoration:{style:'gilded',intensity:.65},background:{portrait:model.character.portraits?.some(p=>p.key==='awakened')?'awakened':'base',x:0,y:0,scale:1},customTitle:null,titleName:'',titleMode:model.character.id===9296?'reference':'text',titleFont:'serif',bodyFont:'sans',bodyBold:false,bodyItalic:false,bodyOutlineWidth:0,bodyOutlineColor:'#071018',titleItalic:false,titleBold:false,titleScale:1,titleOutlineWidth:0,titleOutlineColor:'#08121b',titleShadow:true,generatedDate:'',datePrefix:'',roleText:'',layout:{},topText:'',topTextX:1000,topTextY:152,topTextSize:22,topTextColor:'#e8dbc0',branchWidth:1.5,branchLength:100,titleImageTint:false,characterId:model.character.id,subtitle:'角色养成一图流',titleColor:'#ef9b73',treeNotes:'',author:'',authorFont:'signature',authorMode:'text',authorImage:null,authorCustomFont:null,notes:'',
       backgroundOpacity:.65,panelOpacity:.92,markWidth:3,exclusive:null,marks:{},loadouts:[loadout(model)],loadoutCommentary:commentary(),
       weapons:[null],accessories:[null],tarot:[null],engravings:[],gearNotes:{weapons:[''],accessories:[''],tarot:['']},groupNotes:{weapons:'',accessories:'',tarot:''},scores:[0,0,0,0,0,0],rated:false,scoreText:''};
   }
@@ -41,11 +41,16 @@
     state.subtitle=short(value.subtitle,48,state.subtitle);if(state.subtitle==='角色养成 · 一图流')state.subtitle='角色养成一图流';
     state.titleName=Array.from(short(value.titleName,96).replace(/[\u0000-\u001f\u007f]/g,'').trim()).slice(0,24).join('');
     state.titleColor=/^#[0-9a-f]{6}$/i.test(value.titleColor||'')?value.titleColor.toLowerCase():state.titleColor;state.treeNotes=short(value.treeNotes,160);
-    state.canvas=canvasSize(value.canvas);state.composition=['auto','spotlight'].includes(value.composition)?value.composition:'auto';
+    state.canvas=canvasSize(value.canvas);state.composition=['auto','spotlight','information'].includes(value.composition)?value.composition:'auto';
     state.decoration={style:value.decoration?.style==='plain'?'plain':'gilded',intensity:number(value.decoration?.intensity,0,1,.65)};
     state.roleText=short(value.roleText,100);
     if(object(value.layout))for(const key of layoutKeys)if(object(value.layout[key]))state.layout[key]=layoutRect(value.layout[key],state.canvas);
     state.author=short(value.author,24);state.notes=short(value.notes,320);
+    state.authorMode=value.authorMode==='image'?'image':'text';
+    state.authorFont=['signature','serif','sans','custom'].includes(value.authorFont)?value.authorFont:'signature';
+    if(typeof value.authorImage==='string'&&value.authorImage.length<=1000000&&/^data:image\/(png|webp);base64,[a-z0-9+/]+=*$/i.test(value.authorImage))state.authorImage=value.authorImage;
+    if(object(value.authorCustomFont)&&typeof value.authorCustomFont.data==='string'&&value.authorCustomFont.data.length<=12000000&&/^data:font\/(ttf|otf|woff2?);base64,[a-z0-9+/]+=*$/i.test(value.authorCustomFont.data))state.authorCustomFont={name:short(value.authorCustomFont.name,100,'自定义字体'),data:value.authorCustomFont.data};
+    if(state.authorFont==='custom'&&!state.authorCustomFont)state.authorFont='signature';
     const background=object(value.background)?value.background:{};
     if(['base','awakened'].includes(background.portrait)&&model.character.portraits?.some(p=>p.key===background.portrait))state.background.portrait=background.portrait;
     state.background.x=number(background.x,-state.canvas.width*2,state.canvas.width*2,0);state.background.y=number(background.y,-state.canvas.height*2,state.canvas.height*2,0);state.background.scale=number(background.scale,.15,4,1);
@@ -133,12 +138,18 @@
   function posterDate(state,now=new Date()){return validDate(state.generatedDate)?state.generatedDate:[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');}
   function branchEnds(center,cx,width=3,length=100){const sign=Math.sign(cx-center),start=center+sign*22,limit=cx-sign*(30.5+width/2+3);return {start,end:start+(limit-start)*length/100};}
   function branchSpan(rank){return [1,5,9].includes(rank)?65:rank===0?89:109;}
-  function backgroundRect(width,height,background,canvas,hero=null){
+  function backgroundRect(width,height,background,canvas,hero=null,contentBounds=null){
     const {width:W=1920,height:H=1080}=canvas||{},target=hero||{x:W*.365,y:0,w:W*.635,h:H};
-    const base=hero?Math.max(target.w/width,target.h/height)*(hero.focusScale||1):Math.max(1250/1920*W/width,H/height),baseW=width*base,baseH=height*base;
-    const cx=(hero?target.x+target.w/2:1325/1920*W)+background.x,cy=(hero?target.y+target.h/2+(hero.focusY||0):-(baseH-H)*.24+baseH/2)+background.y;
+    const bounds=contentBounds||{x:0,y:0,w:width,h:height},topAligned=!!hero&&bounds.h>bounds.w;
+    let base=hero?Math.max(target.w/width,target.h/height)*(hero.focusScale||1):Math.max(1250/1920*W/width,H/height);
+    // Tall artwork is framed from its visible top, not its centre. Bound the zoom
+    // so a narrow portrait cannot put the entire upper body outside the viewport.
+    if(topAligned)base=Math.min(base,target.h*(target.h>target.w?1.5:1.8)/bounds.h);
+    const baseW=width*base,baseH=height*base;
+    const cx=(topAligned?target.x+target.w/2+(width/2-bounds.x-bounds.w/2)*base:hero?target.x+target.w/2:1325/1920*W)+background.x;
+    const cy=(topAligned?target.y+Math.max(hero.focusTop||0,Math.min(32,Math.max(12,target.h*.04)))-bounds.y*base+baseH/2:hero?target.y+target.h/2+(hero.focusY||0):-(baseH-H)*.24+baseH/2)+background.y;
     const w=baseW*background.scale,h=baseH*background.scale;
-    return {x:cx-w/2,y:cy-h/2,w,h,naturalWidth:width,naturalHeight:height};
+    return {x:cx-w/2,y:cy-h/2,w,h,naturalWidth:width,naturalHeight:height,contentBounds};
   }
   function zoomBackground(background,rect,factor,anchor,canvas){
     const {width:W,height:H}=canvasSize(canvas);

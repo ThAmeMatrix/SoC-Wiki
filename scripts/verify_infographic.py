@@ -69,9 +69,9 @@ def run():
         page.get_by_label('武器整组红字说明',exact=True).fill('按场景自由选择')
         page.get_by_label('装具整组红字说明',exact=True).fill('以实际队伍需求为准')
         page.get_by_label('塔罗整组红字说明',exact=True).fill('功能示例，搭配可调整')
-        effect=page.locator('.ig-effect-preview').first.text_content()
+        effect=page.locator('.ig-trait-info').text_content()
         for values in ['5%/10%/10%/15%/20%','0/0/0/0/15%','1/1/1/2/2','0/1/1/1/2','0/0/1/1/1']:assert values in effect,values
-        assert '12%/16%/16%/20%/24%' in page.locator('.ig-effect-preview').last.text_content()
+        assert '12%/16%/16%/20%/24%' in page.locator('.ig-weapon-info').text_content()
         checks.append('Exclusive weapon, compatible weapon filter, accessories, 22 tarot and all 10 engravings')
         # Add the two optional builds and fill all three through the pickers.
         for _ in range(2):page.locator('[data-ig=loadout-add]').click();ready(page)

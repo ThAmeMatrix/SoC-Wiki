@@ -159,6 +159,20 @@ def run():
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         # A poster at the largest supported canvas must pass the native download path.
         page.locator('[data-ig-view=edit]').click()
+        page.locator('#ig-author-font-file').set_input_files(Path('C:/Windows/Fonts/arial.ttf'))
+        page.wait_for_function("()=>JSON.parse(localStorage.getItem('socwiki.infographic.draft.9296'))?.authorFont==='custom'",timeout=60000)
+        page.locator('#ig-author-file').set_input_files(ROOT/'assets/brand/vipera-reference-title.png')
+        page.get_by_role('dialog',name='提取作者签名',exact=True).wait_for()
+        page.locator('[data-cut=apply]:enabled').click()
+        page.wait_for_function("()=>JSON.parse(localStorage.getItem('socwiki.infographic.draft.9296'))?.authorMode==='image'&&!document.querySelector('[data-ig=export]').disabled",timeout=60000)
+        before=len(saved)
+        page.locator('[data-ig=save-plan]').click()
+        for _ in range(40):
+            if len(saved)>before:break
+            page.wait_for_timeout(100)
+        author_plan=json.loads(base64.b64decode(saved[-1][2]))['state']
+        assert author_plan['authorMode']=='image' and author_plan['authorImage'].startswith('data:image/png;base64,')
+        assert author_plan['authorFont']=='custom' and author_plan['authorCustomFont']['data'].startswith('data:font/ttf;base64,')
         if page.locator('.ig-nav details').get_attribute('open') is None:
             page.locator('.ig-nav summary').click()
         page.locator('.ig-nav [data-ig-jump=canvas]').click()
@@ -188,7 +202,7 @@ def run():
         assert len(saved)==before and '64 MB' in page.locator('#toast').inner_text()
         assert not errors,errors
         browser.close()
-    report={'status':'passed','checks':['JSON backup including notes/favorites','Blob PNG export from detached anchor','Original local image save','External links delegated to browser','Back closes dialog/menu before navigation','Native dark theme synchronization','390px packaged layout','Infographic assets and 1920x1080 PNG/JSON through Android save bridge','Android back closes infographic selector','Infographic v6 background transforms, arbitrary name generation, legible cursive font and saved plan','4096x8192 PNG and 17 MiB file accepted; 65 MiB file rejected before native save'],'largePosterBytes':len(large_png),'errors':errors,'titleImageImport':'Offline OCR, Android back cancellation and imported PNG in native JSON export passed','requests':'All intercepted from APK assets; no network access'}
+    report={'status':'passed','checks':['JSON backup including notes/favorites','Blob PNG export from detached anchor','Original local image save','External links delegated to browser','Back closes dialog/menu before navigation','Native dark theme synchronization','390px packaged layout','Infographic assets and 1920x1080 PNG/JSON through Android save bridge','Android back closes infographic selector','Infographic v6 background transforms, arbitrary name generation, legible cursive font and saved plan','4096x8192 PNG and 17 MiB file accepted; 65 MiB file rejected before native save','Imported author font and transparent artwork preserved through Android native JSON save'],'largePosterBytes':len(large_png),'errors':errors,'titleImageImport':'Offline OCR, Android back cancellation and imported PNG in native JSON export passed','requests':'All intercepted from APK assets; no network access'}
     (ROOT/'test-results/android-bridge-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
     for check in report['checks']:print('PASS '+check)
 

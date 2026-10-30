@@ -10,7 +10,7 @@
 
 如果使用压缩包，请先完整解压，再打开 `index.html`。请保留整个文件夹（包括 `assets/`、`data/` 和全部 `.js`、`.css` 文件），不要只复制首页。
 
-**Android**：可安装 `release/SoCwiki-offline-1.16.0.apk`，支持 Android 8.0 及以上。APK 已内置所有离线资料和图片，无需解压或额外下载。初次安装时按系统提示允许当前文件管理器安装应用。收藏与笔记保存在应用中；卸载前请导出备份。构建说明见 `android/README.md`。
+**Android**：可安装 `release/SoCwiki-offline-1.18.0.apk`，支持 Android 8.0 及以上。APK 已内置所有离线资料和图片，无需解压或额外下载。初次安装时按系统提示允许当前文件管理器安装应用。收藏与笔记保存在应用中；卸载前请导出备份。构建说明见 `android/README.md`。
 
 ## 收录内容
 
@@ -184,3 +184,9 @@ python scripts/package.py
 
 
 1.16.0：新增自定义画布尺寸与横版 / 竖版 / 方形预设，自动重排或按比例保留布局；加入可调强度的金色细边框与角饰。「一键凸显立绘主体」为角色留出展示空间，按完整信息所需空间分配区块，必要时自动增加画布高度，支持整体撤销 / 重做。布局辅助框不再遮盖信息，可按住空格临时查看；草稿、JSON 与 PNG 保留尺寸及风格设置。验证：`python scripts/verify_infographic_composition.py`（包内资源可加 `--android`）、`python scripts/verify_infographic_full_layout.py`、`python scripts/verify_infographic_loadouts.py`、`python scripts/verify_infographic_stats.py` 和 `node scripts/test_infographic.cjs`。
+
+
+1.17.0：顶部固定工具栏增加「一键凸显立绘主体」与「一键整理布局」。后者按信息内容重排全部区块，不为立绘预留空白，内容较多时自动增加高度；两种一键操作均可撤销。编辑区与可搜索导航统一划分为画布与布局、角色与题签、背景立绘、技能与搭配、装备与刻印、评级与手记、作者与发布七个主模块，并按功能设置子项。初始 / 觉醒立绘、缩放位置、背景透明度集中在背景模块，技能圈粗细归入技能模块。作者署名可选项目默认连笔、思源宋体、黑体，或导入 8 MB 以内的 TTF / OTF / WOFF / WOFF2；也可上传图片，用离线文字定位、抠图及笔刷修整提取透明署名。文字与图片模式可切换，原内容保留，by 前缀保持清晰。作者图片、字体随 JSON 方案携带，较大的字体请使用「保存方案」备份；方案导入上限为 16 MiB。验证：`python scripts/verify_infographic_workbench.py`（包内资源可加 `--android`）、`node scripts/test_infographic.cjs` 及既有布局、导航、背景与导出回归。
+
+
+1.18.0：「一键凸显立绘主体」修正高幅立绘的头部裁切。根据实际可见区域排除透明留白，高幅图从上缘取景并限制放大倍率，横版为顶部题签留出空间；保留手动拖动、缩放、撤销与方案恢复。角色与题签移至编辑区及左侧导航第一项，其余模块顺序与编号同步调整。验证：`python scripts/verify_infographic_focus.py`（包内资源可加 `--android`），覆盖君士坦丁、暗影刺客、薇佩拉初始 / 觉醒立绘在横竖画布中的脸部可见性，以及背景缩放锚点、拖动和保存恢复。

@@ -2,6 +2,7 @@
 'use strict';
 window.WikiInfographicCanvas=(()=>{
   const imageCache=new Map(),portraitCache=new Map();
+  const portraitBoundsCache=new WeakMap();
   const colors={gold:'#f5d477',orange:'#ff997d',red:'#ff9292',blue:'#79d1f2',green:'#a7dea0',purple:'#d7b1f3',white:'#edf2f0'};
   const ink='#e9efed',muted='#9ab1b9',gold='#e7c479',cyan='#85d5e7';
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -38,6 +39,49 @@ window.WikiInfographicCanvas=(()=>{
     if(imageCache.has(source))return imageCache.get(source);
     const promise=new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('导入的角色字标无法读取'));image.src=source;});
     imageCache.set(source,promise);promise.catch(()=>imageCache.delete(source));return promise;
+  }
+  function portraitBounds(image){
+    if(portraitBoundsCache.has(image))return portraitBoundsCache.get(image);
+    // Sample once at a small size. Ignore almost transparent pixels and isolated
+    // edge specks left by asset conversion, while keeping hats and tall hair.
+    const ratio=Math.min(1,384/Math.max(image.width,image.height)),canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(image.width*ratio));canvas.height=Math.max(1,Math.round(image.height*ratio));
+    const c=canvas.getContext('2d',{willReadFrequently:true});c.drawImage(image,0,0,canvas.width,canvas.height);
+    const pixels=c.getImageData(0,0,canvas.width,canvas.height).data,rows=new Uint16Array(canvas.height),cols=new Uint16Array(canvas.width);
+    for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++)if(pixels[(y*canvas.width+x)*4+3]>=40){rows[y]++;cols[x]++;}
+    const ys=Array.from(rows,(_,i)=>i).filter(i=>rows[i]>=Math.max(2,canvas.width*.01)),xs=Array.from(cols,(_,i)=>i).filter(i=>cols[i]>=Math.max(2,canvas.height*.01));
+    const bounds=xs.length&&ys.length?{x:xs[0]*image.width/canvas.width,y:ys[0]*image.height/canvas.height,w:(xs.at(-1)-xs[0]+1)*image.width/canvas.width,h:(ys.at(-1)-ys[0]+1)*image.height/canvas.height}:{x:0,y:0,w:image.width,h:image.height};
+    portraitBoundsCache.set(image,bounds);return bounds;
+  }
+  const importedFonts=new Map();
+  async function authorFontFace(custom){
+    if(!custom?.data)return null;
+    if(!importedFonts.has(custom.data)){
+      const promise=(async()=>{
+        const binary=atob(custom.data.split(',')[1]),bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
+        const digest=await crypto.subtle.digest('SHA-256',bytes),family='WikiAuthor'+Array.from(new Uint8Array(digest).slice(0,12),n=>n.toString(16).padStart(2,'0')).join('');
+        const face=await new FontFace(family,bytes).load();document.fonts.add(face);return family;
+      })();
+      importedFonts.set(custom.data,promise);promise.catch(()=>importedFonts.delete(custom.data));
+      while(importedFonts.size>4)importedFonts.delete(importedFonts.keys().next().value);
+    }
+    return importedFonts.get(custom.data);
+  }
+  function authorArtwork(c,state,image,family,x,y,w,h){
+    if(state.authorMode==='image'&&image){
+      c.save();const height=Math.min(h-8,72),bySize=Math.min(30,height*.46),gap=12;
+      c.font=`700 ${bySize}px Arial, sans-serif`;c.textBaseline='alphabetic';
+      const byW=c.measureText('by').width,scale=Math.max(.01,Math.min((w-byW-gap)/image.width,height/image.height)),iw=image.width*scale,ih=image.height*scale,left=x+w-iw-byW-gap;
+      c.fillStyle='#fff8e5';c.strokeStyle='#071018';c.lineWidth=2;c.strokeText('by',left,y+h/2+bySize*.35);c.fillText('by',left,y+h/2+bySize*.35);
+      c.drawImage(image,left+byW+gap,y+(h-ih)/2,iw,ih);c.restore();return;
+    }
+    if(!state.author.trim())return;
+    if(state.authorFont==='signature'){signature(c,state.author,x,y,w,h);return;}
+    c.save();c.bodyStyle=null;const face=state.authorFont==='serif'?'"WikiTitleNormal", serif':state.authorFont==='custom'&&family?`"${family}", "Microsoft YaHei", sans-serif`:'"Microsoft YaHei", sans-serif';
+    c.font=`48px ${face}`;c.textBaseline='alphabetic';const m=c.measureText(state.author),left=Math.max(0,m.actualBoundingBoxLeft||0),right=Math.max(m.width,m.actualBoundingBoxRight||0),ascent=m.actualBoundingBoxAscent||48,descent=Math.max(0,m.actualBoundingBoxDescent||0),byW=43,gap=12,scale=Math.max(.01,Math.min(1,(w-byW-gap)/(left+right+4),(h-12)/(ascent+descent)));
+    const ix=x+w-(left+right+4)*scale,iy=y+(h-(ascent+descent)*scale)/2+ascent*scale;
+    c.font='700 28px Arial, sans-serif';c.fillStyle='#fff8e5';c.strokeStyle='#071018';c.lineWidth=2;c.strokeText('by',ix-byW-gap,y+h/2+10);c.fillText('by',ix-byW-gap,y+h/2+10);
+    c.translate(ix+left*scale,iy);c.scale(scale,scale);c.font=`48px ${face}`;c.strokeText(state.author,0,0);c.fillText(state.author,0,0);c.restore();
   }
   function runs(html){
     const box=document.createElement('div');box.innerHTML=html||'';const result=[];
@@ -241,8 +285,8 @@ window.WikiInfographicCanvas=(()=>{
     return {gearCols,gearPitch,gearCell,gearIconSize,gearRows};
   }
   function posterFrames(c,state,W,H,traitParts,weaponParts,engravings,equipmentMap,tarotMap){
-    const portrait=H>W,spotlight=state.composition==='spotlight',frames={},m=24,gap=14;
-    if(!portrait&&!spotlight)return {frames,hero:null,minHeight:0};
+    const portrait=H>W,spotlight=state.composition==='spotlight',information=state.composition==='information',frames={},m=24,gap=14;
+    if(!portrait&&!spotlight&&!information)return {frames,hero:null,minHeight:0};
     let minBody=0;
     const flow=(items,x,y,w,h)=>{minBody=Math.max(minBody,items.reduce((n,item)=>n+item[1],0)+gap*(items.length-1));const free=Math.max(30,h-gap*(items.length-1)),sum=items.reduce((n,item)=>n+item[1],0),flex=items.filter(([key])=>['tree','trait','gear','notes','loadoutNotes'].includes(key)).length;let py=y;for(const [key,weight] of items){const rh=free<=sum||!flex?free*weight/sum:weight+(['tree','trait','gear','notes','loadoutNotes'].includes(key)?(free-sum)/flex:0);frames[key]={x,y:py,w,h:rh};py+=rh+gap;}};
     const traitWeight=w=>{const columns=effectColumns(c,traitParts,w-36,20);return Math.max(145,Math.max(...columns.parts.map(parts=>wrap(c,parts,columns.width,14,19.04).height))+61);};
@@ -255,23 +299,35 @@ window.WikiInfographicCanvas=(()=>{
     };
     const textWeight=(text,w)=>Math.max(68,wrap(c,[{text:text||'',color:ink}],w-32,14,19.04).height+52);
     const buildWeight=w=>{const cols=Math.max(1,Math.min(Math.floor((w-24)/330),Math.ceil(state.loadouts.length/4)));return 48+Math.ceil(state.loadouts.length/cols)*82;};
-    let hero;
-    if(portrait){
+    let hero=null,informationHeader=0;
+    const hasAuthor=state.author.trim()||state.authorMode==='image'&&state.authorImage;
+    if(information){
+      const header=portrait?270:Math.max(186,H*.17),bodyY=header+14,bodyH=H-bodyY-40,usable=W-2*m-2*gap,leftW=usable*(portrait?0.29:0.22),centerW=usable*(portrait?0.40:0.46),rightW=usable-leftW-centerW,cx=m+leftW+gap,rx=cx+centerW+gap;
+      informationHeader=header;
+      flow([['tree',850],['engravings',engravingWeight(leftW)]],m,bodyY,leftW,bodyH);
+      flow([['trait',traitWeight(centerW)],['exclusive',weaponWeight(centerW)],['loadouts',buildWeight(centerW)],...(state.loadoutCommentary.enabled?[['loadoutNotes',textWeight(state.loadoutCommentary.text,centerW)]]:[]),['notes',textWeight(state.notes,centerW)]],cx,bodyY,centerW,bodyH);
+      flow([['scores',260],['gear',gearWeight(rightW)],['stats',245],['author',hasAuthor?95:55]],rx,bodyY,rightW,bodyH);
+      frames.topText={x:portrait?W*.57:1000,y:header-38,w:portrait?W*.40:460,h:30};
+      if(portrait){
+        frames.logo={x:m,y:20,w:110,h:110};frames.title={x:150,y:12,w:W*.43,h:135};frames.subtitle={x:m,y:153,w:W*.68,h:65};frames.cv={x:m,y:header-38,w:W*.52,h:25};
+        frames.sprite={x:W-205,y:16,w:180,h:190};frames.badges={x:W-420,y:36,w:190,h:60};frames.role={x:W-420,y:112,w:190,h:80};
+      }
+    }else if(portrait){
       const header=Math.min(H*.32,spotlight?570:390),bodyY=header+18,bodyH=Math.max(500,H-bodyY-45),usable=W-2*m-2*gap,leftW=usable*.29,centerW=usable*.40,rightW=usable-leftW-centerW,cx=m+leftW+gap,rx=cx+centerW+gap;
       hero={x:W*.51,y:15,w:W*.47,h:header,focusScale:3,focusY:header*.4};
       frames.logo={x:m,y:28,w:100,h:100};frames.title={x:142,y:25,w:W*.53-142,h:150};frames.subtitle={x:m+10,y:183,w:W*.57-32,h:65};frames.cv={x:m+10,y:header-64,w:W*.58,h:25};frames.topText={x:m+10,y:header-33,w:W*.58,h:25};
       frames.sprite={x:W-215,y:20,w:180,h:215};frames.badges={x:W-238,y:244,w:210,h:55};frames.role={x:W-305,y:305,w:280,h:50};
       flow([['tree',850],['engravings',engravingWeight(leftW)]],m,bodyY,leftW,bodyH);
       flow([['trait',traitWeight(centerW)],['exclusive',weaponWeight(centerW)],['loadouts',buildWeight(centerW)],...(state.loadoutCommentary.enabled?[['loadoutNotes',textWeight(state.loadoutCommentary.text,centerW)]]:[]),['notes',textWeight(state.notes,centerW)]],cx,bodyY,centerW,bodyH);
-      flow([['scores',310],['gear',gearWeight(rightW)],['stats',245],['author',state.author?95:55]],rx,bodyY,rightW,bodyH);
+      flow([['scores',310],['gear',gearWeight(rightW)],['stats',245],['author',hasAuthor?95:55]],rx,bodyY,rightW,bodyH);
     }else{
       const bodyY=Math.max(186,H*.17),bodyH=H-bodyY-40,usable=W-2*m-3*gap,treeW=usable*.17,infoW=usable*.30,heroW=usable*.30,rightW=usable-treeW-infoW-heroW,ix=m+treeW+gap,hx=ix+infoW+gap,rx=hx+heroW+gap;
-      hero={x:hx,y:0,w:heroW,h:H,focusScale:1.65,focusY:-H*.10};frames.topText={x:Math.min(570,ix+infoW*.3),y:bodyY-44,w:ix+infoW-Math.min(570,ix+infoW*.3),h:32};minBody=Math.max(minBody,850);frames.tree={x:m,y:bodyY,w:treeW,h:bodyH};
+      hero={x:hx,y:0,w:heroW,h:H,focusScale:1.65,focusY:-H*.10,focusTop:bodyY-20};frames.topText={x:Math.min(570,ix+infoW*.3),y:bodyY-44,w:ix+infoW-Math.min(570,ix+infoW*.3),h:32};minBody=Math.max(minBody,850);frames.tree={x:m,y:bodyY,w:treeW,h:bodyH};
       flow([['trait',traitWeight(infoW)],['exclusive',weaponWeight(infoW)],['loadouts',buildWeight(infoW)],...(state.loadoutCommentary.enabled?[['loadoutNotes',textWeight(state.loadoutCommentary.text,infoW)]]:[]),['engravings',engravingWeight(infoW)]],ix,bodyY,infoW,bodyH);
-      flow([['scores',240],['gear',gearWeight(rightW)],['stats',235],['notes',textWeight(state.notes,rightW)],['author',state.author?85:20]],rx,bodyY,rightW,bodyH);
+      flow([['scores',240],['gear',gearWeight(rightW)],['stats',235],['notes',textWeight(state.notes,rightW)],['author',hasAuthor?85:20]],rx,bodyY,rightW,bodyH);
     }
     frames.date={x:W-624,y:H-29,w:600,h:24};
-    return {frames,hero,minHeight:portrait?minBody+Math.min(H*.32,spotlight?570:390)+63:Math.max(minBody+226,(minBody+40)/.83)};
+    return {frames,hero,minHeight:information?(portrait?minBody+informationHeader+54:Math.max(minBody+240,(minBody+54)/.83)):portrait?minBody+Math.min(H*.32,spotlight?570:390)+63:Math.max(minBody+226,(minBody+40)/.83)};
   }
   async function draw(model,state,data,exclusive){
     const outputSize=window.WikiInfographicRules.canvasSize(state.canvas),W=outputSize.height>outputSize.width?1280:1920,outputScale=outputSize.width/W,H=outputSize.height/outputScale;
@@ -290,11 +346,13 @@ window.WikiInfographicCanvas=(()=>{
     for(const id of state.tarot)paths.add(tarotMap.get(id)?.image);
     for(const e of engravings)for(const path of e.images)paths.add(path);
     const images=new Map(await Promise.all([...paths].filter(Boolean).map(async path=>[path,await loadImage(path,data)])));
-    if(state.author.trim())await Promise.all([
+    const authorImage=state.authorMode==='image'&&state.authorImage?await inlineImage(state.authorImage):null;
+    const customAuthorFamily=!authorImage&&state.authorFont==='custom'&&state.authorCustomFont?await authorFontFace(state.authorCustomFont):null;
+    if(state.author.trim()&&!authorImage&&state.authorFont==='signature')await Promise.all([
       signatureFont(data.signatureLatinFont,'WikiSignatureLatin','WIKI_SIGNATURE_LATIN_FONT','签名字体',{weight:'400 700'}),
       ...(/[^\u0000-\u024f]/u.test(state.author)?[signatureFont(data.signatureFont,'WikiSignature','WIKI_SIGNATURE_FONT')]:[])
     ]);
-    if(state.bodyFont==='serif'||state.loadoutCommentary?.enabled&&state.loadoutCommentary.font==='serif')await signatureFont(data.nameFont.script,'WikiTitleNormal','WIKI_NORMAL_TITLE_FONT','正文字体');
+    if(state.bodyFont==='serif'||state.authorFont==='serif'||state.loadoutCommentary?.enabled&&state.loadoutCommentary.font==='serif')await signatureFont(data.nameFont.script,'WikiTitleNormal','WIKI_NORMAL_TITLE_FONT','正文字体');
     const titleResult=await titleArtwork(model,state,data);
     const canvas=document.createElement('canvas');canvas.width=outputSize.width;canvas.height=outputSize.height;const c=canvas.getContext('2d');c.scale(outputScale,outputScale);c.bodyStyle=state;
     const layoutRegions=[];let compositionFrames={},heroArea=null,minHeight=0;
@@ -324,7 +382,7 @@ window.WikiInfographicCanvas=(()=>{
     // A fixed frame always contains the complete text. Dense selections receive an editor notice.
     c.fillStyle='#08121b';c.fillRect(0,0,W,H);
     const art=images.get(portrait);
-    const backgroundRect=art?window.WikiInfographicRules.backgroundRect(art.width,art.height,state.background,{width:W,height:H},heroArea):null;
+    const backgroundRect=art?window.WikiInfographicRules.backgroundRect(art.width,art.height,state.background,{width:W,height:H},heroArea,heroArea?portraitBounds(art):null):null;
     if(art){c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.globalAlpha=state.backgroundOpacity??state.brightness??.65;c.drawImage(art,backgroundRect.x,backgroundRect.y,backgroundRect.w,backgroundRect.h);c.restore();}
     const shade=c.createLinearGradient(0,0,W,0);shade.addColorStop(0,'rgba(4,12,19,.88)');shade.addColorStop(.35,state.composition==='spotlight'?'rgba(4,12,19,.12)':'rgba(4,12,19,.30)');shade.addColorStop(.65,state.composition==='spotlight'?'rgba(4,12,19,0)':'rgba(4,12,19,.12)');shade.addColorStop(1,'rgba(4,12,19,.25)');c.fillStyle=shade;c.fillRect(0,0,W,H);
     c.fillStyle='#25404b';c.fillRect(0,0,W,5);c.fillStyle=gold;c.fillRect(24,0,180,5);posterOrnaments(c,W,H,state.decoration);
@@ -443,9 +501,9 @@ window.WikiInfographicCanvas=(()=>{
       if(i%cols!==cols-1)line(c,px+cellW-7,py,px+cellW-7,py+cellH-10,'#2d454f',1);
     });
     endBlock();const notesBox=block('notes',notesX,footerY,notesW,footerH);panel(c,notesX,footerY,notesBox.w,notesBox.h);heading('养成手记',notesX+16,footerY+13);
-    const signatureH=state.author.trim()&&!heroArea?81:8;
+    const signatureH=(state.author.trim()||authorImage)&&!compositionFrames.author?81:8;
     if(state.notes)content([{text:state.notes,color:ink}],notesX+16,footerY+41,Math.max(40,notesBox.w-32),Math.max(24,notesBox.h-48-signatureH),15);
-    endBlock();const authorBox=block('author',notesX+12,bottom-85,notesW-24,83);if(state.author.trim())signature(c,state.author,notesX+24,bottom-83,Math.max(40,authorBox.w-18),Math.max(24,authorBox.h-4));
+    endBlock();const authorBox=block('author',notesX+12,bottom-85,notesW-24,83);authorArtwork(c,state,authorImage,customAuthorFamily,notesX+24,bottom-83,Math.max(40,authorBox.w-18),Math.max(24,authorBox.h-4));
     endBlock();const statsBox=block('stats',statsX,footerY,statsW,footerH);panel(c,statsX,footerY,statsBox.w,statsBox.h);heading('基础属性',statsX+12,footerY+12);
     {const base=model.baseStats||{},statRows=window.WikiInfographicRules.combatStatDefinitions;
     const statGap=6,innerW=Math.max(28,statsBox.w-24),cellW=(innerW-statGap)/2,gridY=footerY+37,cellH=Math.max(25,Math.min(54,(statsBox.h-87)/3)),valueSize=Math.min(18,cellH*.49,cellW*.17),detailSize=Math.min(10,cellH*.26,cellW*.09);
@@ -492,8 +550,8 @@ window.WikiInfographicCanvas=(()=>{
       {key:'author',...rectOf('author'),absolute:true},
       {key:'date',...rectOf('date'),absolute:true}
     ];
-    const scaled=r=>({...r,x:r.x*outputScale,y:r.y*outputScale,w:r.w*outputScale,h:r.h*outputScale,...(r.focusY!==undefined?{focusY:r.focusY*outputScale}:{})});
+    const scaled=r=>({...r,x:r.x*outputScale,y:r.y*outputScale,w:r.w*outputScale,h:r.h*outputScale,...(r.focusY!==undefined?{focusY:r.focusY*outputScale}:{}),...(r.focusTop!==undefined?{focusTop:r.focusTop*outputScale}:{})});
     return {canvas,width:outputSize.width,height:outputSize.height,recommendedHeight:Math.ceil(minHeight*outputScale/16)*16,layoutRegions:layoutRegions.map(r=>({...scaled(r),base:scaled(r.base)})),hitRegions:hitRegions.map(r=>scaled(r.absolute?r:mapped(r,'tree'))),dense:minTextSize*outputScale<11,minTextSize:minTextSize*outputScale,heroArea:heroArea?scaled(heroArea):null,backgroundRect:backgroundRect?scaled(backgroundRect):null,titleMissing:titleResult.missing,titleSource:titleResult.source};
   }
-  return {draw,runs,wrap,titleArtwork,titleText};
+  return {draw,runs,wrap,titleArtwork,titleText,authorFontFace};
 })();

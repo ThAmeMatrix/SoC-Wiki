@@ -16,7 +16,7 @@ python scripts/build_apk.py
 python scripts/verify_android_bridge.py
 ```
 
-工具安装在项目 `.tools/` 中，不修改全局 Java、Android 或 Gradle 配置。构建自动同步当前离线 Wiki 到 APK，生成 `release/SoCwiki-offline-1.16.0.apk` 及 SHA-256 校验文件，并检查签名、最低版本、联网更新权限和所有内置资源。
+工具安装在项目 `.tools/` 中，不修改全局 Java、Android 或 Gradle 配置。构建自动同步当前离线 Wiki 到 APK，生成 `release/SoCwiki-offline-1.18.0.apk` 及 SHA-256 校验文件，并检查签名、最低版本、联网更新权限和所有内置资源。
 
 首次构建会创建 `android/.signing/release.jks` 和 `release.properties`。这两份私有文件不会进入 APK 或版本控制，必须一起安全保存，以便后续构建可覆盖安装的更新。请勿把它们包含在对外分享的源码或文件包里。升级时递增 `app/build.gradle` 的 `versionCode` 和 `versionName`。
 
@@ -39,3 +39,7 @@ adb shell am instrument -w com.socwiki.offline.test/com.socwiki.offline.OfflineS
 一图流工坊已经内置：编辑角色、技能搭配、装备塔罗与刻印后，PNG 和方案 JSON 均调用系统保存窗口。工坊按角色保存独立草稿；转移方案请在工坊中导出 JSON。
 
 1.16.0 支持一图流自定义画布尺寸、金色边框和立绘展示布局。PNG / JSON 原生保存上限同步提高到 64 MiB，以容纳大尺寸成图；4096×8192 图片及超过旧 16 MiB 上限的导出路径由 `scripts/verify_android_bridge.py` 验证（Chromium + 模拟原生接口，非真机测试）。
+
+1.17.0 的固定工具栏、分组导航、作者字体与图片提取均使用 APK 内置页面；本地字体和透明署名可随 JSON 方案在设备间转移，导出仍使用系统保存器。
+
+1.18.0 同步修正高幅立绘凸显时的取景，并将「角色与题签」移至编辑区与导航首位。可运行 `python scripts/verify_infographic_focus.py --android` 验证包内页面的离线导出与背景调整。
