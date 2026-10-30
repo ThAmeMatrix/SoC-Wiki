@@ -91,7 +91,7 @@
       showPresets();update();
     }
     function equipment(){
-      const data=D.equipment,rarities=['传说','史诗','卓越','普通'],weapons=[...new Set(data.rows.map(r=>r.weapon))];
+      const data=D.equipment,order={'SSR':0,'SR':1,'R':2,'N':3},rarities=[...new Set(data.rows.map(r=>r.rarity))].sort((a,b)=>(order[a]??9)-(order[b]??9)),weapons=[...new Set(data.rows.map(r=>r.weapon))];
       let weapon=weapons[0],rarity=rarities[0];
       function paint(){
         const row=data.rows.find(r=>r.weapon===weapon&&r.rarity===rarity);

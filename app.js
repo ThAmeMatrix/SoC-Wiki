@@ -84,7 +84,7 @@
   function characterCard(p, i = 0, mode = 'portrait') {
     const selected = comparison.includes(p.id);
     const sprite = mode==='sprite';
-    return `<article class="character-card ${sprite?'sprite-card':''}" data-character-id="${p.id}"><a href="${href(p)}" class="portrait-wrap ${['','blue','rose'][i % 3]}" aria-label="查看${esc(p.name)}"><span class="class-mark" title="${esc(p.class)}">${icon(classIcon(p.class),14)}</span>${sprite&&!p.sprite?'<span class="sprite-missing">暂无像素形象</span>':`<img src="${(sprite?p.sprite:p.image) || 'assets/brand/placeholder.svg'}" alt="${esc(p.name)}${sprite?'像素形象':'立绘'}" loading="lazy" decoding="async">`}${sprite&&p.unitNumber?`<span class="unit-number">NO. ${esc(p.unitNumber)}</span>`:''}</a>${favoriteButton(p)}<div class="character-info"><div class="rarity-line"><span class="rarity-diamond">◆</span> ${esc(p.rarity || '角色')} <span>· ${p.rarity === '传说' ? 'LEGENDARY' : p.rarity === '史诗' ? 'EPIC' : 'ARCHIVE'}</span></div><a href="${href(p)}" class="character-name">${esc(p.name)}</a><div class="character-sub">${esc(p.class || '—')} <span>·</span> ${esc(p.faction.split(/[，,、]/)[0] || '其他角色')}</div><div class="card-bottom"><button class="compare-check ${selected ? 'selected' : ''}" data-compare="${p.id}" aria-pressed="${selected}">${icon(selected ? 'check' : 'compare',12)}${selected ? '已加入对比' : '加入对比'}</button><a href="${href(p)}" aria-label="打开${esc(p.name)}">${icon('arrow',14)}</a></div></div></article>`;
+    return `<article class="character-card ${sprite?'sprite-card':''}" data-character-id="${p.id}"><a href="${href(p)}" class="portrait-wrap ${['','blue','rose'][i % 3]}" aria-label="查看${esc(p.name)}"><span class="class-mark" title="${esc(p.class)}">${icon(classIcon(p.class),14)}</span>${sprite&&!p.sprite?'<span class="sprite-missing">暂无像素形象</span>':`<img src="${(sprite?p.sprite:p.image) || 'assets/brand/placeholder.svg'}" alt="${esc(p.name)}${sprite?'像素形象':'立绘'}" loading="lazy" decoding="async">`}${sprite&&p.unitNumber?`<span class="unit-number">NO. ${esc(p.unitNumber)}</span>`:''}</a>${favoriteButton(p)}<div class="character-info"><div class="rarity-line"><span class="rarity-diamond">◆</span> ${esc(p.rarity || '角色')} <span>· ${{SSR:'LEGENDARY',SR:'EPIC',R:'RARE',N:'COMMON'}[p.rarity] || 'ARCHIVE'}</span></div><a href="${href(p)}" class="character-name">${esc(p.name)}</a><div class="character-sub">${esc(p.class || '—')} <span>·</span> ${esc(p.faction.split(/[，,、]/)[0] || '其他角色')}</div><div class="card-bottom"><button class="compare-check ${selected ? 'selected' : ''}" data-compare="${p.id}" aria-pressed="${selected}">${icon(selected ? 'check' : 'compare',12)}${selected ? '已加入对比' : '加入对比'}</button><a href="${href(p)}" aria-label="打开${esc(p.name)}">${icon('arrow',14)}</a></div></div></article>`;
   }
   function equipmentCard(p) { return `<article class="equipment-card">${favoriteButton(p)}<a href="${href(p)}"><div class="equipment-image"><img src="${p.image || 'assets/brand/placeholder.svg'}" alt="${esc(p.name)}" loading="lazy"></div><div class="rarity-line">◆ ${esc(p.rarity || '装备')} · EQUIPMENT</div><h3>${esc(p.name)}</h3><p>${esc(p.summary)}</p><div class="equipment-type"><span>${esc(p.weapon || '装备资料')}</span>${icon('arrow',14)}</div></a></article>`; }
   function entryCard(p) { return `<article class="entry-card"><a href="${href(p)}" class="entry-card-icon" tabindex="-1" aria-hidden="true">${p.image ? `<img src="${p.image}" alt="" loading="lazy">` : icon(typeIcons[p.type],23)}</a><div class="entry-content"><a href="${href(p)}"><div class="entry-type">${esc(types[p.type])}</div><h3>${esc(p.name)}</h3><p>${esc(p.summary || '点击查看完整资料与原文内容。')}</p><div class="entry-date">原站更新 ${esc(p.date || '未记录')}</div></a></div>${favoriteButton(p)}</article>`; }
@@ -103,7 +103,7 @@
     const descriptions={character:'每一位同行者，都有属于自己的故事。按职业、阵营与稀有度寻找你的伙伴。',equipment:'利刃与守护，皆为旅途所需。查阅装备效果、星级技能与产出来源。',skill:'从基础攻击到关键一击，查阅完整的技能描述与关联角色。',status:'弄清每一种状态、增益、减益与战斗术语。',monster:'了解对手的特性，为下一场战斗做好准备。',talent:'个性、天赋与极限解放，记录成长的每一种可能。',guide:'从初次启程到深入探索，翻阅社区积累的知识与经验。',news:'保存原站资讯与更新记录，按资料日期回溯旅程。'};
     const pool=pages.filter(p=>p.type===key);
     let filters='';
-    if(key==='character'||key==='equipment')filters+=filterRow('rarity','稀有度',(key==='character'?['传说','史诗','精英','普通']:['传说','史诗','卓越','普通']).filter(r=>pool.some(p=>p.rarity===r)));
+    if(key==='character'||key==='equipment')filters+=filterRow('rarity','稀有度',['SSR','SR','R','N'].filter(r=>pool.some(p=>p.rarity===r)));
     if(key==='character'){
       filters+=filterRow('class','职业',classes.filter(c=>pool.some(p=>p.class===c)));
       filters+=filterRow('faction','阵营',[...new Set(pool.flatMap(p=>p.faction.split(/[，,、]/).map(s=>s.trim())).filter(Boolean))]);
@@ -123,7 +123,7 @@
     if(catalog.type==='character')matches.sort(sourceOrder);
     if(catalog.sort==='updated')matches.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     if(catalog.sort==='name')matches.sort((a,b)=>(catalog.descending?-1:1)*a.name.localeCompare(b.name,'zh-CN'));
-    if(catalog.sort==='rarity'){const rank={'传说':0,'史诗':1,'精英':2,'卓越':2,'普通':3};matches.sort((a,b)=>(rank[a.rarity]??4)-(rank[b.rarity]??4));}
+    if(catalog.sort==='rarity'){const rank={'SSR':0,'SR':1,'R':2,'N':3,'传说':0,'史诗':1,'精英':2,'卓越':2,'普通':3};matches.sort((a,b)=>(rank[a.rarity]??4)-(rank[b.rarity]??4));}
     if(catalog.sort.startsWith('stat:')){const key=catalog.sort.slice(5),value=p=>/^[\d.]+$/.test(String(p.stats?.[key]??''))?Number(p.stats[key]):NaN;matches.sort((a,b)=>{const av=value(a),bv=value(b);return Number.isNaN(av)?Number.isNaN(bv)?sourceOrder(a,b):1:Number.isNaN(bv)?-1:(catalog.descending?-1:1)*(av-bv)||sourceOrder(a,b);});}
     const total=matches.length;catalog.page=Math.min(catalog.page,Math.max(1,Math.ceil(total/24)));
     $('#catalog-count').innerHTML=`找到 <b>${fmt(total)}</b> 份${types[catalog.type]} <span class="muted">· 点击档案，展开完整资料</span>`;
@@ -410,6 +410,67 @@
     if(e.key==='Escape')document.body.classList.remove('nav-open');
     if($('#search-dialog').open&&document.activeElement?.id==='quick-search'&&['ArrowDown','ArrowUp','Enter'].includes(e.key)){const links=$$('[data-quick-result]');if(!links.length)return;e.preventDefault();if(e.key==='Enter'){(links[Math.max(0,quickCursor)]||links[0]).click();return;}quickCursor=e.key==='ArrowDown'?(quickCursor+1)%links.length:(quickCursor-1+links.length)%links.length;links.forEach((a,i)=>a.classList.toggle('active',i===quickCursor));links[quickCursor].scrollIntoView({block:'nearest'});}
   });
+  // Terms that link to an explanation page show their effect on hover / focus.
+  const TERM_FIELDS={'status':['介绍'],'talent':['个性描述5','天赋描述5','特性描述5','个性描述1'],'skill':['技能描述'],'equipment':['装备描述'],'monster':['魔物解析']};
+  const TERM_FACTS={'skill':['技能消耗','技能冷却','技能射程','技能范围'],'equipment':['稀有度','装备类型']};
+  let termTip=null,termTimer=null,termLink=null,termSeq=0;
+  function termTooltip(){
+    if(termTip)return termTip;
+    termTip=document.createElement('div');termTip.className='term-tip';termTip.hidden=true;termTip.setAttribute('role','tooltip');
+    document.body.append(termTip);return termTip;
+  }
+  function hideTerm(){clearTimeout(termTimer);termTimer=null;termLink=null;if(termTip)termTip.hidden=true;}
+  function termSummary(doc,type){
+    const fields=doc?.fields||{};
+    for(const key of TERM_FIELDS[type]||[])if(fields[key])return fields[key];
+    return doc?.html||doc?.summary||'';
+  }
+  function showTerm(link){
+    const tip=termTooltip(),rect=link.getBoundingClientRect();
+    tip.innerHTML=`<span class="term-tip-loading">读取词条…</span>`;tip.hidden=false;
+    const width=Math.min(380,Math.max(220,window.innerWidth-24));tip.style.width=width+'px';
+    tip.style.left='0px';tip.style.top='0px';
+    const height=tip.offsetHeight,gap=8;
+    let left=Math.min(Math.max(8,rect.left+rect.width/2-width/2),window.innerWidth-width-8);
+    let top=rect.bottom+gap;
+    if(top+height>window.innerHeight-8)top=Math.max(8,rect.top-gap-height);
+    tip.style.left=left+'px';tip.style.top=top+'px';
+    const seq=++termSeq;
+    loadPage(Number(link.dataset.termId)).then(doc=>{
+      if(seq!==termSeq||termLink!==link)return;
+      const type=link.dataset.termType||'';const fields=doc?.fields||{};
+      const facts=(TERM_FACTS[type]||[]).filter(key=>fields[key]).map(key=>`<span><small>${esc(key)}</small>${esc(fields[key])}</span>`).join('');
+      tip.innerHTML=`<b>${esc(link.dataset.termName||'')}</b>${facts?`<div class="term-tip-facts">${facts}</div>`:''}<div class="rich-text term-tip-body">${termSummary(doc,type)}</div>`;
+      const grown=tip.offsetHeight;
+      if(top+grown>window.innerHeight-8)tip.style.top=Math.max(8,window.innerHeight-grown-8)+'px';
+    }).catch(()=>{if(seq===termSeq&&termLink===link)tip.innerHTML='<span class="term-tip-loading">词条暂不可读</span>';});
+  }
+  function termFrom(target){
+    const link=target.closest?.('a[href^="#/page/"]');
+    if(!link)return null;
+    const id=Number((link.getAttribute('href')||'').split('/').pop());
+    if(!Number.isFinite(id))return null;
+    const page=byId.get(id);
+    if(!page||!TERM_FIELDS[page.type])return null;
+    link.dataset.termId=String(id);link.dataset.termType=page.type;link.dataset.termName=page.name||'';
+    return link;
+  }
+  document.addEventListener('mouseover',e=>{
+    const link=termFrom(e.target);if(!link)return;
+    if(link===termLink)return;
+    clearTimeout(termTimer);termLink=link;
+    termTimer=setTimeout(()=>{if(termLink===link)showTerm(link);},180);
+  });
+  document.addEventListener('mouseout',e=>{
+    const link=termFrom(e.target);if(!link)return;
+    if(link.contains(e.relatedTarget)||e.relatedTarget===link)return;
+    hideTerm();
+  });
+  document.addEventListener('focusin',e=>{const link=termFrom(e.target);if(link){clearTimeout(termTimer);termLink=link;showTerm(link);}});
+  document.addEventListener('focusout',e=>{if(termFrom(e.target))hideTerm();});
+  window.addEventListener('scroll',hideTerm,true);
+  document.addEventListener('click',hideTerm);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTerm();});
   $('#nav-scrim').onclick=()=>document.body.classList.remove('nav-open');
   for(const dialog of [$('#search-dialog'),$('#image-dialog')])dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
   function updateThemeIcon(){const dark=document.body.classList.contains('dark');$('[data-action="theme"]').innerHTML=icon(dark?'sun':'moon',17);$('[data-action="theme"]').setAttribute('aria-label',dark?'切换浅色模式':'切换深色模式');}

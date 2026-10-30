@@ -10,6 +10,14 @@ warnings.filterwarnings('ignore', category=MarkupResemblesLocatorWarning)
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 RAW=ROOT/'data'/'raw'
 OUT=ROOT/'data'/'pages'
+
+# The game client calls staves and tomes 法术; the archived wiki split them into
+# 魔法武器. The client reading is authoritative, so both become one category.
+WEAPON_CANONICAL={'魔法武器':'法术'}
+def weapon_type(value):return WEAPON_CANONICAL.get(value,value)
+# Rarity follows the client's codes; the archive's wording stays understood everywhere.
+RARITY_CANONICAL={'传说':'SSR','史诗':'SR','精英':'R','卓越':'R','普通':'N'}
+def rarity_code(value):return RARITY_CANONICAL.get(value,value)
 IMAGES=json.loads((RAW/'asset-map.json').read_text(encoding='utf-8'))
 INVENTORY=json.loads((RAW/'pages.json').read_text(encoding='utf-8'))
 TITLES={p['title']:p['pageid'] for p in INVENTORY}
@@ -240,7 +248,7 @@ def main():
         redirect=re.match(r'\s*#(?:REDIRECT|重定向)\s*\[\[(.*?)\]\]',source,re.I)
         if redirect:redirects[str(pid)]=TITLES.get(redirect[1],0)
         description=next((props[k] for k in ('角色生平','装备描述','技能描述','介绍','个性描述5','天赋描述5','魔物解析') if props.get(k)),text)
-        entry={'id':pid,'title':title,'name':label,'type':t,'image':image,'date':date,'summary':description[:220],'categories':cats,'class':props.get('角色职业',''),'rarity':props.get('稀有度',''),'faction':props.get('所属阵营',''),'weapon':props.get('武器类型',props.get('装备类型','')),'aliases':props.get('角色绰号',''),'redirect':bool(redirect)}
+        entry={'id':pid,'title':title,'name':label,'type':t,'image':image,'date':date,'summary':description[:220],'categories':cats,'class':props.get('角色职业',''),'rarity':rarity_code(props.get('稀有度','')),'faction':props.get('所属阵营',''),'weapon':weapon_type(props.get('武器类型',props.get('装备类型',''))),'aliases':props.get('角色绰号',''),'redirect':bool(redirect)}
         if t=='character':
             entry['stats']={s:props.get('满级满星'+s,'') for s in ('生命','物攻','魔攻','物防','魔防','敏捷')}
             entry['avatar']=named_image('头像_'+props.get('角色名称',label))

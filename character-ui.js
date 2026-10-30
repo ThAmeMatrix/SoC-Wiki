@@ -22,16 +22,25 @@ window.WikiCharacter = (() => {
   }
   function rangeImage(doc) {
     if (!rangeCache.has(doc.id)) {
-      const original = new DOMParser().parseFromString(doc.html || '', 'text/html');
-      const image = [...original.querySelectorAll('img')].find(i => /^技能范围[ _]/.test(i.alt) && /^(?:assets\/(?:wiki|updates)\/|blob:)/.test(i.getAttribute('src') || ''));
-      rangeCache.set(doc.id, image ? {src:image.getAttribute('src'), alt:image.alt.replace(/\.(png|jpg|webp)$/i, '')} : null);
+      // The range figure extracted from the game client wins over an archived one.
+      const name = (doc.fields && doc.fields['技能名称']) || String(doc.title || '').split('/').pop() || '';
+      let picked = doc.clientRange && /^assets\/(?:wiki|updates)\//.test(doc.clientRange.image || '')
+        ? {src: doc.clientRange.image, alt: '技能范围 ' + name} : null;
+      if (!picked) {
+        const original = new DOMParser().parseFromString(doc.html || '', 'text/html');
+        const images = [...original.querySelectorAll('img')].filter(i => /^技能范围[ _]/.test(i.alt) && /^(?:assets\/(?:wiki|updates)\/|blob:)/.test(i.getAttribute('src') || ''));
+        const image = images.find(i => (i.getAttribute('src') || '').startsWith('assets/updates/')) || images[0];
+        picked = image ? {src:image.getAttribute('src'), alt:image.alt.replace(/\.(png|jpg|webp)$/i, '')} : null;
+      }
+      rangeCache.set(doc.id, picked);
     }
     return rangeCache.get(doc.id);
   }
   function rangeFigure(doc) {
     const image = rangeImage(doc);
     if (!image) return '';
-    return `<figure class="skill-range"><div class="range-heading"><span>技能范围</span><small>点击放大</small></div><a class="range-map" href="${esc(image.src)}" data-lightbox="true" aria-label="放大${esc(image.alt)}"><img src="${esc(image.src)}" alt="${esc(image.alt)}" width="180" height="180"></a><figcaption>原站范围示意</figcaption></figure>`;
+    const origin = /^assets\/updates\//.test(image.src) ? '客户端提取' : '原站收录';
+    return `<figure class="skill-range"><div class="range-heading"><span>技能范围</span><small>点击放大</small></div><a class="range-map" href="${esc(image.src)}" data-lightbox="true" aria-label="放大${esc(image.alt)}"><img src="${esc(image.src)}" alt="${esc(image.alt)}" width="180" height="180"></a><figcaption>${origin} · 范围示意</figcaption></figure>`;
   }
   function kind(doc) {
     const r = doc?.rawFields || {}, text = r['技能描述'] || '';

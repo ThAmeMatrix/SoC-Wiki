@@ -34,6 +34,7 @@ def main():
         validate="""()=>[...document.querySelectorAll('.ig-tier')].every(t=>{const svg=t.querySelector('svg'),b=svg.getBoundingClientRect(),nodes=[...t.querySelectorAll('.ig-node-select>img')];return [...svg.querySelectorAll('path')].every((path,i)=>{if(!nodes[i])return true;const values=path.getAttribute('d').match(/[-.\\d]+/g).map(Number),end=b.left+values[2]/300*b.width,r=nodes[i].getBoundingClientRect();return i===0?end>r.right+2:end<r.left-2;});})"""
         assert page.evaluate(validate)
         page.locator('[data-ig-title-mode=text]').click();ready(page)
+        page.locator('.ig-title-typography summary').click()
         page.locator('.ig-typography summary').click()
         page.get_by_label('加粗名字',exact=True).check();page.get_by_label('名字斜体',exact=True).check()
         page.get_by_label('名字描边宽度',exact=True).fill('3')

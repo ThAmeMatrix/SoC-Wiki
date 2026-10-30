@@ -35,7 +35,8 @@ def build_tools():
         cells=[e.get_text('',strip=True) for e in row.find_all('td',recursive=False)]
         if len(cells)==7:
             numbers=[int(v) for v in cells[2:]]
-            equipment_stats.append({'weapon':cells[0],'rarity':cells[1],
+            equipment_stats.append({'weapon':{'魔法武器':'法术'}.get(cells[0],cells[0]),
+                'rarity':{'传说':'SSR','史诗':'SR','精英':'R','卓越':'R','普通':'N'}.get(cells[1],cells[1]),
                 'stats':dict(zip(('物攻','魔攻','物防','魔防','生命'),numbers)),
                 'recorded':any(numbers)})
     assert len(equipment_stats)==24

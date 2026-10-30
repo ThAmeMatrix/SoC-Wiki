@@ -111,9 +111,9 @@ def run():
         assert page.locator(f'.unit-actions [data-favorite="{first}"]').get_attribute('aria-pressed')=='true'
         page.locator(f'.unit-actions [data-compare="{first}"]').click()
         assert page.locator(f'.unit-actions [data-compare="{first}"]').get_attribute('aria-pressed')=='true'
-        page.locator('[data-filter="rarity"][data-value="史诗"]').click()
+        page.locator('[data-filter="rarity"][data-value="SR"]').click()
         filtered=ids()
-        assert filtered and all(UNITS[i]['rarity']=='史诗' for i in filtered)
+        assert filtered and all(UNITS[i]['rarity']=='SR' for i in filtered)
         page.locator('[data-view="grid"]').click();assert ids()==filtered
         page.locator('[data-view="list"]').click();assert ids()==filtered
         page.locator('[data-action="reset-filters"]').click()
@@ -140,7 +140,7 @@ def run():
             assert page.locator('[data-portrait="awakened"]').get_attribute('aria-pressed')=='true'
             page.locator('[data-level="max"]').click()
         reports.append('Base, awakened and archived skin art switch by button/keyboard, zoom locally and survive stat changes')
-        route('#/page/9295','.portrait-unavailable')
+        route('#/page/8632','.portrait-unavailable')
         assert page.locator('.profile-gallery img').count()==0
         assert page.locator('[data-portrait]').count()==0
         gloria=DATA['titles']['角色图鉴库/歌洛莉亚']

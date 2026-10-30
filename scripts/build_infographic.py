@@ -40,7 +40,7 @@ def main():
     badges={kind:{name[len(prefix):-4]:asset['path'] for name,asset in original.items() if name.startswith(prefix) and name.endswith('.png')}
             for kind,prefix in [('rarities','文字_'),('professions','职业图标_'),('professionBackgrounds','职业图标背景_'),('factions','阵营图标_')]}
     stat_icons={key:original['Icon_'+name+'.png']['path'] for key,name in [('attack','物攻'),('magic','魔攻'),('defense','物防'),('resistance','魔防'),('health','生命')]}
-    reference_titles={'9296':'assets/brand/vipera-reference-title.png'}
+    reference_titles={'9296':'assets/brand/vipera-reference-title.png','9295':'assets/brand/constantine-reference-title.png'}
     portraits=json.loads((ROOT/'data/raw/infographic-portraits.json').read_text(encoding='utf8'))
     limits={logo:640,**{path:1600 for path in reference_titles.values()}}
     def add(path,limit):

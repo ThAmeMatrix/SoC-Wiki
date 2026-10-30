@@ -3,11 +3,15 @@
 Numbers align only within matching effects. Textual replacements stay explicit;
 missing archive records are never interpreted as a zero-valued game effect.
 """
+import collections
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from html import escape
 import re
 from bs4 import BeautifulSoup, NavigableString, Tag
+
+# Star progressions never hinge on punctuation; it follows the highest star.
+PUNCTUATION=set('。，、；：！？…～·—()《》〈〉「」『』【】〖〗')
 
 NUMBER=re.compile(r'\d+(?:\.\d+)?[%％]?')
 TOKEN=re.compile(r'\d+(?:\.\d+)?[%％]?|[A-Za-z]+|[^\s]')
@@ -121,7 +125,18 @@ def merge_group(group,available):
     for star in reversed(present[:-1]):
         current=group[star];ref=[next(v for v in reversed(c) if v) for c in grid];merged=[]
         for tag,a,b,c,d in SequenceMatcher(None,keys(ref),keys(current),autojunk=False).get_opcodes():
-            if tag=='replace':return None
+            if tag=='replace':
+                # The wording itself changed. Each side becomes one reading of the
+                # same column, so 自身范围3格内 is compared whole with 场上所有
+                # instead of character by character.
+                left,right=grid[a:b],current[c:d]
+                column=[None]*5
+                for i in range(5):
+                    parts=[source[i] for source in left if source[i] is not None]
+                    if parts:column[i]=Token(''.join(t.text for t in parts),parts[0].color)
+                if right:column[star]=Token(''.join(t.text for t in right),right[0].color)
+                merged.append(column)
+                continue
             if tag=='equal':
                 for col,t in zip(grid[a:b],current[c:d]):new=list(col);new[star]=t;merged.append(new)
             elif tag=='delete':merged.extend(grid[a:b])
@@ -143,14 +158,60 @@ def merge_group(group,available):
             ref=[next(v for v in reversed(c) if v) for c in segment]
             if any(re.search(r'[\w\u4e00-\u9fff]',t.text) for t in ref) and not any(t.numeric for t in ref):return None
     if len(present)<sum(available) and not any(t.numeric for t in group[base]):return None
-    output=[]
-    for col in grid:
-        reference=next(v for v in reversed(col) if v)
-        if reference.numeric:
-            values=[(t.text if t else '0') if available[i] else '未收录' for i,t in enumerate(col)]
-            changed=len(set(values))>1
-            output.append(Token('/'.join(values) if changed else reference.text,'red' if changed else reference.color))
-        else:output.append(reference)
+    if not all(available):
+        # A missing star keeps the plain five-position reading; numbers still
+        # carry 未收录 instead of a zero.
+        output=[]
+        for column in grid:
+            reference=next((v for v in reversed(column) if v),None)
+            if reference is None:continue
+            if reference.numeric:
+                values=[(token.text if token else '0') if available[i] else '未收录' for i,token in enumerate(column)]
+                changed=len(set(values))>1
+                output.append(Token('/'.join(values) if changed else reference.text,'red' if changed else reference.color))
+            else:output.append(reference)
+        return render(output)
+
+    def readings(column):
+        reference=next((v for v in reversed(column) if v),None)
+        absent='0' if reference and reference.numeric else ''
+        return [((token.text if token else absent) if available[i] else '未收录') for i,token in enumerate(column)]
+    def varies(column):
+        reference=next((v for v in reversed(column) if v),None)
+        if reference is None:return False
+        # Punctuation follows the highest recorded star instead of being listed
+        # five times; it never carries the star's meaning.
+        if reference.text and all(ch in PUNCTUATION for ch in reference.text):return False
+        if reference.numeric:return True
+        # Only wording every recorded star states differently is a variant; a
+        # passage some stars merely lack keeps its own text, with the quantity
+        # beside it carrying the zeroes.
+        return len(set(readings(column)))>1 and all(column[i] is not None for i in range(5) if available[i])
+    output=[];index=0
+    while index<len(grid):
+        column=grid[index];reference=next((v for v in reversed(column) if v),None)
+        if reference is None or not varies(column):
+            if reference:output.append(reference)
+            index+=1;continue
+        end=index
+        while end<len(grid) and varies(grid[end]):end+=1
+
+        # A changed passage is listed once per star, not as five whole sentences.
+        # A zero only replaces a quantity that is itself the progression; inside a
+        # reworded passage the missing word is simply absent.
+        run=grid[index:end]
+        reworded=any(not next((v for v in reversed(column) if v),None).numeric for column in run)
+        per_star=[]
+        for star in range(5):
+            parts=[]
+            for column in run:
+                token=column[star]
+                if token:parts.append(token.text)
+                elif not reworded and next((v for v in reversed(column) if v),None).numeric:parts.append('0')
+            per_star.append(''.join(parts))
+        if len(set(per_star))==1:output.append(Token(per_star[0],reference.color))
+        else:output.append(Token('/'.join(per_star),'red'))
+        index=end
     return render(output)
 
 def combine_stars(htmls):

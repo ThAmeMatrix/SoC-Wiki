@@ -35,7 +35,7 @@ def run():
             page.screenshot(path=str(OUT/(name+'.png')),animations='disabled')
         route('#/characters','#catalog-results')
         assert page.locator('[data-filter="rarity"][data-value="卓越"]').count()==0
-        page.locator('[data-filter="rarity"][data-value="精英"]').click()
+        page.locator('[data-filter="rarity"][data-value="R"]').click()
         assert '20' in page.locator('#catalog-count').inner_text()
         assert page.locator('.character-card').count()==20
         for source,kind in [(968,'角色图鉴'),(2701,'角色图鉴'),(7199,'魔物图鉴')]:
@@ -64,9 +64,9 @@ def run():
         page.locator('[data-ref-weapon="弓弩"]').click()
         assert '390' in page.locator('.reference-stats').inner_text()
         assert '885' in page.locator('.reference-stats').inner_text()
-        page.locator('[data-ref-rarity="史诗"]').click();assert page.locator('.reference-unrecorded').is_visible()
+        page.locator('[data-ref-rarity="SR"]').click();assert page.locator('.reference-unrecorded').is_visible()
         page.locator('[data-ref-weapon="防具"]').click();assert '181' in page.locator('.reference-stats').inner_text()
-        page.locator('[data-ref-rarity="传说"]').click();screenshot('continued-equipment-desktop')
+        page.locator('[data-ref-rarity="SSR"]').click();screenshot('continued-equipment-desktop')
         page.locator('.reference-equipment-list a').first.click();page.locator('.equipment-profile').wait_for()
         assert '213' in page.locator('.reference-stats').inner_text()
         reports.append('Equipment reference and detail cards show recorded values and explicitly label zero-filled combinations')

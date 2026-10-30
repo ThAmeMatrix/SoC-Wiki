@@ -45,7 +45,9 @@ window.WikiInfographic=(()=>{
       const traitPage=resolve('个性/'+fields['个性']);let trait=null;
       if(traitPage){const d=await h.loadPage(traitPage.id);trait={id:traitPage.id,name:traitPage.name,image:traitPage.image,stars:[1,2,3,4,5].map(n=>d.fields?.['个性描述'+n]||'')};}
       const liberations=await Promise.all((fields['极限解放']||'').split(/[，,、]/).map(s=>s.trim()).filter(Boolean).map(async name=>{const page=resolve('极限解放/'+name);if(!page)return {name};const d=await h.loadPage(page.id);return {id:page.id,name,image:page.image,description:[1,2,3].map(n=>d.fields?.['极限解放描述'+n]||'').filter(Boolean)};}));
-      const badges=[{name:character.rarity,image:catalog.badges?.rarities?.[character.rarity],kind:'rarity'},
+      // Rarity codes are canonical; the badge art keeps the archive's wording.
+      const rarityText={SSR:'传说',SR:'史诗',R:'精英',N:'普通'};
+      const badges=[{name:character.rarity,image:catalog.badges?.rarities?.[character.rarity]||catalog.badges?.rarities?.[rarityText[character.rarity]],kind:'rarity'},
         {name:character.class,image:catalog.badges?.professions?.[character.class]||character.professionIcon,kind:'profession',background:catalog.badges?.professionBackgrounds?.[character.class]},
         ...(character.faction||'').split(/[，,、]/).map(name=>({name:name.trim(),image:catalog.badges?.factions?.[name.trim()],kind:'faction'}))].filter(b=>b.image&&b.kind!=='rarity');
       const number=field=>String(field??'').trim();

@@ -99,7 +99,9 @@ window.WikiUpdateConvert=(()=>{
     const name=title.split('/').pop(),redirect=parsed.wikitext.match(/^\s*#(?:REDIRECT|重定向)\s*\[\[(.*?)\]\]/i),date=(meta.revisions?.[0]?.timestamp||'').slice(0,10);
     const description=['角色生平','装备描述','技能描述','介绍','个性描述5','天赋描述5','魔物解析'].map(k=>props[k]).find(Boolean)||text(html);
     const image=(type==='character'?named('立绘_'+name):type==='equipment'?named('装备全图_'+name):type==='skill'?named('技能_'+(props['技能图标']||name)):type==='talent'?named('个性_'+(props['个性图标']||name))||named('天赋_'+name):'')||old?.image||'';
-    const entry={...old,id,title,name,type,image,date,summary:description.slice(0,220),categories:cats,class:props['角色职业']||'',rarity:props['稀有度']||'',faction:props['所属阵营']||'',weapon:props['武器类型']||props['装备类型']||'',aliases:props['角色绰号']||'',redirect:!!redirect};
+    const RARITY_CODE={'传说':'SSR','史诗':'SR','精英':'R','卓越':'R','普通':'N'};
+    const rarity=props['稀有度']||'';
+    const entry={...old,id,title,name,type,image,date,summary:description.slice(0,220),categories:cats,class:props['角色职业']||'',rarity:RARITY_CODE[rarity]||rarity,faction:props['所属阵营']||'',weapon:props['武器类型']||props['装备类型']||'',aliases:props['角色绰号']||'',redirect:!!redirect};
     if(type==='character'){
       entry.stats=Object.fromEntries(['生命','物攻','魔攻','物防','魔防','敏捷'].map(k=>[k,props['满级满星'+k]||'']));entry.avatar=named('头像_'+name)||old?.avatar||'';entry.sprite=named('像素人物_'+name)||old?.sprite||'';entry.professionIcon=named('职业图标_'+entry.class)||old?.professionIcon||'';entry.sourceOrder=old?.sourceOrder??100000+id;entry.unitNumber=props.ID||'';
       entry.portraits=[...(old?.portraits||[])];for(const [key,n] of [['base','立绘_'+name],['awakened','立绘_'+name+'（五星）']]){const src=named(n);if(src){const i=entry.portraits.findIndex(p=>p.key===key),v={key,label:key==='base'?'初始立绘':'觉醒立绘',src};i<0?entry.portraits.push(v):entry.portraits.splice(i,1,v);}}

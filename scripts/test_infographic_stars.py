@@ -31,8 +31,11 @@ class StarEffects(unittest.TestCase):
         result=combine_stars(['','伤害提高10%。','伤害提高20%。','伤害提高30%。','伤害提高40%。'])
         self.assertIn('未收录/10%/20%/30%/40%',text(result));self.assertIn('星级资料未收录：1星',text(result))
     def test_non_numeric_mechanism_is_explicit(self):
+        # Wording that changes between stars is listed per star, not repeated as
+        # five whole sentences; every star keeps its own mechanism.
         result=combine_stars(['对[濒死]敌人生效。']*2+['对[受伤]敌人生效。']*3)
-        self.assertEqual(result['fallbacks'],1);self.assertEqual(text(result).count('[濒死]'),2);self.assertEqual(text(result).count('[受伤]'),3)
+        self.assertEqual(result['fallbacks'],0)
+        self.assertIn('濒死/濒死/受伤/受伤/受伤',text(result))
     def test_pure_unlock_retains_five_positions(self):
         result=combine_stars(['攻击提高5%。']*4+['攻击提高5%。获得[跳跃]。'])
         self.assertIn('0 / 0 / 0 / 0 / 获得[跳跃]',text(result))
@@ -46,6 +49,6 @@ class StarEffects(unittest.TestCase):
             f=fields(p['id']);stars=[f.get(n+'星技能','') for n in '一二三四五'] if p['type']=='equipment' else [f.get('个性描述'+str(n),'') for n in range(1,6)]
             if not any(stars):continue
             self.assertEqual(data['starEffects'][str(p['id'])],combine_stars(stars),p['title']);count+=1
-        self.assertEqual(count,335)
+        self.assertEqual(count,338)
 
 if __name__=='__main__':unittest.main(verbosity=2)

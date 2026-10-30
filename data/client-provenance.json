@@ -7,7 +7,7 @@
       "name": "君士坦丁",
       "enabled": true,
       "availableAt": "2026-10-30T12:00:00+08:00",
-      "available": false,
+      "available": true,
       "class": "毁灭者",
       "profession": "法皇",
       "rarity": "传说",
@@ -604,6 +604,18 @@
       ],
       "avatar": "icon/face/face_hpapalhierophantmset01",
       "sprite": "icon/character/character_hpapalhierophantmset01",
+      "spriteVariants": [
+        {
+          "key": "base",
+          "label": "默认形象",
+          "asset": "icon/character/character_hpapalhierophantmset01"
+        },
+        {
+          "key": "skin-160",
+          "label": "终末审判",
+          "asset": "icon/character/character_hpapalhierophantm2set01"
+        }
+      ],
       "modules": [
         [
           {
@@ -1809,6 +1821,1871 @@
         "online_unit_modify": 610,
         "online_unit_rank_modify": 617
       }
+    },
+    "216": {
+      "id": 216,
+      "unitId": 1056,
+      "roleId": 209,
+      "name": "科尔·破晓之影",
+      "enabled": true,
+      "availableAt": "2026-07-10T12:00:00+08:00",
+      "available": true,
+      "class": "突袭者",
+      "profession": "特别行动小组组长",
+      "rarity": "传说",
+      "weapon": "射击",
+      "gender": "女",
+      "factions": [
+        "铃兰之剑",
+        "漂泊者",
+        "锐疾如风"
+      ],
+      "movement": 5,
+      "jumpUp": 2,
+      "jumpDown": 2,
+      "baseStats": {
+        "生命": 353,
+        "物攻": 234,
+        "魔攻": 158,
+        "物防": 63,
+        "魔防": 59,
+        "敏捷": 165
+      },
+      "stats": {
+        "生命": 3338,
+        "物攻": 1635,
+        "魔攻": 1105,
+        "物防": 443,
+        "魔防": 417,
+        "敏捷": 165
+      },
+      "statBasis": "60级、五星、13阶、左右技能全部解锁；不含装备、天赋、好感、模组及战斗个性增益",
+      "statsSource": {
+        "initial": {
+          "idonline_unit_modify": 602,
+          "physic_attack": 204,
+          "spell_attack": 138,
+          "hp": 307,
+          "id": 8821,
+          "level": 1,
+          "spell_defence": 52,
+          "physic_defence": 55
+        },
+        "level60": {
+          "idonline_unit_modify": 602,
+          "physic_attack": 802,
+          "spell_attack": 542,
+          "hp": 1605,
+          "id": 8880,
+          "level": 60,
+          "spell_defence": 205,
+          "physic_defence": 216
+        },
+        "rarity": 115,
+        "star": {
+          "permillage_spell_attack": 120,
+          "count": 120,
+          "permillage_physic_attack": 120,
+          "id": 5,
+          "permillage_spell_defence": 120,
+          "permillage_physic_defence": 120,
+          "permillage_hp": 120
+        },
+        "ranks": [
+          {
+            "is_skill2_share": false,
+            "material1_id": 47,
+            "skill2_id": 21966,
+            "hp_add": 28,
+            "spell_defence_add": 5,
+            "module_skill_ids": "",
+            "spell_attack_add": 14,
+            "enhance_skill2_id": 0,
+            "id": 56712,
+            "rank": 1,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 100,
+            "skill1_id": 22004,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 21,
+            "material1_count": 1,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 47,
+            "skill2_id": 0,
+            "hp_add": 28,
+            "spell_defence_add": 5,
+            "module_skill_ids": "",
+            "spell_attack_add": 14,
+            "enhance_skill2_id": 0,
+            "id": 56713,
+            "rank": 2,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 200,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 21,
+            "material1_count": 3,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 47,
+            "skill2_id": 22006,
+            "hp_add": 35,
+            "spell_defence_add": 5,
+            "module_skill_ids": "",
+            "spell_attack_add": 14,
+            "enhance_skill2_id": 0,
+            "id": 56714,
+            "rank": 3,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 300,
+            "skill1_id": 22008,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 21,
+            "material1_count": 5,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 47,
+            "skill2_id": 0,
+            "hp_add": 35,
+            "spell_defence_add": 5,
+            "module_skill_ids": "",
+            "spell_attack_add": 14,
+            "enhance_skill2_id": 0,
+            "id": 56715,
+            "rank": 4,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 400,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 1,
+            "material2_id": 46,
+            "physic_attack_add": 21,
+            "material1_count": 5,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 47,
+            "skill2_id": 22010,
+            "hp_add": 49,
+            "spell_defence_add": 7,
+            "module_skill_ids": "",
+            "spell_attack_add": 19,
+            "enhance_skill2_id": 0,
+            "id": 56716,
+            "rank": 5,
+            "physic_defence_add": 8,
+            "enhance_skill1_id": 0,
+            "money": 500,
+            "skill1_id": 4149,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 3,
+            "material2_id": 46,
+            "physic_attack_add": 28,
+            "material1_count": 6,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 47,
+            "skill2_id": 0,
+            "hp_add": 49,
+            "spell_defence_add": 7,
+            "module_skill_ids": "",
+            "spell_attack_add": 19,
+            "enhance_skill2_id": 0,
+            "id": 56717,
+            "rank": 6,
+            "physic_defence_add": 8,
+            "enhance_skill1_id": 0,
+            "money": 600,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 5,
+            "material2_id": 46,
+            "physic_attack_add": 28,
+            "material1_count": 8,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 46,
+            "skill2_id": 4207,
+            "hp_add": 63,
+            "spell_defence_add": 7,
+            "module_skill_ids": "",
+            "spell_attack_add": 19,
+            "enhance_skill2_id": 0,
+            "id": 56718,
+            "rank": 7,
+            "physic_defence_add": 8,
+            "enhance_skill1_id": 0,
+            "money": 700,
+            "skill1_id": 22009,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 1,
+            "material2_id": 45,
+            "physic_attack_add": 28,
+            "material1_count": 8,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 46,
+            "skill2_id": 0,
+            "hp_add": 63,
+            "spell_defence_add": 7,
+            "module_skill_ids": "",
+            "spell_attack_add": 19,
+            "enhance_skill2_id": 0,
+            "id": 56719,
+            "rank": 8,
+            "physic_defence_add": 8,
+            "enhance_skill1_id": 0,
+            "money": 800,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 8,
+            "material2_id": 45,
+            "physic_attack_add": 28,
+            "material1_count": 10,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 46,
+            "skill2_id": 22013,
+            "hp_add": 85,
+            "spell_defence_add": 11,
+            "module_skill_ids": "",
+            "spell_attack_add": 29,
+            "enhance_skill2_id": 0,
+            "id": 56720,
+            "rank": 9,
+            "physic_defence_add": 11,
+            "enhance_skill1_id": 0,
+            "money": 900,
+            "skill1_id": 4461,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 12,
+            "material2_id": 45,
+            "physic_attack_add": 42,
+            "material1_count": 12,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 45,
+            "skill2_id": 0,
+            "hp_add": 85,
+            "spell_defence_add": 11,
+            "module_skill_ids": "",
+            "spell_attack_add": 29,
+            "enhance_skill2_id": 0,
+            "id": 56721,
+            "rank": 10,
+            "physic_defence_add": 11,
+            "enhance_skill1_id": 0,
+            "money": 1000,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 3,
+            "material2_id": 44,
+            "physic_attack_add": 42,
+            "material1_count": 15,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 45,
+            "skill2_id": 4056,
+            "hp_add": 106,
+            "spell_defence_add": 11,
+            "module_skill_ids": "",
+            "spell_attack_add": 29,
+            "enhance_skill2_id": 0,
+            "id": 56722,
+            "rank": 11,
+            "physic_defence_add": 11,
+            "enhance_skill1_id": 0,
+            "money": 1100,
+            "skill1_id": 22022,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 25,
+            "material2_id": 44,
+            "physic_attack_add": 42,
+            "material1_count": 20,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 44,
+            "skill2_id": 0,
+            "hp_add": 212,
+            "spell_defence_add": 22,
+            "module_skill_ids": "",
+            "spell_attack_add": 57,
+            "enhance_skill2_id": 0,
+            "id": 56723,
+            "rank": 12,
+            "physic_defence_add": 23,
+            "enhance_skill1_id": 0,
+            "money": 1200,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 85,
+            "material1_count": 52,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 44,
+            "skill2_id": 0,
+            "hp_add": 212,
+            "spell_defence_add": 22,
+            "module_skill_ids": "240",
+            "spell_attack_add": 57,
+            "enhance_skill2_id": 0,
+            "id": 56724,
+            "rank": 13,
+            "physic_defence_add": 23,
+            "enhance_skill1_id": 0,
+            "money": 1300,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 609,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 85,
+            "material1_count": 100,
+            "is_skill1_share": false
+          }
+        ],
+        "skillLines": [
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 1,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 1
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 2,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 3
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 3,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 30,
+            "rank": 5
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 4,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 7
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 5,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 9
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 6,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 30,
+            "rank": 11
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 7,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 1
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 8,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 3
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 9,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 30,
+            "rank": 5
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 10,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 7
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 11,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 9
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 12,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 30,
+            "rank": 11
+          }
+        ]
+      },
+      "tree": [
+        {
+          "rank": 0,
+          "side": 0,
+          "skillId": 4466
+        },
+        {
+          "rank": 0,
+          "side": 1,
+          "skillId": 4035
+        },
+        {
+          "rank": 1,
+          "side": 0,
+          "skillId": 22004
+        },
+        {
+          "rank": 1,
+          "side": 1,
+          "skillId": 21966
+        },
+        {
+          "rank": 3,
+          "side": 0,
+          "skillId": 22008
+        },
+        {
+          "rank": 3,
+          "side": 1,
+          "skillId": 22006
+        },
+        {
+          "rank": 5,
+          "side": 0,
+          "skillId": 4149
+        },
+        {
+          "rank": 5,
+          "side": 1,
+          "skillId": 22010
+        },
+        {
+          "rank": 7,
+          "side": 0,
+          "skillId": 22009
+        },
+        {
+          "rank": 7,
+          "side": 1,
+          "skillId": 4207
+        },
+        {
+          "rank": 9,
+          "side": 0,
+          "skillId": 4461
+        },
+        {
+          "rank": 9,
+          "side": 1,
+          "skillId": 22013
+        },
+        {
+          "rank": 11,
+          "side": 0,
+          "skillId": 22022
+        },
+        {
+          "rank": 11,
+          "side": 1,
+          "skillId": 4056
+        }
+      ],
+      "personalityId": 1332,
+      "cv": {
+        "zh": "陈婷婷",
+        "ja": "富田美忧"
+      },
+      "story": "伊利亚解放战争胜利后，米格尔将科尔留在了铃兰小镇，随后消失无踪。科尔失去了与过去的一切连结，却也在这座与米格尔佣兵团氛围迥异的小镇里，结识了更多伙伴。\n米格尔想让她过更好的生活。科尔一直明白这件事，但在曾经的科尔眼里，米格尔身边就是最好的。而现在，在铃兰小镇，在麦莎、贝拉、茉茉以及铃兰之剑其他伙伴的陪伴下，她感受到了另一种同样真切的温暖与信赖，这让她意识到，最好的生活或许不只有一种。\n那么还会有别的“最好的生活”吗？科尔不知道，但她想要知道。\n\n于是当麦莎团长因为佣兵团人手不足而头疼的时候，科尔主动接手了大量外勤委托，也因此成为了“铃兰之剑特别行动小组”的组长。她不再只是被动地执行命令，而是带着一份“我知道我在做什么，想要什么”的笃定。\n她走出铃兰小镇，走遍伊利亚的各个角落，去看各种各样的人和事，去看不同的生活——不再是通过别人的讲述，而是用自己的双眼见证。每一次离开，都带着全新的思考；每一次回归，都带回礼物和故事，也让自己更深地融入到这份由相互守护编织成的温暖连结之中。\n\n如今的科尔，正以她独特的方式，体验着属于自己的真实，并默默守护着这份全新的羁绊。",
+      "portraits": [
+        {
+          "key": "base",
+          "label": "初始立绘",
+          "asset": "icon/card_full/card_hbanditthemaskfset01"
+        },
+        {
+          "key": "awakened",
+          "label": "觉醒立绘",
+          "asset": "icon/skin_card_full/skin_card_hbanditthemaskfset01",
+          "fallback": "icon/skin_card/skin_card_hbanditthemaskfset01",
+          "sourceId": 151
+        }
+      ],
+      "avatar": "icon/face/face_hbanditthemaskfset01",
+      "sprite": "icon/character/character_hbanditthemaskfset01",
+      "spriteVariants": [
+        {
+          "key": "base",
+          "label": "默认形象",
+          "asset": "icon/character/character_hbanditthemaskfset01"
+        }
+      ],
+      "modules": [
+        [
+          {
+            "skill_id": 22379,
+            "consume_money": 2000,
+            "sort_id": 10,
+            "id": 240,
+            "consume_param1": 20,
+            "exclusive_unit_id": 0,
+            "consume1_type": 0,
+            "open_at": 0,
+            "next_id": 241,
+            "consume1_param1": 0,
+            "consume1_param0": 0,
+            "name": "模组技能-通用7-1（单打独斗）",
+            "level": 1,
+            "consume_type": 175,
+            "consume_param0": 6
+          },
+          {
+            "skill_id": 22380,
+            "consume_money": 8000,
+            "sort_id": 10,
+            "id": 241,
+            "consume_param1": 80,
+            "exclusive_unit_id": 0,
+            "consume1_type": 0,
+            "open_at": 0,
+            "next_id": 242,
+            "consume1_param1": 0,
+            "consume1_param0": 0,
+            "name": "模组技能-通用7-2（单打独斗）",
+            "level": 2,
+            "consume_type": 175,
+            "consume_param0": 6
+          },
+          {
+            "skill_id": 22381,
+            "consume_money": 18000,
+            "sort_id": 10,
+            "id": 242,
+            "consume_param1": 180,
+            "exclusive_unit_id": 0,
+            "consume1_type": 0,
+            "open_at": 0,
+            "next_id": 0,
+            "consume1_param1": 0,
+            "consume1_param0": 0,
+            "name": "模组技能-通用7-3（单打独斗）",
+            "level": 3,
+            "consume_type": 175,
+            "consume_param0": 6
+          }
+        ]
+      ],
+      "sandboxSkills": [
+        {
+          "id": 4466,
+          "name": "平射",
+          "state": 1,
+          "sourceId": 62179
+        },
+        {
+          "id": 11694,
+          "name": "自施法",
+          "state": 8,
+          "sourceId": 63330
+        },
+        {
+          "id": 7096,
+          "name": "合韵之刺",
+          "state": 1,
+          "sourceId": 63333
+        },
+        {
+          "id": 1777,
+          "name": "重平射",
+          "state": 8,
+          "sourceId": 63334
+        },
+        {
+          "id": 18014,
+          "name": "闪现",
+          "state": 8,
+          "sourceId": 63337
+        },
+        {
+          "id": 1768,
+          "name": "飞索",
+          "state": 1,
+          "sourceId": 63338
+        },
+        {
+          "id": 4327,
+          "name": "致盲粉",
+          "state": 8,
+          "sourceId": 63339
+        },
+        {
+          "id": 9242,
+          "name": "演出用传送（跳跃传送）",
+          "state": 1,
+          "sourceId": 63341
+        },
+        {
+          "id": 21840,
+          "name": "美术测试_SP面具刺客EX_1-2",
+          "state": 8,
+          "sourceId": 63342
+        },
+        {
+          "id": 22006,
+          "name": "错位随行",
+          "state": 1,
+          "sourceId": 63676
+        },
+        {
+          "id": 22009,
+          "name": "威慑战术",
+          "state": 1,
+          "sourceId": 63677
+        },
+        {
+          "id": 22008,
+          "name": "烟幕游击",
+          "state": 1,
+          "sourceId": 63678
+        },
+        {
+          "id": 22022,
+          "name": "外勤准则",
+          "state": 1,
+          "sourceId": 63679
+        },
+        {
+          "id": 22004,
+          "name": "盲点突袭",
+          "state": 1,
+          "sourceId": 63680
+        },
+        {
+          "id": 21966,
+          "name": "破晓的决意",
+          "state": 1,
+          "sourceId": 63681
+        },
+        {
+          "id": 22010,
+          "name": "干扰战术",
+          "state": 1,
+          "sourceId": 63682
+        },
+        {
+          "id": 22013,
+          "name": "弦光一线",
+          "state": 1,
+          "sourceId": 63683
+        },
+        {
+          "id": 4035,
+          "name": "击退射击",
+          "state": 1,
+          "sourceId": 63686
+        },
+        {
+          "id": 22033,
+          "name": "",
+          "state": 8,
+          "sourceId": 64502
+        },
+        {
+          "id": 22032,
+          "name": "",
+          "state": 8,
+          "sourceId": 64503
+        },
+        {
+          "id": 22038,
+          "name": "",
+          "state": 8,
+          "sourceId": 64504
+        },
+        {
+          "id": 14319,
+          "name": "未解锁",
+          "state": 1,
+          "sourceId": 64693
+        },
+        {
+          "id": 14282,
+          "name": "未解锁",
+          "state": 1,
+          "sourceId": 64694
+        },
+        {
+          "id": 16310,
+          "name": "未解锁",
+          "state": 1,
+          "sourceId": 64695
+        },
+        {
+          "id": 18311,
+          "name": "未解锁",
+          "state": 1,
+          "sourceId": 64696
+        },
+        {
+          "id": 16992,
+          "name": "未解锁",
+          "state": 1,
+          "sourceId": 64697
+        },
+        {
+          "id": 18662,
+          "name": "未解锁",
+          "state": 1,
+          "sourceId": 64698
+        },
+        {
+          "id": 16055,
+          "name": "未解锁",
+          "state": 1,
+          "sourceId": 64699
+        },
+        {
+          "id": 12149,
+          "name": "瞬移",
+          "state": 1,
+          "sourceId": 64732
+        },
+        {
+          "id": 10567,
+          "name": "护盾",
+          "state": 1,
+          "sourceId": 64946
+        },
+        {
+          "id": 10575,
+          "name": "魔法护盾",
+          "state": 1,
+          "sourceId": 64947
+        },
+        {
+          "id": 4243,
+          "name": "严守",
+          "state": 1,
+          "sourceId": 64948
+        },
+        {
+          "id": 4248,
+          "name": "乱战",
+          "state": 1,
+          "sourceId": 64949
+        },
+        {
+          "id": 3838,
+          "name": "优势",
+          "state": 1,
+          "sourceId": 64950
+        },
+        {
+          "id": 4605,
+          "name": "修筑工事",
+          "state": 1,
+          "sourceId": 64951
+        },
+        {
+          "id": 4606,
+          "name": "净化",
+          "state": 1,
+          "sourceId": 64952
+        },
+        {
+          "id": 4611,
+          "name": "召唤保镖",
+          "state": 1,
+          "sourceId": 64953
+        },
+        {
+          "id": 4238,
+          "name": "终结",
+          "state": 1,
+          "sourceId": 64954
+        },
+        {
+          "id": 4241,
+          "name": "守势",
+          "state": 1,
+          "sourceId": 64955
+        },
+        {
+          "id": 14017,
+          "name": "完备·改",
+          "state": 1,
+          "sourceId": 64956
+        },
+        {
+          "id": 10035,
+          "name": "完备强",
+          "state": 1,
+          "sourceId": 64957
+        },
+        {
+          "id": 4247,
+          "name": "完备",
+          "state": 1,
+          "sourceId": 64958
+        },
+        {
+          "id": 4239,
+          "name": "居高临下",
+          "state": 1,
+          "sourceId": 64959
+        },
+        {
+          "id": 4609,
+          "name": "强韧",
+          "state": 1,
+          "sourceId": 64960
+        },
+        {
+          "id": 5167,
+          "name": "急救·改",
+          "state": 1,
+          "sourceId": 64961
+        },
+        {
+          "id": 4608,
+          "name": "急救",
+          "state": 1,
+          "sourceId": 64962
+        },
+        {
+          "id": 6168,
+          "name": "列阵如林",
+          "state": 1,
+          "sourceId": 64963
+        },
+        {
+          "id": 4254,
+          "name": "抗性强化",
+          "state": 1,
+          "sourceId": 64964
+        },
+        {
+          "id": 4246,
+          "name": "护盾",
+          "state": 1,
+          "sourceId": 64965
+        },
+        {
+          "id": 18292,
+          "name": "护颚",
+          "state": 1,
+          "sourceId": 64966
+        },
+        {
+          "id": 4250,
+          "name": "攀爬专精",
+          "state": 1,
+          "sourceId": 64967
+        },
+        {
+          "id": 4252,
+          "name": "攻击强化",
+          "state": 1,
+          "sourceId": 64968
+        },
+        {
+          "id": 5159,
+          "name": "攻击指挥·改",
+          "state": 1,
+          "sourceId": 64969
+        },
+        {
+          "id": 4256,
+          "name": "攻击指挥",
+          "state": 1,
+          "sourceId": 64970
+        },
+        {
+          "id": 4235,
+          "name": "攻势",
+          "state": 1,
+          "sourceId": 64971
+        },
+        {
+          "id": 5164,
+          "name": "晶尘瓶·改",
+          "state": 1,
+          "sourceId": 64972
+        },
+        {
+          "id": 4586,
+          "name": "晶尘瓶",
+          "state": 1,
+          "sourceId": 64973
+        },
+        {
+          "id": 4255,
+          "name": "暴击强化",
+          "state": 1,
+          "sourceId": 64974
+        },
+        {
+          "id": 5162,
+          "name": "暴击指挥·改",
+          "state": 1,
+          "sourceId": 64975
+        },
+        {
+          "id": 4260,
+          "name": "暴击指挥",
+          "state": 1,
+          "sourceId": 64976
+        },
+        {
+          "id": 4242,
+          "name": "死守",
+          "state": 1,
+          "sourceId": 64977
+        },
+        {
+          "id": 4249,
+          "name": "死战",
+          "state": 1,
+          "sourceId": 64978
+        },
+        {
+          "id": 4251,
+          "name": "求生欲望",
+          "state": 1,
+          "sourceId": 64979
+        },
+        {
+          "id": 5163,
+          "name": "燃烧瓶·改",
+          "state": 1,
+          "sourceId": 64980
+        },
+        {
+          "id": 4600,
+          "name": "燃烧瓶",
+          "state": 1,
+          "sourceId": 64981
+        },
+        {
+          "id": 5160,
+          "name": "物防指挥·改",
+          "state": 1,
+          "sourceId": 64982
+        },
+        {
+          "id": 4258,
+          "name": "物防指挥",
+          "state": 1,
+          "sourceId": 64983
+        },
+        {
+          "id": 4453,
+          "name": "破攻",
+          "state": 1,
+          "sourceId": 64984
+        },
+        {
+          "id": 4240,
+          "name": "破盾",
+          "state": 1,
+          "sourceId": 64985
+        },
+        {
+          "id": 4454,
+          "name": "破防",
+          "state": 1,
+          "sourceId": 64986
+        },
+        {
+          "id": 4244,
+          "name": "硬盔",
+          "state": 1,
+          "sourceId": 64987
+        },
+        {
+          "id": 4455,
+          "name": "禁疗",
+          "state": 1,
+          "sourceId": 64988
+        },
+        {
+          "id": 4607,
+          "name": "绷带",
+          "state": 1,
+          "sourceId": 64989
+        },
+        {
+          "id": 12875,
+          "name": "绷带",
+          "state": 1,
+          "sourceId": 64990
+        },
+        {
+          "id": 4237,
+          "name": "背水",
+          "state": 1,
+          "sourceId": 64991
+        },
+        {
+          "id": 5165,
+          "name": "腐蚀武器·改",
+          "state": 1,
+          "sourceId": 64992
+        },
+        {
+          "id": 4604,
+          "name": "腐蚀武器",
+          "state": 1,
+          "sourceId": 64993
+        },
+        {
+          "id": 5166,
+          "name": "腐蚀盔甲·改",
+          "state": 1,
+          "sourceId": 64994
+        },
+        {
+          "id": 4603,
+          "name": "腐蚀盔甲",
+          "state": 1,
+          "sourceId": 64995
+        },
+        {
+          "id": 4245,
+          "name": "臂甲",
+          "state": 1,
+          "sourceId": 64996
+        },
+        {
+          "id": 6120,
+          "name": "侵掠如火",
+          "state": 1,
+          "sourceId": 64997
+        },
+        {
+          "id": 5806,
+          "name": "不动如山",
+          "state": 1,
+          "sourceId": 64998
+        },
+        {
+          "id": 4253,
+          "name": "防御强化",
+          "state": 1,
+          "sourceId": 64999
+        },
+        {
+          "id": 6167,
+          "name": "锐疾如风",
+          "state": 1,
+          "sourceId": 65000
+        },
+        {
+          "id": 4236,
+          "name": "高昂",
+          "state": 1,
+          "sourceId": 65001
+        },
+        {
+          "id": 5161,
+          "name": "魔防指挥·改",
+          "state": 1,
+          "sourceId": 65002
+        },
+        {
+          "id": 4259,
+          "name": "魔防指挥",
+          "state": 1,
+          "sourceId": 65003
+        },
+        {
+          "id": 10876,
+          "name": "毒刃连掷",
+          "state": 1,
+          "sourceId": 65023
+        },
+        {
+          "id": 4063,
+          "name": "不净飞刀",
+          "state": 1,
+          "sourceId": 65024
+        },
+        {
+          "id": 5199,
+          "name": "偷袭·改",
+          "state": 1,
+          "sourceId": 65025
+        },
+        {
+          "id": 5201,
+          "name": "偷袭前置+",
+          "state": 1,
+          "sourceId": 65026
+        },
+        {
+          "id": 4550,
+          "name": "偷袭前置",
+          "state": 1,
+          "sourceId": 65027
+        },
+        {
+          "id": 4055,
+          "name": "偷袭",
+          "state": 1,
+          "sourceId": 65028
+        },
+        {
+          "id": 18297,
+          "name": "凶狼无形刃·异",
+          "state": 1,
+          "sourceId": 65029
+        },
+        {
+          "id": 18475,
+          "name": "凶狼无形刃·异",
+          "state": 1,
+          "sourceId": 65030
+        },
+        {
+          "id": 7048,
+          "name": "凶狼无形刃·异",
+          "state": 1,
+          "sourceId": 65031
+        },
+        {
+          "id": 5207,
+          "name": "极限凶刃",
+          "state": 1,
+          "sourceId": 65032
+        },
+        {
+          "id": 4071,
+          "name": "凶狼无形刃",
+          "state": 1,
+          "sourceId": 65033
+        },
+        {
+          "id": 4051,
+          "name": "助跑",
+          "state": 1,
+          "sourceId": 65034
+        },
+        {
+          "id": 5206,
+          "name": "奔袭·改",
+          "state": 1,
+          "sourceId": 65035
+        },
+        {
+          "id": 12445,
+          "name": "奔袭·强",
+          "state": 1,
+          "sourceId": 65036
+        },
+        {
+          "id": 4062,
+          "name": "奔袭",
+          "state": 1,
+          "sourceId": 65037
+        },
+        {
+          "id": 5203,
+          "name": "孤胆强勇",
+          "state": 1,
+          "sourceId": 65038
+        },
+        {
+          "id": 4049,
+          "name": "孤胆",
+          "state": 1,
+          "sourceId": 65039
+        },
+        {
+          "id": 4054,
+          "name": "应急闪避",
+          "state": 1,
+          "sourceId": 65040
+        },
+        {
+          "id": 5205,
+          "name": "影袭·改",
+          "state": 1,
+          "sourceId": 65041
+        },
+        {
+          "id": 4066,
+          "name": "影袭",
+          "state": 1,
+          "sourceId": 65042
+        },
+        {
+          "id": 4056,
+          "name": "战斗兴奋",
+          "state": 1,
+          "sourceId": 65043
+        },
+        {
+          "id": 4052,
+          "name": "攻击弱点",
+          "state": 1,
+          "sourceId": 65044
+        },
+        {
+          "id": 4064,
+          "name": "无形之刃",
+          "state": 1,
+          "sourceId": 65045
+        },
+        {
+          "id": 5208,
+          "name": "无踪暗影·改",
+          "state": 1,
+          "sourceId": 65046
+        },
+        {
+          "id": 4207,
+          "name": "无踪暗影",
+          "state": 1,
+          "sourceId": 65047
+        },
+        {
+          "id": 12460,
+          "name": "暗影步",
+          "state": 1,
+          "sourceId": 65048
+        },
+        {
+          "id": 4068,
+          "name": "暗影步",
+          "state": 1,
+          "sourceId": 65049
+        },
+        {
+          "id": 4050,
+          "name": "机动",
+          "state": 1,
+          "sourceId": 65050
+        },
+        {
+          "id": 4065,
+          "name": "狩猎冲动",
+          "state": 1,
+          "sourceId": 65051
+        },
+        {
+          "id": 5209,
+          "name": "疾风乱舞·改",
+          "state": 1,
+          "sourceId": 65052
+        },
+        {
+          "id": 10695,
+          "name": "毁灭乱舞",
+          "state": 1,
+          "sourceId": 65053
+        },
+        {
+          "id": 4074,
+          "name": "疾风乱舞",
+          "state": 1,
+          "sourceId": 65054
+        },
+        {
+          "id": 5210,
+          "name": "破军强袭刃·改",
+          "state": 1,
+          "sourceId": 65055
+        },
+        {
+          "id": 4073,
+          "name": "破军强袭刃",
+          "state": 1,
+          "sourceId": 65056
+        },
+        {
+          "id": 5197,
+          "name": "突袭·改",
+          "state": 1,
+          "sourceId": 65057
+        },
+        {
+          "id": 4059,
+          "name": "突袭",
+          "state": 1,
+          "sourceId": 65058
+        },
+        {
+          "id": 12016,
+          "name": "碎脊穿刺",
+          "state": 1,
+          "sourceId": 65059
+        },
+        {
+          "id": 4067,
+          "name": "背刺",
+          "state": 1,
+          "sourceId": 65060
+        },
+        {
+          "id": 4544,
+          "name": "补刀后续",
+          "state": 1,
+          "sourceId": 65061
+        },
+        {
+          "id": 4057,
+          "name": "补刀",
+          "state": 1,
+          "sourceId": 65062
+        },
+        {
+          "id": 5198,
+          "name": "裂盔·改",
+          "state": 1,
+          "sourceId": 65063
+        },
+        {
+          "id": 4069,
+          "name": "裂盔",
+          "state": 1,
+          "sourceId": 65064
+        },
+        {
+          "id": 4060,
+          "name": "连刺",
+          "state": 1,
+          "sourceId": 65065
+        },
+        {
+          "id": 4194,
+          "name": "连刺第三段",
+          "state": 1,
+          "sourceId": 65066
+        },
+        {
+          "id": 4193,
+          "name": "连刺第二段",
+          "state": 1,
+          "sourceId": 65067
+        },
+        {
+          "id": 12706,
+          "name": "钩锁",
+          "state": 1,
+          "sourceId": 65068
+        },
+        {
+          "id": 17003,
+          "name": "钩锁",
+          "state": 1,
+          "sourceId": 65069
+        },
+        {
+          "id": 4061,
+          "name": "钩锁",
+          "state": 1,
+          "sourceId": 65070
+        },
+        {
+          "id": 6172,
+          "name": "锁定后续",
+          "state": 1,
+          "sourceId": 65071
+        },
+        {
+          "id": 4053,
+          "name": "锁定",
+          "state": 1,
+          "sourceId": 65072
+        },
+        {
+          "id": 4058,
+          "name": "闪避步伐",
+          "state": 1,
+          "sourceId": 65073
+        },
+        {
+          "id": 7471,
+          "name": "不净箭头·异",
+          "state": 1,
+          "sourceId": 65074
+        },
+        {
+          "id": 4023,
+          "name": "不净箭头",
+          "state": 1,
+          "sourceId": 65075
+        },
+        {
+          "id": 5212,
+          "name": "凝神·改",
+          "state": 1,
+          "sourceId": 65076
+        },
+        {
+          "id": 4024,
+          "name": "凝神",
+          "state": 1,
+          "sourceId": 65077
+        },
+        {
+          "id": 5213,
+          "name": "强力射击·改",
+          "state": 1,
+          "sourceId": 65078
+        },
+        {
+          "id": 4030,
+          "name": "强力射击",
+          "state": 1,
+          "sourceId": 65079
+        },
+        {
+          "id": 4038,
+          "name": "掩护射击",
+          "state": 1,
+          "sourceId": 65080
+        },
+        {
+          "id": 4032,
+          "name": "攀岩",
+          "state": 1,
+          "sourceId": 65081
+        },
+        {
+          "id": 5214,
+          "name": "散射·改",
+          "state": 1,
+          "sourceId": 65082
+        },
+        {
+          "id": 4040,
+          "name": "散射",
+          "state": 1,
+          "sourceId": 65083
+        },
+        {
+          "id": 5216,
+          "name": "流星箭雨·改",
+          "state": 1,
+          "sourceId": 65084
+        },
+        {
+          "id": 4045,
+          "name": "流星箭雨",
+          "state": 1,
+          "sourceId": 65085
+        },
+        {
+          "id": 5211,
+          "name": "游击·改",
+          "state": 1,
+          "sourceId": 65086
+        },
+        {
+          "id": 4020,
+          "name": "游击",
+          "state": 1,
+          "sourceId": 65087
+        },
+        {
+          "id": 5102,
+          "name": "满弓（取消）",
+          "state": 1,
+          "sourceId": 65088
+        },
+        {
+          "id": 4039,
+          "name": "满弓",
+          "state": 1,
+          "sourceId": 65089
+        },
+        {
+          "id": 5189,
+          "name": "狙足·改",
+          "state": 1,
+          "sourceId": 65090
+        },
+        {
+          "id": 4036,
+          "name": "狙足",
+          "state": 1,
+          "sourceId": 65091
+        },
+        {
+          "id": 4027,
+          "name": "直觉",
+          "state": 1,
+          "sourceId": 65092
+        },
+        {
+          "id": 4029,
+          "name": "瞄准",
+          "state": 1,
+          "sourceId": 65093
+        },
+        {
+          "id": 4022,
+          "name": "破甲箭矢",
+          "state": 1,
+          "sourceId": 65094
+        },
+        {
+          "id": 5215,
+          "name": "穿心·改",
+          "state": 1,
+          "sourceId": 65095
+        },
+        {
+          "id": 4044,
+          "name": "穿心",
+          "state": 1,
+          "sourceId": 65096
+        },
+        {
+          "id": 12650,
+          "name": "精准",
+          "state": 1,
+          "sourceId": 65097
+        },
+        {
+          "id": 4021,
+          "name": "精准",
+          "state": 1,
+          "sourceId": 65098
+        },
+        {
+          "id": 5188,
+          "name": "精确射击·改",
+          "state": 1,
+          "sourceId": 65099
+        },
+        {
+          "id": 4033,
+          "name": "精确射击",
+          "state": 1,
+          "sourceId": 65100
+        },
+        {
+          "id": 4025,
+          "name": "缠斗射手",
+          "state": 1,
+          "sourceId": 65101
+        },
+        {
+          "id": 7472,
+          "name": "警戒射击",
+          "state": 1,
+          "sourceId": 65102
+        },
+        {
+          "id": 6334,
+          "name": "警戒射击",
+          "state": 1,
+          "sourceId": 65103
+        },
+        {
+          "id": 1985,
+          "name": "警戒射击改",
+          "state": 1,
+          "sourceId": 65104
+        },
+        {
+          "id": 4034,
+          "name": "警戒射击",
+          "state": 1,
+          "sourceId": 65105
+        },
+        {
+          "id": 6939,
+          "name": "警戒猛射",
+          "state": 1,
+          "sourceId": 65106
+        },
+        {
+          "id": 6938,
+          "name": "警戒猛射",
+          "state": 1,
+          "sourceId": 65107
+        },
+        {
+          "id": 5217,
+          "name": "雄鹰之眼·改",
+          "state": 1,
+          "sourceId": 65108
+        },
+        {
+          "id": 4047,
+          "name": "雄鹰之眼",
+          "state": 1,
+          "sourceId": 65109
+        },
+        {
+          "id": 9290,
+          "name": "破盾高手",
+          "state": 1,
+          "sourceId": 65110
+        },
+        {
+          "id": 4474,
+          "name": "仁心击",
+          "state": 1,
+          "sourceId": 65111
+        },
+        {
+          "id": 4473,
+          "name": "会心击",
+          "state": 1,
+          "sourceId": 65112
+        },
+        {
+          "id": 4472,
+          "name": "催眠击",
+          "state": 1,
+          "sourceId": 65113
+        },
+        {
+          "id": 11438,
+          "name": "",
+          "state": 1,
+          "sourceId": 65114
+        },
+        {
+          "id": 10725,
+          "name": "催眠击",
+          "state": 1,
+          "sourceId": 65115
+        },
+        {
+          "id": 4471,
+          "name": "回能击",
+          "state": 1,
+          "sourceId": 65116
+        },
+        {
+          "id": 4470,
+          "name": "寒冰击",
+          "state": 1,
+          "sourceId": 65117
+        },
+        {
+          "id": 4469,
+          "name": "封印击",
+          "state": 1,
+          "sourceId": 65118
+        },
+        {
+          "id": 7158,
+          "name": "平射",
+          "state": 1,
+          "sourceId": 65119
+        },
+        {
+          "id": 4468,
+          "name": "强力击",
+          "state": 1,
+          "sourceId": 65120
+        },
+        {
+          "id": 4467,
+          "name": "感染击",
+          "state": 1,
+          "sourceId": 65121
+        },
+        {
+          "id": 4465,
+          "name": "沉默击",
+          "state": 1,
+          "sourceId": 65122
+        },
+        {
+          "id": 4464,
+          "name": "灼烧击",
+          "state": 1,
+          "sourceId": 65123
+        },
+        {
+          "id": 4463,
+          "name": "狂热击",
+          "state": 1,
+          "sourceId": 65124
+        },
+        {
+          "id": 4462,
+          "name": "破甲击",
+          "state": 1,
+          "sourceId": 65125
+        },
+        {
+          "id": 4461,
+          "name": "破盾击",
+          "state": 1,
+          "sourceId": 65126
+        },
+        {
+          "id": 4460,
+          "name": "破闪击",
+          "state": 1,
+          "sourceId": 65127
+        },
+        {
+          "id": 4459,
+          "name": "缴械击",
+          "state": 1,
+          "sourceId": 65128
+        },
+        {
+          "id": 4458,
+          "name": "致命击",
+          "state": 1,
+          "sourceId": 65129
+        },
+        {
+          "id": 4457,
+          "name": "蓄势击",
+          "state": 1,
+          "sourceId": 65130
+        },
+        {
+          "id": 4456,
+          "name": "驱散击",
+          "state": 1,
+          "sourceId": 65131
+        },
+        {
+          "id": 22381,
+          "name": "单打独斗",
+          "state": 1,
+          "sourceId": 66547
+        },
+        {
+          "id": 23012,
+          "name": "潜袭",
+          "state": 1,
+          "sourceId": 66983
+        },
+        {
+          "id": 22554,
+          "name": "",
+          "state": 1,
+          "sourceId": 67618
+        }
+      ],
+      "sourceRows": {
+        "online_role": 209,
+        "online_role_unit": 216,
+        "unit": 1056,
+        "unit_personality": 1332,
+        "online_unit_modify": 602,
+        "online_unit_rank_modify": 609
+      }
     }
   },
   "assets": {
@@ -2091,22 +3968,262 @@
       "sha256": "3e7ab3e72941a46610621caf4cff94bf10b4bd9b4f4f1150ae2482a27abe232e",
       "width": 128,
       "height": 128
+    },
+    "icon/buff/buff_attribute_005": {
+      "path": "assets/client/f2faa9faf28ef7fe50cc00ae.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "f2faa9faf28ef7fe50cc00aecfad4edb6e80a22f0ba74e1a5c372a2cd039963c",
+      "width": 64,
+      "height": 64
+    },
+    "icon/weapon_full/weapon_full_0250": {
+      "path": "assets/client/69681f386239e6e36e4e2221.webp",
+      "bundle": "icon/weapon_full/icon_weapon_full2.unity3d",
+      "bundleSha256": "652f97ea0a615536989350125dcac425329f97e423fba91ddd83552d1168b699",
+      "sha256": "69681f386239e6e36e4e2221c132d3c7067c26e8d0ae8affce1da10aca6f640a",
+      "width": 256,
+      "height": 512
+    },
+    "icon/character/character_hpapalhierophantm2set01": {
+      "path": "assets/client/17b289c2e555206ffaa33292.webp",
+      "bundle": "icon/character/icon_character1.unity3d",
+      "bundleSha256": "074766ea9f684dc56558408e255fd1d9f6f0c2067844e25164596d058051e893",
+      "sha256": "17b289c2e555206ffaa33292d32f3457162d29a2ff48e72649a248df1bc8cfcf",
+      "width": 128,
+      "height": 128
+    },
+    "icon/buff/debuff_crowdcontrol_005": {
+      "path": "assets/client/8f7a8370f8a1a0a8fd2e39bd.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "8f7a8370f8a1a0a8fd2e39bd47285274d8465577a7e44fb38165e1dabbbc6a2b",
+      "width": 64,
+      "height": 64
+    },
+    "icon/skill/icon_skill_spkeer_qianxi": {
+      "path": "assets/client/6b3107baa58470f5dfc8bcd5.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "6b3107baa58470f5dfc8bcd576673231a6749c1c0dfbad063612dd89aee57232",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_spkeer_shoushi": {
+      "path": "assets/client/188559e39beb8eb618cb98c0.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "188559e39beb8eb618cb98c0f5fec6f223fd8c0b93870cf24675ad377790d842",
+      "width": 128,
+      "height": 128
+    },
+    "icon/buff/buff_spkeer_siji": {
+      "path": "assets/client/dcdc7f35ba40a260ce25d38a.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "dcdc7f35ba40a260ce25d38a75a73596348dd083fde30cd6bc3b254a83c3cb02",
+      "width": 64,
+      "height": 64
+    },
+    "icon/buff/buff_spkeer_qianxi": {
+      "path": "assets/client/bbd45acb03ce91cbeff77312.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "bbd45acb03ce91cbeff77312e8b575c694e6a63b93b34494f92d3a17b493ff4e",
+      "width": 64,
+      "height": 64
+    },
+    "icon/buff/debuff_spkeer_pozhan": {
+      "path": "assets/client/317044ef58de8ca6f5ae0986.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "317044ef58de8ca6f5ae0986eee8a717414b1bc116ad73493b41bd28e4490825",
+      "width": 64,
+      "height": 64
+    },
+    "icon/buff/buff_spkeer_niyingduxing": {
+      "path": "assets/client/b9169a194bf65520bb8df8d4.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "b9169a194bf65520bb8df8d4930dc88b6fc9ce5de382cb9e41af9b23810c73d4",
+      "width": 64,
+      "height": 64
+    },
+    "icon/buff/debuff_other_001": {
+      "path": "assets/client/18b3bb2755f683b1efd5ad67.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "18b3bb2755f683b1efd5ad6779ac591bb7175bab7104594dfaa626bc8f727e35",
+      "width": 64,
+      "height": 64
+    },
+    "icon/skill/icon_skill_jituisheji": {
+      "path": "assets/client/f1c96ced34f841263924dc66.webp",
+      "bundle": "icon/skill/icon_skill2.unity3d",
+      "bundleSha256": "d34dc18748536946576b2af5ce95109c078f45396dbdc4312334a72b1440319a",
+      "sha256": "f1c96ced34f841263924dc6602118e68b1aeb8fbd1490f32c5b96015a6432113",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_zhandongxingfen": {
+      "path": "assets/client/66065e6d79c3c13f930bd8db.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "66065e6d79c3c13f930bd8db0ab915d7a969d6eaad58ff427ca940901f4c40e7",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_tuotu": {
+      "path": "assets/client/a18c953188e1b995499c69d4.webp",
+      "bundle": "icon/skill/icon_skill3.unity3d",
+      "bundleSha256": "4dc4065206be914cfec7ebb7f05927feb8a5f633bb54ea7132ece84a7f53dfb0",
+      "sha256": "a18c953188e1b995499c69d40d2ca8507bbbc6043ce0719de0118f04c66693ee",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_wuzonganying": {
+      "path": "assets/client/3fa569ae9dc18df4c45e16e6.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "3fa569ae9dc18df4c45e16e64d1b73ce4565a39956963566d5726ef7b3eb86d5",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_gongshou_podunji": {
+      "path": "assets/client/cc9d11a89bf33861989759c1.webp",
+      "bundle": "icon/skill/icon_skill2.unity3d",
+      "bundleSha256": "d34dc18748536946576b2af5ce95109c078f45396dbdc4312334a72b1440319a",
+      "sha256": "cc9d11a89bf33861989759c1f1514acf52eef07d4a1c13597161d83f1764f124",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_gongshou": {
+      "path": "assets/client/8ea81e3f963126ccbd63a5a9.webp",
+      "bundle": "icon/skill/icon_skill1.unity3d",
+      "bundleSha256": "4b795449d542d22966a914dc6eecc60813484719db65d4a7d7fe4a594e1a7305",
+      "sha256": "8ea81e3f963126ccbd63a5a9bede22bf3cbaef3bbb724a8b5b6192351657d237",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_spkeer_poxiaodejueyi": {
+      "path": "assets/client/30bbbdaeec591e6ac3ee0858.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "30bbbdaeec591e6ac3ee08581850e24071f051cafffd2388245731cb85bd0343",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_spkeer_mangdiantuxi": {
+      "path": "assets/client/ee37909f7334e20e793303b2.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "ee37909f7334e20e793303b2acfe293952b772ab3f169178603d1f1e9b45742e",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_spkeer_cuoweisuixing": {
+      "path": "assets/client/8cce9766a2fe4a6ecd1edd5a.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "8cce9766a2fe4a6ecd1edd5ae77defd16f49e11d7512e52d9d5dc5ab7330a28c",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_spkeer_yanmuyouji": {
+      "path": "assets/client/0408fe8981ed89d070606ec3.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "0408fe8981ed89d070606ec343032dbee54bfb979409d466f81938718cf970f3",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_spkeer_ganraozhanshu": {
+      "path": "assets/client/3faefa5b69e97db7b836cbd7.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "3faefa5b69e97db7b836cbd7672779be939587b3745ae7408590651c38927fac",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_spkeer_weishezhanshu": {
+      "path": "assets/client/95e7824ec86c62346b0c1b12.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "95e7824ec86c62346b0c1b120516bec52564ed4fb47759c1d86874f849e0fd4d",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_spkeer_xianguangyixian": {
+      "path": "assets/client/6a2bf72c299f240e449d66c0.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "6a2bf72c299f240e449d66c07ad2031c9e579e53116e8fb643f1b0e5fc6f6d1b",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_jituizhongji": {
+      "path": "assets/client/2ed1e71993439a48349f0e1c.webp",
+      "bundle": "icon/skill/icon_skill2.unity3d",
+      "bundleSha256": "d34dc18748536946576b2af5ce95109c078f45396dbdc4312334a72b1440319a",
+      "sha256": "2ed1e71993439a48349f0e1cdcc4a8091df2f1b1ee89636501b5847b62cc7b3c",
+      "width": 128,
+      "height": 128
+    },
+    "icon/unitpersonality/unitpersonality_spkeer_zhuguanglieying": {
+      "path": "assets/client/5befb0c8c123e805558f2c2e.webp",
+      "bundle": "icon/unitpersonality/icon_unitpersonality3.unity3d",
+      "bundleSha256": "2b1b77a6be3f8f42962e4dc2580835eaff8d590f501c9644e654ab4376aa94bf",
+      "sha256": "5befb0c8c123e805558f2c2e929e56675a455df9cb2876f8d4b47db3d8ad4d8e",
+      "width": 128,
+      "height": 128
+    },
+    "icon/card_full/card_hbanditthemaskfset01": {
+      "path": "assets/client/ac632eb9ebb6e078cdb2f969.webp",
+      "bundle": "icon/card_full/card_hbanditthemaskfset01.unity3d",
+      "bundleSha256": "8506dfedaaaed91514fe4e898231d793e1af7a618e260d4e13ce35b5c07648c1",
+      "sha256": "ac632eb9ebb6e078cdb2f969d80995674027a8d3f93a288531f625e0261bf6af",
+      "width": 2096,
+      "height": 3080
+    },
+    "icon/skin_card_full/skin_card_hbanditthemaskfset01": {
+      "path": "assets/client/6a6e504f2f15b273d9e75bd9.webp",
+      "bundle": "icon/skin_card_full/skin_card_hbanditthemaskfset01.unity3d",
+      "bundleSha256": "32211e1e00a7744eb0294fd9512857b48b17ff8b4e14bf4bdc53e357b7c7ce84",
+      "sha256": "6a6e504f2f15b273d9e75bd9617455bc51c2548666e556bd8edccff71314956c",
+      "width": 3272,
+      "height": 2968
+    },
+    "icon/face/face_hbanditthemaskfset01": {
+      "path": "assets/client/6296edc88bbce01adffa26a9.webp",
+      "bundle": "icon/face/icon_face10.unity3d",
+      "bundleSha256": "51beaedb02c8e866d03c1ddfddb8d775018edc25d552199409bcb3f4e0c5b98b",
+      "sha256": "6296edc88bbce01adffa26a91201e90d31fe6348ec5265bcfcdfa093b77b523a",
+      "width": 288,
+      "height": 288
+    },
+    "icon/character/character_hbanditthemaskfset01": {
+      "path": "assets/client/e1ee4a990eae3cb7d9aee977.webp",
+      "bundle": "icon/character/icon_character1.unity3d",
+      "bundleSha256": "074766ea9f684dc56558408e255fd1d9f6f0c2067844e25164596d058051e893",
+      "sha256": "e1ee4a990eae3cb7d9aee977ef91649319b6a63f46c46e48ff46e6633fcfc8fb",
+      "width": 128,
+      "height": 128
     }
   },
   "client": {
-    "fingerprint": "1eca82cb3d8153f567ed92c2331ae2a631704de6e26fc51709293db4922c1db6",
+    "fingerprint": "5da9f91b3ce8b576f66e5526d901eaba3571a73f2607609c929eed5416493240",
     "version": {
-      "change_number": "6249998",
+      "change_number": "6265075",
       "version": "1.0.0"
     },
     "files": {
       "assets/lua/lua_db.unity3d": "3c2b40e76cc053a8bd8e5dae57a49bb845da96b690f4e311b12689e70be0ef8a",
       "assets/lua/lua_dbtemplate.unity3d": "ed95cb37f63fdb0bf4348f460e978954987be8f1d83a132344c2307085859fa0",
       "assets/lua/lua_dbtemplateonline.unity3d": "b7f2f1ec3629c136cc6c0f174e8d1aa8782bfe0eeb789581bda947a0253a4383",
-      "assets/lua/lua_dbtemplateskill.unity3d": "10aec105a2921334f1e86f8a4b9b4c25f6016fe85093fd5a59dfa1d746d5a4d7",
+      "assets/lua/lua_dbtemplateskill.unity3d": "04cc2d45e41899940e3d2c91c2c55474b86e4e7de9e9cbda2336c98e5fd28380",
       "assets/lua/lua_dbtemplatespeciality.unity3d": "f4b1727083f32c76dda937a2614dc4af99ef13739926085e86f2c60f7520b31e",
       "SoC_Data/Plugins/x86_64/slua.dll": "93d53b6ff3f180dd6b8cdc8b6ac542db968bda12cc2b3d36ef8f14909483c791",
-      "assets/resource_version.unity3d": "ccdd3163800cf9b5204a64fed1be82c956171b0791a70ddc5631f6bb9f943811",
+      "assets/resource_version.unity3d": "aac76135d44504df49dca8a2c675863ea9477fe3b2f0782197448445a606649e",
       "assets/asset_bundle.unity3d": "8f41df163282ac75ff1ce58e70f4ca025e854bfc99734ba1db71c7485ed8c6e3"
     },
     "tableCounts": {
@@ -2136,10 +4253,27 @@
       "online_unit_rank_modify_rank": 2157,
       "online_unit_rank_skill_line_modify": 36,
       "online_module_skill": 232,
+      "online_weapon": 173,
+      "online_weapon_modify": 9,
+      "online_weapon_modify_level": 540,
+      "online_weapon_rarity": 4,
+      "online_weapon_personality": 225,
+      "online_weapon_personality_skill": 1127,
       "skill": 20096,
       "buff": 9889
     }
   },
-  "extractedAt": "2026-10-29T21:45:57.862514+08:00",
-  "statBasis": "60级、五星、13阶、左右技能全部解锁；不含装备、天赋、好感、模组及战斗个性增益"
+  "extractedAt": "2026-10-30T15:01:03.690596+08:00",
+  "statBasis": "60级、五星、13阶、左右技能全部解锁；不含装备、天赋、好感、模组及战斗个性增益",
+  "pedestalSprite": {
+    "base": "D:\\Workspace\\SoCwiki\\scripts\\socdecode\\data\\legendary-base.png",
+    "baseSize": [
+      96,
+      82
+    ],
+    "placement": [
+      16,
+      78
+    ]
+  }
 }

@@ -59,7 +59,7 @@ def browser_audit(data):
             assert size['scroll']<=size['width']+1,(label,size)
         route('#/','.hero')
         assert page.locator('.character-card').count()==4
-        assert '3,718' in page.locator('.stat-grid').inner_text()
+        assert '3,854' in page.locator('.stat-grid').inner_text()
         page.screenshot(path=str(RESULTS/'home-desktop.png'),full_page=True,animations="disabled")
         assert_no_overflow('desktop home');reports.append('Home: all counts, local artwork and desktop layout')
 
@@ -92,13 +92,13 @@ def browser_audit(data):
         reports.append('Keyboard search, character stats, personality, skill links, bookmark and note persistence')
 
         route('#/characters','#catalog-results')
-        page.locator('[data-filter="rarity"][data-value="传说"]').click()
+        page.locator('[data-filter="rarity"][data-value="SSR"]').click()
         page.locator('[data-filter="class"][data-value="守望者"]').click()
         page.locator('[data-filter="faction"][data-value="骑士同盟"]').click()
         ids=page.locator('.character-card [data-favorite]').evaluate_all('(els)=>els.map(e=>Number(e.dataset.favorite))')
         assert ids
         source={x['id']:x for x in data['pages']}
-        assert all(source[i]['rarity']=='传说' and source[i]['class']=='守望者' and '骑士同盟' in source[i]['faction'] for i in ids)
+        assert all(source[i]['rarity']=='SSR' and source[i]['class']=='守望者' and '骑士同盟' in source[i]['faction'] for i in ids)
         page.locator('[data-action="reset-filters"]').click()
         page.locator('[data-catalog-page="2"]').first.click()
         assert page.locator('.character-card').count()==24

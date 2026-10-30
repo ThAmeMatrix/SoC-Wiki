@@ -34,7 +34,7 @@ def run():
         page.goto(BASE);ready(page)
         assert page.locator('.ig-character strong').inner_text()=='薇佩拉'
         assert page.locator('.ig-tier').evaluate_all('(els)=>els.map(e=>Number(e.dataset.rank))')==[11,9,7,5,3,1,0]
-        pick(page,'character');assert page.locator('[data-ig-choice]').count()==176
+        pick(page,'character');assert page.locator('[data-ig-choice]').count()==177
         assert page.locator('[data-ig-choice]').first.get_attribute('data-ig-choice')=='9295'
         page.keyboard.press('Escape')
         assert page.locator('.ig-tier[data-rank="0"] button').count()==0
@@ -50,7 +50,7 @@ def run():
             for _ in range(1 if mode=='required' else 2):page.locator(f'.ig-tier[data-rank="{rank}"] [data-ig-mark]').nth(side).click()
         assert len(saved(page)['marks'])==8
         assert page.locator('.ig-tree-node[data-mark=optional]').count()==2
-        checks.append('176 characters in source order; descending actual skill branches and required/optional marks')
+        checks.append('177 characters in source order; descending actual skill branches and required/optional marks')
         pick(page,'exclusive','幽辉蛇吻');assert choose_first(page)=='9337'
         pick(page,'weapons','幽辉蛇吻',0);choose_first(page)
         pick(page,'weapons','丰饶匕首',1);choose_first(page)
@@ -267,9 +267,11 @@ def run():
         page.wait_for_function("()=>document.querySelector('[data-ig-field=author]')?.value==='工坊示例'")
         assert saved(page)['treeNotes']==backup['state']['treeNotes'] and saved(page)['titleColor']==backup['state']['titleColor']
         checks.append('Per-character drafts, custom title color/tree notes persistence and JSON import roundtrip; 1/2/3 liberation skills')
-        pick(page,'character','君士坦丁');choose_first(page);ready(page)
+        pick(page,'character','小力');choose_first(page);ready(page)
         assert '尚未收录立绘' in page.locator('.ig-notice').inner_text()
-        assert page.locator('.ig-tree-node.unavailable').count()==14
+        assert page.locator('.ig-tree-node.unavailable').count()==12
+        assert page.locator('.ig-tree-node.ig-initial-node').count()==2
+        assert '未收录' in page.locator('.ig-cv').inner_text()
         checks.append('Incomplete source character uses explicit missing-art/CV/skill fallbacks')
         pick(page,'character','薇佩拉');choose_first(page);ready(page)
         for width in [360,390,768,820,1024,1440]:

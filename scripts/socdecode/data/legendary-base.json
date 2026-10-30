@@ -1,0 +1,11 @@
+{
+  "name": "传说台座",
+  "suppliedAs": "base_ssr.png",
+  "origin": "Wiki 编辑者提供的台座文件（原本用于传说角色的像素小人合成）",
+  "size": [96, 82],
+  "placement": [16, 78],
+  "canvas": [128, 160],
+  "figure": "icon/character/character_<角色> 128x128，放在 (0,0)",
+  "howPlacementWasDerived": "work/pedestal/fit_base.py 与 fit_figure.py：把 98 张 Wiki 传说精灵与客户端小人逐一比对，台座 (16,78) 命中 82 张、小人 (0,0) 命中 81 张；按此重砌爱莎差 1 像素、内尔伽勒差 12 像素（共 20480 像素），台座颜色与 Wiki 版完全一致 (246,234,229)。",
+  "drawOrder": "先台座，后小人（小人盖在台座上）"
+}
