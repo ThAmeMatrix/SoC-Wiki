@@ -5,6 +5,171 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const axes=['DOT','直伤','穿伤','辅助','生存','控制'];
+  const axisLimits={min:3,max:8,label:10};
+  const chartLimits={max:3,name:16,scoreMin:1,scoreMax:1000};
+  const chartMax=v=>Number.isFinite(Number(v))?Math.min(chartLimits.scoreMax,Math.max(chartLimits.scoreMin,Math.round(Number(v)))):5;
+  const chartUnit=v=>v==='percent'?'percent':'number';
+  // Chart axes keep their slot even when the name is cleared, so an unnamed axis
+  // never removes the whole chart.
+  function chartAxes(value,max=5){
+    if(!Array.isArray(value))return null;
+    const axes=[];
+    for(const item of value){
+      const source=object(item)?item:{name:item};
+      // Every axis may carry its own ceiling; otherwise it follows the chart's.
+      const own=source.max===undefined||source.max===null||source.max===''?null:chartMax(source.max);
+      const limit=own||max;
+      axes.push({name:cleanName(source.name,axisLimits.label),max:limit,score:score(source.score,limit)});
+      if(axes.length>=axisLimits.max)break;
+    }
+    return axes.length>=axisLimits.min?axes:null;
+  }
+  const RICH_TAGS=new Set(['B','STRONG','I','EM','U','S','SPAN','BR','DIV','P','UL','OL','LI']);
+  // Only a small formatting subset survives: the notes editor accepts pasted HTML.
+  function sanitizeRich(html){
+    let out=String(html??'')
+      .replace(/<\s*(script|style|iframe|object|embed|link|meta)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi,'')
+      .replace(/<\s*(script|style|iframe|object|embed|link|meta)[^>]*\/?\s*>/gi,'')
+      .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,'')
+      .replace(/\s(?:src|href)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,'')
+      .replace(/<font[^>]*\scolor\s*=\s*("|')?(#[0-9a-fA-F]{3,8}|rgb\([^)]*\)|[a-z]+)\1[^>]*>/gi,'<span style="color:$2">')
+      .replace(/<\/font>/gi,'</span>');
+    out=out.replace(/<\s*([a-zA-Z0-9]+)([^>]*)>/g,(match,tag,attrs)=>{
+      const name=tag.toUpperCase();
+      if(!RICH_TAGS.has(name))return '';
+      if(name==='SPAN'){
+        // The declaration sits inside quotes; read it before matching properties.
+        const decl=/(?:^|\s)style\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attrs);
+        const value=decl?(decl[1]??decl[2]??decl[3]??''):'';
+        const color=/(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(value),size=/(?:^|;)\s*font-size\s*:\s*(\d+(?:\.\d+)?)px/i.exec(value);
+        const weight=/(?:^|;)\s*font-weight\s*:\s*([^;]+)/i.exec(value),slant=/(?:^|;)\s*font-style\s*:\s*([^;]+)/i.exec(value);
+        const style=[color?'color:'+color[1].trim():'',size?'font-size:'+size[1]+'px':'',
+          weight?'font-weight:'+weight[1].trim():'',slant?'font-style:'+slant[1].trim():''].filter(Boolean).join(';');
+        return style?'<span style="'+style+'">':'<span>';
+      }
+      return '<'+name.toLowerCase()+'>';
+    });
+    return out.replace(/<\s*\/\s*([a-zA-Z0-9]+)\s*>/g,(match,tag)=>RICH_TAGS.has(tag.toUpperCase())?'</'+tag.toLowerCase()+'>':'');
+  }
+  // Free text understands **bold**, *italic* and {金|coloured}; plain text stays plain.
+  const richColors={'金':'#e7c479','红':'#ff9292','橙':'#ff997d','青':'#85d5e7','绿':'#a7dea0','蓝':'#79d1f2','紫':'#d7b1f3','白':'#edf2f0'};
+  function richRuns(text,base=null){
+    const source=String(text??''),runs=[];
+    let buffer='',index=0;
+    const flush=(value,bold,italic,color)=>{if(value)runs.push({text:value,bold:!!bold,italic:!!italic,color:color||base});};
+    while(index<source.length){
+      const rest=source.slice(index);
+      if(rest.startsWith('**')){
+        const end=source.indexOf('**',index+2);
+        if(end>index+1){flush(buffer,false,false,base);buffer='';flush(source.slice(index+2,end),true,false,base);index=end+2;continue;}
+      }
+      if(source[index]==='*'){
+        const end=source.indexOf('*',index+1);
+        if(end>index){flush(buffer,false,false,base);buffer='';flush(source.slice(index+1,end),false,true,base);index=end+1;continue;}
+      }
+      if(source[index]==='{'){
+        const bar=source.indexOf('|',index+1),close=source.indexOf('}',index+1);
+        if(bar>index&&close>bar){
+          const name=source.slice(index+1,bar).trim();
+          if(richColors[name]){flush(buffer,false,false,base);buffer='';flush(source.slice(bar+1,close),false,false,richColors[name]);index=close+1;continue;}
+        }
+      }
+      buffer+=source[index];index++;
+    }
+    flush(buffer,false,false,base);
+    return runs.length?runs:[{text:source,bold:false,italic:false,color:base}];
+  }
+  const imageData=v=>typeof v==='string'&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)&&v.length<12*1024*1024?v:null;
+  const cleanName=(v,limit)=>String(v??'').replace(/[\r\n\t]/g,' ').trim().slice(0,limit);
+  const score=(v,max=5)=>Math.round(number(v,0,max,0)*2)/2;
+  function radarAxes(value){
+    if(!Array.isArray(value))return null;
+    const names=[];
+    for(const item of value){
+      const name=cleanName(typeof item==='string'?item:item?.name,axisLimits.label);
+      if(name)names.push(name);
+      if(names.length>=axisLimits.max)break;
+    }
+    return names.length>=axisLimits.min?names:null;
+  }
+  // Extra radars keep the built-in six untouched: each holds its own name, axes and scores.
+  function radarChart(value){
+    if(!object(value))return null;
+    const max=chartMax(value.max),axes=chartAxes(value.axes,max);
+    if(!axes)return null;
+    return {name:cleanName(value.name,chartLimits.name),max,unit:chartUnit(value.unit),axes};
+  }
+  function radarCharts(value){
+    const source=Array.isArray(value)?value:value?.radarCharts;
+    if(!Array.isArray(source))return [];
+    const result=[];
+    for(const item of source){const chart=radarChart(item);if(chart)result.push(chart);if(result.length>=chartLimits.max)break;}
+    return result;
+  }
+  function addRadarChart(state,name=''){
+    const charts=radarCharts(state.radarCharts);
+    if(charts.length>=chartLimits.max)return false;
+    let label=cleanName(name,chartLimits.name)||('自定义雷达 '+(charts.length+1)),index=charts.length+2;
+    const used=new Set(charts.map(c=>c.name));
+    while(used.has(label))label='自定义雷达 '+index++;
+    charts.push({name:label,max:5,unit:'number',axes:['维度一','维度二','维度三'].map(name=>({name,score:0}))});
+    state.radarCharts=charts;
+    return true;
+  }
+  function removeRadarChart(state,index){
+    const charts=radarCharts(state.radarCharts);
+    if(!Number.isInteger(index)||index<0||index>=charts.length)return false;
+    charts.splice(index,1);state.radarCharts=charts;return true;
+  }
+  function renameRadarChart(state,index,name){
+    const charts=radarCharts(state.radarCharts);
+    if(!Number.isInteger(index)||index<0||index>=charts.length)return false;
+    charts[index].name=cleanName(name,chartLimits.name);state.radarCharts=charts;return true;
+  }
+  function addRadarAxis(state,chart,name=''){
+    const charts=radarCharts(state.radarCharts),target=charts[chart];
+    if(!target||target.axes.length>=axisLimits.max)return false;
+    const used=new Set(target.axes.map(a=>a.name));
+    let label=cleanName(name,axisLimits.label)||'新维度',index=2;
+    while(used.has(label))label='新维度 '+index++;
+    target.axes.push({name:label,score:0});state.radarCharts=charts;return true;
+  }
+  function removeRadarAxis(state,chart,index){
+    const charts=radarCharts(state.radarCharts),target=charts[chart];
+    if(!target||!Number.isInteger(index)||index<0||index>=target.axes.length||target.axes.length<=axisLimits.min)return false;
+    target.axes.splice(index,1);state.radarCharts=charts;return true;
+  }
+  function renameRadarAxis(state,chart,index,name){
+    const charts=radarCharts(state.radarCharts),target=charts[chart];
+    if(!target||!Number.isInteger(index)||index<0||index>=target.axes.length)return false;
+    target.axes[index].name=cleanName(name,axisLimits.label);state.radarCharts=charts;return true;
+  }
+  function setRadarScore(state,chart,index,value){
+    const charts=radarCharts(state.radarCharts),target=charts[chart];
+    if(!target||!Number.isInteger(index)||index<0||index>=target.axes.length)return false;
+    const limit=target.axes[index]?.max||target.max||5;
+    target.axes[index].score=score(value,limit);state.radarCharts=charts;return true;
+  }
+  function setRadarMax(state,chart,value){
+    const charts=radarCharts(state.radarCharts),target=charts[chart];
+    if(!target||!Number.isInteger(chart)||chart<0||chart>=charts.length)return false;
+    const max=chartMax(value);target.max=max;
+    // The chart ceiling becomes every axis' ceiling; scores stay inside it.
+    target.axes=target.axes.map(axis=>({...axis,max,score:score(axis.score,max)}));
+    state.radarCharts=charts;return true;
+  }
+  function setRadarAxisMax(state,chart,index,value){
+    const charts=radarCharts(state.radarCharts),target=charts[chart];
+    if(!target||!Number.isInteger(index)||index<0||index>=target.axes.length)return false;
+    const max=chartMax(value);
+    target.axes[index].max=max;target.axes[index].score=score(target.axes[index].score,max);
+    state.radarCharts=charts;return true;
+  }
+  function setRadarUnit(state,chart,value){
+    const charts=radarCharts(state.radarCharts),target=charts[chart];
+    if(!target)return false;
+    target.unit=chartUnit(value);state.radarCharts=charts;return true;
+  }
   const ranks=[[11,'十一'],[9,'九'],[7,'七'],[5,'五'],[3,'三'],[1,'一']];
   const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
   const number=(v,min,max,def)=>Number.isFinite(Number(v))?Math.min(max,Math.max(min,Number(v))):def;
@@ -27,10 +192,11 @@
   }
   function addLoadout(state,model){let index=state.loadouts.length;while(state.loadouts.some(row=>row.name==='搭配 '+(index+1)))index++;state.loadouts.push(loadout(model,index));return true;}
   function removeLoadout(state,index){if(!Number.isInteger(index)||index<0||index>=state.loadouts.length||state.loadouts.length<=1)return false;state.loadouts.splice(index,1);return true;}
+
   function defaults(model){
     return {version:6,canvas:{width:1920,height:1080},composition:'auto',decoration:{style:'gilded',intensity:.65},background:{portrait:model.character.portraits?.some(p=>p.key==='awakened')?'awakened':'base',x:0,y:0,scale:1},customTitle:null,titleName:'',titleMode:model.character.id===9296?'reference':'text',titleFont:'serif',bodyFont:'sans',bodyBold:false,bodyItalic:false,bodyOutlineWidth:0,bodyOutlineColor:'#071018',titleItalic:false,titleBold:false,titleScale:1,titleOutlineWidth:0,titleOutlineColor:'#08121b',titleShadow:true,generatedDate:'',datePrefix:'',roleText:'',layout:{},topText:'',topTextX:1000,topTextY:152,topTextSize:22,topTextColor:'#e8dbc0',branchWidth:1.5,branchLength:100,titleImageTint:false,characterId:model.character.id,subtitle:'角色养成一图流',titleColor:'#ef9b73',treeNotes:'',author:'',authorFont:'signature',authorMode:'text',authorImage:null,authorCustomFont:null,notes:'',
-      backgroundOpacity:.65,panelOpacity:.92,markWidth:3,exclusive:null,marks:{},loadouts:[loadout(model)],loadoutCommentary:commentary(),
-      weapons:[null],accessories:[null],tarot:[null],engravings:[],gearNotes:{weapons:[''],accessories:[''],tarot:['']},groupNotes:{weapons:'',accessories:'',tarot:''},scores:[0,0,0,0,0,0],rated:false,scoreText:''};
+      backgroundOpacity:.65,panelOpacity:.92,markWidth:3,gearIconSize:40,radarTitle:'',notesSize:15,exclusive:null,marks:{},loadouts:[loadout(model)],loadoutCommentary:commentary(),
+      weapons:[null],accessories:[null],tarot:[null],engravings:[],gearNotes:{weapons:[''],accessories:[''],tarot:['']},groupNotes:{weapons:'',accessories:'',tarot:''},scores:[0,0,0,0,0,0],rated:false,scoreText:'',radarCharts:[],backgroundImage:null};
   }
   function restore(value,model,catalog){
     const state=defaults(model);
@@ -53,6 +219,9 @@
     if(state.authorFont==='custom'&&!state.authorCustomFont)state.authorFont='signature';
     const background=object(value.background)?value.background:{};
     if(['base','awakened'].includes(background.portrait)&&model.character.portraits?.some(p=>p.key===background.portrait))state.background.portrait=background.portrait;
+    // A custom background only sticks around while its image is still in the draft.
+    state.backgroundImage=imageData(value.backgroundImage);
+    if(background.portrait==='custom'&&state.backgroundImage)state.background.portrait='custom';
     state.background.x=number(background.x,-state.canvas.width*2,state.canvas.width*2,0);state.background.y=number(background.y,-state.canvas.height*2,state.canvas.height*2,0);state.background.scale=number(background.scale,.15,4,1);
     if(typeof value.customTitle==='string'&&value.customTitle.length<=1000000&&/^data:image\/(png|webp);base64,[a-z0-9+/]+=*$/i.test(value.customTitle))state.customTitle=value.customTitle;
     const reference=model.character.id===9296&&(!state.titleName||state.titleName===model.character.name);
@@ -68,7 +237,7 @@
     state.generatedDate=validDate(value.generatedDate)?value.generatedDate:'';state.datePrefix=short(value.datePrefix,24).replace(/[\r\n]/g,' ');
     state.topText=short(value.topText,80).replace(/[\r\n]/g,' ');state.topTextX=number(value.topTextX,0,state.canvas.width-20,Math.min(1000,state.canvas.width-20));state.topTextY=number(value.topTextY,0,state.canvas.height-20,152);state.topTextSize=number(value.topTextSize,12,40,22);
     state.topTextColor=/^#[0-9a-f]{6}$/i.test(value.topTextColor||'')?value.topTextColor:state.topTextColor;
-    state.backgroundOpacity=number(value.backgroundOpacity??value.brightness,0,1,.65);state.panelOpacity=number(value.panelOpacity,0,1,.92);state.markWidth=number(value.markWidth,1,6,3);state.exclusive=validEquipment(value.exclusive)?value.exclusive:null;
+    state.backgroundOpacity=number(value.backgroundOpacity??value.brightness,0,1,.65);state.panelOpacity=number(value.panelOpacity,0,1,.92);state.markWidth=number(value.markWidth,1,6,3);state.gearIconSize=number(value.gearIconSize,20,96,40);state.radarTitle=short(value.radarTitle,16);state.notesSize=number(value.notesSize,10,28,15);state.exclusive=validEquipment(value.exclusive)?value.exclusive:null;
     if(object(value.marks))for(const skill of [...model.skills,...(model.liberations||[])])if(canMark(model,skill.id)&&['required','optional'].includes(value.marks[skill.id]))state.marks[skill.id]=value.marks[skill.id];
     state.loadoutCommentary=commentary(value.loadoutCommentary);
     const savedLoadouts=Array.isArray(value.loadouts)&&value.loadouts.length?value.loadouts:[null];
@@ -85,7 +254,9 @@
     const selections=Array.isArray(value.engravings)?value.engravings:(value.engraving?[{id:value.engraving,note:''}]:[]),seen=new Set();
     for(const item of selections){if(!object(item)||seen.has(item.id)||!catalog.engravings.some(e=>e.id===item.id))continue;seen.add(item.id);state.engravings.push({id:item.id,note:short(item.note,200)});}
     for(const key of ['weapons','accessories','tarot']){state.gearNotes[key]=Array.from({length:state[key].length},(_,i)=>short(value.gearNotes?.[key]?.[i],24));state.groupNotes[key]=short(value.groupNotes?.[key],80);}
+    // The built-in radar always keeps its original six axes; extra charts are separate.
     state.scores=axes.map((_,i)=>Math.round(number(value.scores?.[i],0,5,0)*2)/2);state.rated=value.rated===true;
+    state.radarCharts=radarCharts(value.radarCharts);
     state.scoreText=short(value.scoreText,320);
     return state;
   }
@@ -108,7 +279,7 @@
     const target=index+delta;if(!Number.isInteger(row)||row<0||row>=state.loadouts.length||!Number.isInteger(index)||!Number.isInteger(delta)||index<2||index>4||target<2||target>4)return false;
     const s=state.loadouts[row].slots;[s[index],s[target]]=[s[target],s[index]];return true;
   }
-  const layoutKeys=['logo','title','subtitle','cv','sprite','badges','role','topText','tree','trait','exclusive','loadouts','loadoutNotes','gear','scores','stats','engravings','notes','author','date'];
+  const layoutKeys=['logo','title','subtitle','cv','sprite','badges','role','topText','tree','trait','exclusive','loadouts','loadoutNotes','gear','scores','radar','stats','engravings','notes','author','date'];
   function canvasSize(value={}){return {width:Math.round(number(value?.width,480,4096,1920)),height:Math.round(number(value?.height,320,8192,1080))};}
   function layoutRect(v,canvas){const {width:W,height:H}=canvasSize(canvas),w=number(v.w,20,W,200),h=number(v.h,16,H,100);return {x:number(v.x,0,W-w,0),y:number(v.y,0,H-h,0),w,h};}
   // edges: {x:-1|0|1, y:-1|0|1} — -1 moves the leading edge, 1 the trailing edge, 0 leaves the axis alone.
@@ -156,5 +327,5 @@
     const scale=number(background.scale*factor,.15,4,background.scale),ratio=scale/background.scale;
     return {...background,scale,x:number(background.x+(1-ratio)*(anchor.x-(rect.x+rect.w/2)),-W*2,W*2,0),y:number(background.y+(1-ratio)*(anchor.y-(rect.y+rect.h/2)),-H*2,H*2,0)};
   }
-  return {canvasSize,commentary,addLoadout,removeLoadout,combatStatDefinitions,mobilityStatDefinitions,speedIconPath,baseStatDefinitions,baseStats,statRatio,layoutKeys,layoutRect,snapLayout,axes,ranks,treeNames,kind,pool,defaults,restore,canMark,cycleMark,setSlot,moveSlot,branchSpan,branchEnds,posterDate,validDate,backgroundRect,zoomBackground};
+  return {canvasSize,commentary,addLoadout,removeLoadout,richRuns,richColors,richColorNames:Object.keys(richColors),sanitizeRich,radarChart,radarCharts,addRadarChart,removeRadarChart,renameRadarChart,addRadarAxis,removeRadarAxis,renameRadarAxis,setRadarScore,setRadarMax,setRadarAxisMax,setRadarUnit,chartAxes,chartMax,chartUnit,axisLimits,chartLimits,imageData,radarAxes,combatStatDefinitions,mobilityStatDefinitions,speedIconPath,baseStatDefinitions,baseStats,statRatio,layoutKeys,layoutRect,snapLayout,axes,ranks,treeNames,kind,pool,defaults,restore,canMark,cycleMark,setSlot,moveSlot,branchSpan,branchEnds,posterDate,validDate,backgroundRect,zoomBackground};
 });

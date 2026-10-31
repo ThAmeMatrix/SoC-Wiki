@@ -146,6 +146,11 @@ def build_snapshot(tables,meta,as_of=None):
             'tree':tree,'personalityId':trait_id,'cv':{'zh':cv.get(1,''),'ja':cv.get(2,'')},
             'story':life,'portraits':portrait_specs,'avatar':f'icon/face/face_{art}',
             'sprite':f'icon/character/character_{art}','spriteVariants':sprite_variants,'modules':modules,
+            # 极限解放 is the client's module skill chain: one name, three levels.
+            'liberations':[{'name':plain(db['skill'][chain[0]['skill_id']]['name']),'icon':db['skill'][chain[0]['skill_id']].get('icon',''),
+                'levels':[{'level':row.get('level'),'skillId':row['skill_id'],
+                    'desc':plain(db['skill'][row['skill_id']]['desc'])} for row in chain if row['skill_id'] in db['skill']]}
+                for chain in modules if chain and chain[0]['skill_id'] in db['skill'] and plain(db['skill'][chain[0]['skill_id']]['name'])],
             'sandboxSkills':[{'id':r['skill_id'],'name':plain(db['skill'][r['skill_id']]['name']),
                 'state':r['state'],'sourceId':r['id']} for r in pool[unit['id']] if r['skill_id'] in db['skill']],
             'sourceRows':{'online_role':role['id'],'online_role_unit':online['id'],'unit':unit['id'],

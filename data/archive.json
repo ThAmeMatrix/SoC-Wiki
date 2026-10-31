@@ -1,16 +1,16 @@
 {
   "builtAt": "2026-10-30T15:04:28.402817+08:00",
   "source": "https://wiki.biligame.com/llzj",
-  "expectedPages": 3854,
-  "pages": 3854,
+  "expectedPages": 3890,
+  "pages": 3890,
   "expectedImages": 4320,
   "images": 4320,
   "bytes": 521066465,
   "counts": {
-    "status": 951,
-    "skill": 1637,
+    "status": 960,
+    "skill": 1658,
     "equipment": 167,
-    "talent": 626,
+    "talent": 632,
     "news": 88,
     "character": 177,
     "guide": 179,
@@ -32,7 +32,7 @@
   "complete": true,
   "wikiSnapshotExpectedPages": 3718,
   "clientSupplement": {
-    "characters": 2,
+    "characters": 4,
     "version": "6265075"
   }
 }

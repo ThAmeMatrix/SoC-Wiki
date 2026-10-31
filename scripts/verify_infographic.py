@@ -8,6 +8,15 @@ ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'test-results';OUT.mkdir(exist_ok=True)
 BASE=(ROOT/'index.html').as_uri()+'#/tools/infographic'
 
+# A sample picture with alpha for the custom background upload test.
+def sample_background():
+    path=OUT/'infographic-upload-sample.png'
+    image=Image.new('RGBA',(760,1180),(14,34,52,255))
+    for y in range(0,1180,6):
+        for x in range(0,760,6):image.putpixel((x,y),(36+(x//8)%190,72+(y//12)%150,150,255))
+    image.save(path)
+    return path
+
 def ready(page):
     page.wait_for_function("()=>document.querySelector('#ig-canvas')?.width===1920 && !document.querySelector('[data-ig=export]')?.disabled",timeout=60000)
 def saved(page,id=9296):return page.evaluate('(id)=>JSON.parse(localStorage.getItem("socwiki.infographic.draft."+id))',id)
@@ -31,6 +40,7 @@ def run():
         page=context.new_page();page.add_init_script(r"window.posterText=[];for(const method of ['fillText','strokeText']){const original=CanvasRenderingContext2D.prototype[method];CanvasRenderingContext2D.prototype[method]=function(text,x,y,...args){if(this.canvas.width===1920)window.posterText.push({text:String(text),method,color:this.fillStyle,font:this.font,x:this.getTransform().transformPoint({x,y}).x,y:this.getTransform().transformPoint({x,y}).y,width:this.measureText(text).width*Math.hypot(this.getTransform().a,this.getTransform().b),scaleX:Math.hypot(this.getTransform().a,this.getTransform().b),scaleY:Math.hypot(this.getTransform().c,this.getTransform().d),size:parseFloat(this.font.match(/[\d.]+(?=px)/)[0])*Math.hypot(this.getTransform().c,this.getTransform().d),height:this.canvas.height});return original.call(this,text,x,y,...args);};}");page.on('pageerror',lambda e:errors.append(str(e)));page.on('request',lambda r:remote.append(r.url) if r.url.startswith(('https:','http:')) else None)
         page.add_init_script("window.posterBadges=[];const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(image,...args){if(this.canvas.width===1920&&args.length===4&&args[0]>=1700&&args[1]<186)window.posterBadges.push(args);return draw.call(this,image,...args);};")
         page.add_init_script("window.posterDots=[];const arc=CanvasRenderingContext2D.prototype.arc;CanvasRenderingContext2D.prototype.arc=function(x,y,r,...rest){if(this.canvas.width===1920&&x<360&&y>300&&r<=6)window.posterDots.push({r,alpha:this.globalAlpha});return arc.call(this,x,y,r,...rest);};")
+        page.add_init_script("window.posterIcons=[];const icon=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(image,...args){if(this.canvas.width===1920&&args.length===4&&args[2]===args[3]&&args[2]>=16&&args[2]<=100)window.posterIcons.push({x:args[0],y:args[1],w:args[2]});return icon.call(this,image,...args);};")
         page.goto(BASE);ready(page)
         assert page.locator('.ig-character strong').inner_text()=='薇佩拉'
         assert page.locator('.ig-tier').evaluate_all('(els)=>els.map(e=>Number(e.dataset.rank))')==[11,9,7,5,3,1,0]
@@ -90,9 +100,64 @@ def run():
         page.locator('[data-ig-field=author]').fill('工坊示例')
         page.locator('[data-ig-field=subtitle]').fill('角色养成一图流')
         page.locator('[data-ig-field=treeNotes]').fill('加点顺序和技能取舍可自由填写。\n本图的必点、选点标记仅作排版示例。')
-        page.locator('[data-ig-field=notes]').fill('这是一张功能示例图，评分仅用于演示。\n先选角色，再标注必点和选点技能；三套搭配可按使用场景调整。\n装备、塔罗与刻印都能自由更换。')
+        page.locator('[data-ig-notes]').click()
+        page.keyboard.type('这是一张功能示例图，评分仅用于演示。\n先选角色，再标注必点和选点技能；三套搭配可按使用场景调整。\n装备、塔罗与刻印都能自由更换。')
         for i,score in enumerate([5,3,1.5,2,2.5,3]):page.locator(f'#ig-score-{i}').fill(str(score))
         assert saved(page)['scores']==[5,3,1.5,2,2.5,3]
+        # The built-in six stay put; extra radars carry their own name, axes and scores.
+        assert [row.inner_text().split('\n')[0] for row in page.locator('.ig-scores .ig-score').all()][:2]==['DOT','直伤']
+        page.locator('[data-ig=radar-add]').click();ready(page)
+        charts=saved(page)['radarCharts']
+        assert len(charts)==1 and [a['name'] for a in charts[0]['axes']]==['维度一','维度二','维度三']
+        page.locator('[data-ig-radar-name="0"]').fill('高难评分');ready(page)
+        page.locator('[data-ig-field=radarTitle]').fill('自定义评分');ready(page)
+        assert saved(page)['radarTitle']=='自定义评分'
+        page.locator('[data-ig-radar-axis-name="0:0"]').fill('清杂');ready(page)
+        page.locator('#ig-radar-score-0-0').fill('4');ready(page)
+        page.locator('[data-ig-radar-axis-add="0"]').click();ready(page)
+        charts=saved(page)['radarCharts']
+        assert charts[0]['name']=='高难评分' and len(charts[0]['axes'])==4 and charts[0]['axes'][0]['name']=='清杂' and charts[0]['axes'][0]['score']==4
+        page.locator('[data-ig-radar-axis-remove="0:0"]').click();ready(page)
+        assert page.locator('[data-ig-radar-axis-remove="0:0"]').is_disabled()
+        page.locator('[data-ig=radar-add]').click();page.locator('[data-ig=radar-add]').click();ready(page)
+        assert len(saved(page)['radarCharts'])==3 and page.locator('[data-ig=radar-add]').is_disabled()
+        page.locator('[data-ig-radar-remove="2"]').click();page.locator('[data-ig-radar-remove="1"]').click();ready(page)
+        assert len(saved(page)['radarCharts'])==1
+        # An unnamed axis keeps its slot; ceilings and display mode are per chart.
+        page.locator('[data-ig-radar-axis-name="0:0"]').fill('');ready(page)
+        charts=saved(page)['radarCharts']
+        assert len(charts)==1 and charts[0]['axes'][0]['name']==''
+        # The ceiling updates in place: typing must not re-render or move the page.
+        page.locator('.ig-radar-charts').scroll_into_view_if_needed()
+        before=page.evaluate("()=>[Math.round(window.scrollY),Math.round(document.querySelector('#ig-editor').parentElement.scrollTop)]")
+        page.locator('[data-ig-radar-max="0"]').click();page.locator('[data-ig-radar-max="0"]').press('Control+a')
+        page.locator('[data-ig-radar-max="0"]').type('10',delay=120);ready(page)
+        assert page.evaluate("()=>[Math.round(window.scrollY),Math.round(document.querySelector('#ig-editor').parentElement.scrollTop)]")==before
+        page.locator('#ig-radar-score-0-0').fill('8');ready(page)
+        page.locator('[data-ig-radar-unit="0"]').select_option('percent');ready(page)
+        charts=saved(page)['radarCharts']
+        assert charts[0]['max']==10 and charts[0]['unit']=='percent' and charts[0]['axes'][0]['score']==8
+        page.locator('[data-ig-radar-max="0"]').fill('4');ready(page)
+        assert saved(page)['radarCharts'][0]['axes'][0]['score']==4
+        page.locator('[data-ig-radar-max="0"]').fill('10');ready(page)
+        # Each axis may carry its own ceiling; lowering one only clamps that axis.
+        page.locator('[data-ig-radar-axis-max="0:0"]').fill('100');ready(page)
+        page.locator('#ig-radar-score-0-0').fill('75');ready(page)
+        charts=saved(page)['radarCharts']
+        assert charts[0]['axes'][0]['max']==100 and charts[0]['axes'][0]['score']==75
+        page.locator('[data-ig-radar-axis-max="0:0"]').fill('10');ready(page)
+        assert saved(page)['radarCharts'][0]['axes'][0]['score']==10
+        page.locator('[data-ig-radar-axis-max="0:0"]').fill('100');ready(page)
+        # The block is reachable from the preview like every other region.
+        assert 'radar' in page.eval_on_selector_all('.ig-preview .ig-hotspots [data-ig-jump]','els=>els.map(e=>e.dataset.igJump)')
+        assert 'radar' in page.eval_on_selector('#ig-layout-select','e=>[...e.options].map(o=>o.value)')
+        page.locator('.ig-preview .ig-hotspots [data-ig-jump=radar]').click()
+        assert page.locator('.ig-radar-charts').is_visible()
+        # The journal accepts pasted HTML; only the formatting subset survives.
+        page.locator('.ig-notes-editor [data-ig-rich=source]').click()
+        page.locator('[data-ig-field=notes]').fill('优先<b>魔攻</b>，<span style="color:#85d5e7;font-size:20px">福音</span>层。<script>alert(1)</script>')
+        ready(page)
+        assert '<b>魔攻</b>' in saved(page)['notes'] and 'alert' not in saved(page)['notes']
         page.locator('[data-ig-field=scoreText]').fill('持续伤害定位，副本与高难都好用。\n生存依赖队友，评分仅作排版示例。')
         assert saved(page)['scoreText'].startswith('持续伤害定位')
         ready(page)
@@ -122,6 +187,13 @@ def run():
         page.locator('#ig-import-file').set_input_files(custom_plan)
         page.wait_for_function("()=>JSON.parse(localStorage.getItem('socwiki.infographic.draft.9296'))?.customTitle?.startsWith('data:image/png;base64,')");ready(page)
         page.locator('[data-ig=title-reset]').click();ready(page)
+        # A custom background comes from a local picture and survives draft storage.
+        page.locator('#ig-background-file').set_input_files(sample_background())
+        page.wait_for_function("()=>JSON.parse(localStorage.getItem('socwiki.infographic.draft.9296'))?.backgroundImage?.startsWith('data:image/webp;base64,')");ready(page)
+        assert saved(page)['background']['portrait']=='custom'
+        assert page.locator('.ig-background-thumb').count()==1 and page.locator('[data-ig=background-image-reset]').count()==1
+        page.locator('[data-ig=background-image-reset]').click();ready(page)
+        assert saved(page)['backgroundImage'] is None and saved(page)['background']['portrait']=='awakened'
         checks.append('Original/awakened backgrounds, pointer dragging, wheel/handle zoom, keyboard nudging and reload persistence; custom wordmark JSON roundtrip')
 
         with page.expect_download() as downloaded:page.locator('[data-ig=export]').first.click()
@@ -180,6 +252,10 @@ def run():
         for label,value in [('技能标记圈粗细','4'),('区域底框透明度','38'),('背景立绘透明度','20')]:
             page.get_by_label(label,exact=True).fill(value);ready(page)
         assert saved(page)['markWidth']==4 and saved(page)['panelOpacity']==.62 and saved(page)['backgroundOpacity']==.8
+        # Gear icons follow their own size setting and the rows grow with them.
+        page.get_by_label('武器 / 装具 / 塔罗图标大小',exact=True).fill('72');ready(page)
+        assert saved(page)['gearIconSize']==72
+        assert page.evaluate('window.posterIcons.some(i=>i.w>60&&i.w<=72)')
         assert page.evaluate('window.posterDots.some(d=>d.r===2&&d.alpha===1)')
         assert page.locator('.ig-tree-node[data-mark=optional] .ig-node-select>img').first.evaluate('(e)=>getComputedStyle(e).borderTopWidth')=='4px'
         page.reload();ready(page)
@@ -198,6 +274,7 @@ def run():
         checks.append('Single row of profession/faction icons without rarity; true round dots; editable ring width and independent panel/portrait transparency with reload/JSON persistence')
         checks.append('1920x1080 landscape, straight alternating gray/colored branches, liberation cap, editable tree footer and recolorable offline vector title')
         checks.append('Initial nodes display only; three-state cycles; five-star slash values with zeroes; multiple engraving explanations; centered red notes and artistic signature')
+        checks.append('Built-in six-axis radar untouched while extra custom radars keep their own name, axes and scores; a custom background comes from a local picture')
         with page.expect_download() as downloaded:page.locator('[data-ig=save-plan]').click()
         plan=OUT/'infographic-example.json';downloaded.value.save_as(plan);backup=json.loads(plan.read_text(encoding='utf8'));assert backup['format']=='socwiki-infographic'
         assert len(backup['state']['loadouts'])==3;assert backup['version']==6;assert len(backup['state']['engravings'])==2

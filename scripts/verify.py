@@ -59,7 +59,7 @@ def browser_audit(data):
             assert size['scroll']<=size['width']+1,(label,size)
         route('#/','.hero')
         assert page.locator('.character-card').count()==4
-        assert '3,854' in page.locator('.stat-grid').inner_text()
+        assert '3,890' in page.locator('.stat-grid').inner_text()
         page.screenshot(path=str(RESULTS/'home-desktop.png'),full_page=True,animations="disabled")
         assert_no_overflow('desktop home');reports.append('Home: all counts, local artwork and desktop layout')
 

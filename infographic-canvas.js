@@ -8,7 +8,7 @@ window.WikiInfographicCanvas=(()=>{
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function loadImage(path,data){
     if(!path)return Promise.resolve(null);
-    const live=window.WikiUpdates?.image(path)||path;if(live.startsWith('blob:'))return inlineImage(live);
+    const live=window.WikiUpdates?.image(path)||path;if(live.startsWith('blob:')||live.startsWith('data:'))return inlineImage(live);
     const cache=data.portraitSizes?.[path]?portraitCache:imageCache,limit=cache===portraitCache?2:100;
     if(cache.has(path)){const image=cache.get(path);cache.delete(path);cache.set(path,image);return image;}
     const promise=new Promise((resolve,reject)=>{
@@ -96,12 +96,47 @@ window.WikiInfographicCanvas=(()=>{
     for(const child of box.childNodes)walk(child);
     return result;
   }
+  // Free text keeps its inline markup: **bold**, *italic* and {金|coloured}.
+  const rich=(text,base)=>window.WikiInfographicRules.richRuns(text,base);
+  // Free text may hold an HTML snippet from the notes editor; plain markup still works.
+  function richHtml(html,base,size){
+    const source=String(html??'');
+    if(!/[<>]/.test(source))return rich(source,base);
+    const doc=new DOMParser().parseFromString('<body>'+source,'text/html');
+    const runs=[];
+    const push=(text,bold,italic,color,scale)=>{if(text)runs.push({text,bold,italic,color,scale});};
+    const walk=(node,bold,italic,color,scale)=>{
+      for(const child of node.childNodes){
+        if(child.nodeType===3){push(child.nodeValue.replace(/[\t\r\n]+/g,' '),bold,italic,color,scale);continue;}
+        if(child.nodeType!==1)continue;
+        const tag=child.tagName.toLowerCase();
+        if(tag==='br'){push('\n',bold,italic,color,scale);continue;}
+        const block=tag==='div'||tag==='p'||tag==='li';
+        if(block&&runs.length&&!runs[runs.length-1].text.endsWith('\n'))push('\n',bold,italic,color,scale);
+        let nextColor=color,nextScale=scale,style=child.getAttribute('style')||'';
+        const colorMatch=/(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(style);
+        if(colorMatch)nextColor=colorMatch[1].trim();
+        const sizeMatch=/(?:^|;)\s*font-size\s*:\s*(\d+(?:\.\d+)?)px/i.exec(style);
+        if(sizeMatch)nextScale=Math.max(.6,Math.min(2.4,Number(sizeMatch[1])/(size||15)));
+        const weightMatch=/(?:^|;)\s*font-weight\s*:\s*([^;]+)/i.exec(style),slantMatch=/(?:^|;)\s*font-style\s*:\s*([^;]+)/i.exec(style);
+        const heavy=weightMatch&&(weightMatch[1].trim()==='bold'||Number(weightMatch[1].trim())>=600);
+        walk(child,bold||tag==='b'||tag==='strong'||heavy,italic||tag==='i'||tag==='em'||(slantMatch&&/italic/i.test(slantMatch[1])),nextColor,nextScale);
+        if(block&&runs.length&&!runs[runs.length-1].text.endsWith('\n'))push('\n',bold,italic,color,scale);
+      }
+    };
+    walk(doc.body,false,false,base,1);
+    return runs.length?runs:rich(source.replace(/<[^>]*>/g,''),base);
+  }
+  const notesParts=(html,base,size)=>richHtml(html,base,size);
   function styledText(c,...args){const style=c.bodyStyle;if(style?.bodyOutlineWidth&&!/WikiSignature|Arial/.test(c.font)){c.save();c.strokeStyle=style.bodyOutlineColor;c.lineWidth=style.bodyOutlineWidth*2;c.lineJoin='round';c.strokeText(...args);c.restore();}c.fillText(...args);}
-  function font(c,size,weight=400){const style=c.bodyStyle;c.font=`${style?.bodyItalic?'italic ':''}${style?.bodyBold?Math.max(600,weight):weight} ${size}px ${style?.bodyFont==='serif'?'"WikiTitleNormal", serif':'"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif'}`;c.textBaseline='top';}
+  function font(c,size,weight=400,italic=null){const style=c.bodyStyle;c.font=`${(italic===null?!!style?.bodyItalic:!!italic)?'italic ':''}${style?.bodyBold||weight>=600?Math.max(600,weight):weight} ${size}px ${style?.bodyFont==='serif'?'"WikiTitleNormal", serif':'"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif'}`;c.textBaseline='top';}
+  // A run may carry its own font size (from pasted HTML); lines grow to the tallest one.
+  const runScale=part=>part.scale||1;
   function wrap(c,parts,width,size,lineHeight=size*1.45){
-    font(c,size);const lines=[[]];let used=0;
-    const next=()=>{lines.push([]);used=0;};
-    for(const part of parts)for(const unit of part.text.match(/[A-Za-z0-9][A-Za-z0-9.%+_:/-]*|[\s\S]/gu)||[])for(const char of (c.measureText(unit).width>width?Array.from(unit):[unit])){
+    font(c,size);const lines=[[]];let used=0;const scales=[1];
+    const next=()=>{lines.push([]);scales.push(1);used=0;};
+    const grow=scale=>{scales[scales.length-1]=Math.max(scales[scales.length-1],scale);};
+    for(const part of parts){const scale=runScale(part);font(c,size*scale,part.bold?700:400,part.italic);for(const unit of part.text.match(/[A-Za-z0-9][A-Za-z0-9.%+_:/-]*|[\s\S]/gu)||[])for(const char of (c.measureText(unit).width>width?Array.from(unit):[unit])){
       if(char==='\n'){next();continue;}
       const w=c.measureText(char).width;
       if(used+w>width&&used>0){
@@ -111,20 +146,24 @@ window.WikiInfographicCanvas=(()=>{
         if(tail&&c.measureText(tail).width+w<=width){
           const tailWidth=c.measureText(tail).width,color=previous.color;
           previous.text=previous.text.slice(0,-tail.length);previous.width-=tailWidth;if(!previous.text)previousLine.pop();
-          next();lines[lines.length-1].push({text:tail,width:tailWidth,color});used=tailWidth;
+          next();grow(scale);lines[lines.length-1].push({text:tail,width:tailWidth,color,scale});used=tailWidth;
         }else next();
       }
       if(char===' '&&used===0)continue;
+      grow(scale);
       const line=lines[lines.length-1],last=line[line.length-1];
-      if(last&&last.color===part.color){last.text+=char;last.width+=w;}else line.push({text:char,width:w,color:part.color});used+=w;
+      const same=last&&last.color===part.color&&!!last.bold===!!part.bold&&!!last.italic===!!part.italic&&runScale(last)===scale;
+      if(same){last.text+=char;last.width+=w;}else line.push({text:char,width:w,color:part.color,bold:!!part.bold,italic:!!part.italic,scale});used+=w;
+      }
     }
     while(lines.length>1&&!lines[lines.length-1].length)lines.pop();
-    return {lines,size,lineHeight,height:lines.length*lineHeight};
+    const heights=lines.map((line,index)=>lineHeight*scales[index]);
+    return {lines,size,lineHeight,heights,height:heights.reduce((sum,h)=>sum+h,0)};
   }
-  function paintText(c,layout,x,y){font(c,layout.size);for(const line of layout.lines){let left=x;for(const p of line){c.fillStyle=p.color;styledText(c,p.text,left,y);left+=p.width;}y+=layout.lineHeight;}return y;}
+  function paintText(c,layout,x,y){font(c,layout.size);layout.lines.forEach((line,index)=>{let left=x;for(const p of line){c.fillStyle=p.color;font(c,layout.size*runScale(p),p.bold?700:400,p.italic);styledText(c,p.text,left,y);left+=p.width;}font(c,layout.size);y+=layout.heights?.[index]??layout.lineHeight;});return y;}
   function plain(c,text,x,y,width,size=22,color=ink,weight=400){
     const layout=wrap(c,[{text:String(text??''),color}],width,size);font(c,size,weight);
-    for(const line of layout.lines){let left=x;for(const p of line){c.fillStyle=p.color;styledText(c,p.text,left,y);left+=p.width;}y+=layout.lineHeight;}return layout.height;
+    layout.lines.forEach((line,index)=>{let left=x;for(const p of line){c.fillStyle=p.color;styledText(c,p.text,left,y);left+=p.width;}y+=layout.heights?.[index]??layout.lineHeight;});return layout.height;
   }
   function line(c,x1,y1,x2,y2,color='#345460',width=2,dash=[]){c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.setLineDash(dash);c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();c.setLineDash([]);}
   function round(c,x,y,w,h,r=18){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
@@ -151,7 +190,31 @@ window.WikiInfographicCanvas=(()=>{
     }else{c.beginPath();c.arc(cx,cy,r+4,0,Math.PI*2);c.stroke();}c.restore();
   }
   function paintCentered(c,layout,cx,y){
-    font(c,layout.size);for(const line of layout.lines){let x=cx-line.reduce((sum,part)=>sum+part.width,0)/2;for(const part of line){c.fillStyle=part.color;styledText(c,part.text,x,y);x+=part.width;}y+=layout.lineHeight;}return y;
+    font(c,layout.size);layout.lines.forEach((line,index)=>{let x=cx-line.reduce((sum,part)=>sum+part.width,0)/2;for(const part of line){c.fillStyle=part.color;font(c,layout.size*runScale(part),part.bold?700:400,part.italic);styledText(c,part.text,x,y);x+=part.width;}font(c,layout.size);y+=layout.heights?.[index]??layout.lineHeight;});return y;
+  }
+  // One radar chart: grid, axis labels and the scored polygon. Used by the built-in
+  // rating block and by the custom radar block.
+  function radarChartArt(c,chart,cx,cy,rr,left,right,labelSize=14){
+    const sides=Math.max(3,chart.axes.length),angle=i=>-Math.PI/2+i*2*Math.PI/sides;
+    const max=chart.max||5,limitOf=axis=>axis.max||max;
+    // A chart may count in its own units or show how far each axis reaches.
+    const read=axis=>axis.name+(chart.rated?' '+(chart.unit==='percent'?Math.round((axis.score||0)/limitOf(axis)*100)+'%':String(axis.score)):' —');
+    const point=(i,radius)=>[cx+Math.cos(angle(i))*radius,cy+Math.sin(angle(i))*radius];
+    for(let n=1;n<=5;n++){c.beginPath();for(let i=0;i<sides;i++){const [px,py]=point(i,rr*n/5);i?c.lineTo(px,py):c.moveTo(px,py);}c.closePath();c.strokeStyle=n===5?'#67848d':'#324f59';c.lineWidth=1;c.stroke();}
+    for(let i=0;i<sides;i++){
+      const [px,py]=point(i,rr);line(c,cx,cy,px,py,'#36535d',1);
+      const [lx,ly]=point(i,rr+22),cos=Math.cos(angle(i));
+      let align=Math.abs(cos)<.25?'center':cos>0?'left':'right',labelX=lx;
+      if(labelX<left){labelX=left;align='left';}
+      if(labelX>right){labelX=right;align='right';}
+      font(c,labelSize,600);c.fillStyle=ink;c.textAlign=align;
+      styledText(c,read(chart.axes[i]),labelX,ly-7);c.textAlign='left';
+    }
+    if(chart.rated&&chart.axes.some(axis=>axis.score)){
+      c.beginPath();
+      for(let i=0;i<sides;i++){const limit=limitOf(chart.axes[i]);const [px,py]=point(i,rr*Math.max(0,Math.min(limit,chart.axes[i].score||0))/limit);i?c.lineTo(px,py):c.moveTo(px,py);}
+      c.closePath();c.fillStyle='rgba(114,207,224,.28)';c.fill();c.strokeStyle=cyan;c.lineWidth=2;c.stroke();
+    }
   }
   function signature(c,name,x,y,width,height=78){
     c.save();c.translate(x,y);
@@ -276,7 +339,8 @@ window.WikiInfographicCanvas=(()=>{
     c.restore();
   }
   function gearContent(c,state,w,equipmentMap,tarotMap){
-    const gearCols=Math.max(1,Math.min(8,Math.round((w-70)/108)||1)),gearPitch=Math.min(108,(w-70)/gearCols),gearCell=Math.min(92,gearPitch-6),gearIconSize=Math.min(40,gearPitch-14);
+    // Icon size follows the editor setting; the column pitch still keeps them apart.
+    const gearCols=Math.max(1,Math.min(8,Math.round((w-70)/108)||1)),gearPitch=Math.min(108,(w-70)/gearCols),gearCell=Math.min(92,gearPitch-6),gearIconSize=Math.min(state.gearIconSize||40,gearPitch-6);
     const gearRows=[['weapons','武器',equipmentMap],['accessories','装具',equipmentMap],['tarot','塔罗',tarotMap]].map(([key,label,map])=>{
       const items=state[key].map((id,j)=>{const item=map.get(id),name=labelLayout(c,item?.name||'待选择',gearCell,item?ink:muted,12.5,2),caption=state.gearNotes[key][j]?wrap(c,[{text:state.gearNotes[key][j],color:colors.red}],gearCell,12.5,16):null;return {item,name,caption,bottom:gearIconSize+4+name.height+(caption?1+caption.height:0)};});
       const cellH=Math.max(...items.map(item=>item.bottom))+8,contentH=cellH*Math.ceil(items.length/gearCols),group=state.groupNotes[key]?wrap(c,[{text:state.groupNotes[key],color:colors.red}],w-40,14,18):null;
@@ -301,12 +365,13 @@ window.WikiInfographicCanvas=(()=>{
     const buildWeight=w=>{const cols=Math.max(1,Math.min(Math.floor((w-24)/330),Math.ceil(state.loadouts.length/4)));return 48+Math.ceil(state.loadouts.length/cols)*82;};
     let hero=null,informationHeader=0;
     const hasAuthor=state.author.trim()||state.authorMode==='image'&&state.authorImage;
+    const radarCharts=window.WikiInfographicRules.radarCharts(state.radarCharts),radarItems=radarCharts.length?[['radar',210]]:[];
     if(information){
       const header=portrait?270:Math.max(186,H*.17),bodyY=header+14,bodyH=H-bodyY-40,usable=W-2*m-2*gap,leftW=usable*(portrait?0.29:0.22),centerW=usable*(portrait?0.40:0.46),rightW=usable-leftW-centerW,cx=m+leftW+gap,rx=cx+centerW+gap;
       informationHeader=header;
       flow([['tree',850],['engravings',engravingWeight(leftW)]],m,bodyY,leftW,bodyH);
       flow([['trait',traitWeight(centerW)],['exclusive',weaponWeight(centerW)],['loadouts',buildWeight(centerW)],...(state.loadoutCommentary.enabled?[['loadoutNotes',textWeight(state.loadoutCommentary.text,centerW)]]:[]),['notes',textWeight(state.notes,centerW)]],cx,bodyY,centerW,bodyH);
-      flow([['scores',260],['gear',gearWeight(rightW)],['stats',245],['author',hasAuthor?95:55]],rx,bodyY,rightW,bodyH);
+      flow([['scores',260],...radarItems,['gear',gearWeight(rightW)],['stats',245],['author',hasAuthor?95:55]],rx,bodyY,rightW,bodyH);
       frames.topText={x:portrait?W*.57:1000,y:header-38,w:portrait?W*.40:460,h:30};
       if(portrait){
         frames.logo={x:m,y:20,w:110,h:110};frames.title={x:150,y:12,w:W*.43,h:135};frames.subtitle={x:m,y:153,w:W*.68,h:65};frames.cv={x:m,y:header-38,w:W*.52,h:25};
@@ -319,12 +384,12 @@ window.WikiInfographicCanvas=(()=>{
       frames.sprite={x:W-215,y:20,w:180,h:215};frames.badges={x:W-238,y:244,w:210,h:55};frames.role={x:W-305,y:305,w:280,h:50};
       flow([['tree',850],['engravings',engravingWeight(leftW)]],m,bodyY,leftW,bodyH);
       flow([['trait',traitWeight(centerW)],['exclusive',weaponWeight(centerW)],['loadouts',buildWeight(centerW)],...(state.loadoutCommentary.enabled?[['loadoutNotes',textWeight(state.loadoutCommentary.text,centerW)]]:[]),['notes',textWeight(state.notes,centerW)]],cx,bodyY,centerW,bodyH);
-      flow([['scores',310],['gear',gearWeight(rightW)],['stats',245],['author',hasAuthor?95:55]],rx,bodyY,rightW,bodyH);
+      flow([['scores',310],...radarItems,['gear',gearWeight(rightW)],['stats',245],['author',hasAuthor?95:55]],rx,bodyY,rightW,bodyH);
     }else{
       const bodyY=Math.max(186,H*.17),bodyH=H-bodyY-40,usable=W-2*m-3*gap,treeW=usable*.17,infoW=usable*.30,heroW=usable*.30,rightW=usable-treeW-infoW-heroW,ix=m+treeW+gap,hx=ix+infoW+gap,rx=hx+heroW+gap;
       hero={x:hx,y:0,w:heroW,h:H,focusScale:1.65,focusY:-H*.10,focusTop:bodyY-20};frames.topText={x:Math.min(570,ix+infoW*.3),y:bodyY-44,w:ix+infoW-Math.min(570,ix+infoW*.3),h:32};minBody=Math.max(minBody,850);frames.tree={x:m,y:bodyY,w:treeW,h:bodyH};
       flow([['trait',traitWeight(infoW)],['exclusive',weaponWeight(infoW)],['loadouts',buildWeight(infoW)],...(state.loadoutCommentary.enabled?[['loadoutNotes',textWeight(state.loadoutCommentary.text,infoW)]]:[]),['engravings',engravingWeight(infoW)]],ix,bodyY,infoW,bodyH);
-      flow([['scores',240],['gear',gearWeight(rightW)],['stats',235],['notes',textWeight(state.notes,rightW)],['author',hasAuthor?85:20]],rx,bodyY,rightW,bodyH);
+      flow([['scores',240],...radarItems,['gear',gearWeight(rightW)],['stats',235],['notes',textWeight(state.notes,rightW)],['author',hasAuthor?85:20]],rx,bodyY,rightW,bodyH);
     }
     frames.date={x:W-624,y:H-29,w:600,h:24};
     return {frames,hero,minHeight:information?(portrait?minBody+informationHeader+54:Math.max(minBody+240,(minBody+54)/.83)):portrait?minBody+Math.min(H*.32,spotlight?570:390)+63:Math.max(minBody+226,(minBody+40)/.83)};
@@ -338,7 +403,9 @@ window.WikiInfographicCanvas=(()=>{
     const character=model.character,skillMap=new Map(model.skills.map(s=>[s.id,s]));
     const equipmentMap=new Map(model.equipment.map(e=>[e.id,e])),tarotMap=new Map(data.tarot.map(e=>[e.id,e]));
     const engravings=state.engravings.map(item=>({...data.engravings.find(e=>e.id===item.id),note:item.note})).filter(e=>e.id);
-    const portrait=model.character.portraits?.find(p=>p.key===state.background.portrait)?.src||model.portrait,liberations=model.liberations||[];
+    // A uploaded background wins over the archived portraits; it is stored with the draft.
+    const customArt=state.background.portrait==='custom'?state.backgroundImage:null;
+    const portrait=customArt||model.character.portraits?.find(p=>p.key===state.background.portrait)?.src||model.portrait,liberations=model.liberations||[];
     const referenceTitle=!state.titleName?.trim()||titleText(model,state)===character.name?data.referenceTitles?.[character.id]:null;
     const paths=new Set([data.logo,portrait,referenceTitle,character.sprite,...model.badges.flatMap(b=>[b.background,b.image]),...Object.values(data.statIcons||{}),model.trait?.image,...liberations.map(s=>s.image)]);
     for(const skill of model.skills)paths.add(skill.image);
@@ -403,7 +470,7 @@ window.WikiInfographicCanvas=(()=>{
       if(b.background){const size=badgeSize*.82,offset=(badgeSize-size)/2,inset=size*.18;contain(c,images.get(b.background),bx+offset,badgeY+offset,size,size);contain(c,images.get(b.image),bx+offset+inset,badgeY+offset+inset,size-inset*2,size-inset*2);}
       else contain(c,images.get(b.image),bx,badgeY,badgeSize,badgeSize);
     });
-    endBlock();const roleBox=block('role',1718,120,178,54);if(state.roleText?.trim())content([{text:state.roleText,color:ink}],1720,122,Math.max(20,roleBox.w-4),Math.max(20,roleBox.h-4),20);endBlock();
+    endBlock();const roleBox=block('role',1718,120,178,54);if(state.roleText?.trim())content(rich(state.roleText,ink),1720,122,Math.max(20,roleBox.w-4),Math.max(20,roleBox.h-4),20);endBlock();
     const topBox=block('topText',state.topText?.trim()?state.topTextX:980,state.topText?.trim()?state.topTextY:144,state.topText?.trim()?Math.max(20,Math.min(W-24-state.topTextX,Math.max(120,state.topText.length*state.topTextSize))):500,state.topText?.trim()?state.topTextSize+6:34);
     if(state.topText?.trim()){
       c.save();font(c,state.topTextSize??22,600);c.textBaseline='alphabetic';c.strokeStyle='#071019';c.lineWidth=3;c.lineJoin='round';
@@ -434,7 +501,7 @@ window.WikiInfographicCanvas=(()=>{
     const noteY=rootY+25;
     line(c,margin+16,noteY,margin+treeBox.w-16,noteY,'#40535b',1);
     font(c,14,700);c.fillStyle=gold;styledText(c,'加点补充',margin+16,noteY+12);
-    if(state.treeNotes)content([{text:state.treeNotes,color:ink}],margin+16,noteY+37,treeBox.w-32,Math.max(24,top+treeBox.h-noteY-49),15);
+    if(state.treeNotes)content(rich(state.treeNotes,ink),margin+16,noteY+37,treeBox.w-32,Math.max(24,top+treeBox.h-noteY-49),15);
     endBlock();const traitBox=block('trait',x,top,right,traitH);panel(c,x,top,traitBox.w,traitBox.h);contain(c,images.get(model.trait?.image),x+16,top+12,27,27);heading(`个性 · ${model.trait?.name||'未收录'}`,x+52,top+14);
     // Columns follow the block width; the auto flow below keeps using the default width.
     const traitFlow=Math.abs(traitBox.w-right)<8?traitColumns:effectColumns(c,traitParts,traitBox.w-36,20);
@@ -476,19 +543,25 @@ window.WikiInfographicCanvas=(()=>{
       if(row.group)paintCentered(c,row.group,gearBox.w/2,gy+row.groupY);gy+=row.height;
     }c.restore();
     endBlock();const scoreBox=block('scores',radarX,middleY,radarW,middleH);panel(c,radarX,middleY,scoreBox.w,scoreBox.h);heading('角色评级',radarX+16,middleY+13);
-    const rr=Math.max(8,Math.min(70,(scoreBox.h-150)/2,scoreBox.w/2-50)),rcx=radarX+scoreBox.w/2,rcy=middleY+75+rr,axes=window.WikiInfographicRules.axes;
-    const point=(i,radius)=>[rcx+Math.cos(-Math.PI/2+i*Math.PI/3)*radius,rcy+Math.sin(-Math.PI/2+i*Math.PI/3)*radius];
-    for(let n=1;n<=5;n++){c.beginPath();for(let i=0;i<6;i++){const [px,py]=point(i,rr*n/5);i?c.lineTo(px,py):c.moveTo(px,py);}c.closePath();c.strokeStyle=n===5?'#67848d':'#324f59';c.lineWidth=1;c.stroke();}
-    for(let i=0;i<6;i++){const [px,py]=point(i,rr);line(c,rcx,rcy,px,py,'#36535d',1);const [lx,ly]=point(i,rr+25);font(c,14,600);c.fillStyle=ink;c.textAlign='center';styledText(c,axes[i]+(state.rated?' '+state.scores[i]:' —'),lx,ly-7);c.textAlign='left';}
-    if(state.rated){c.beginPath();for(let i=0;i<6;i++){const [px,py]=point(i,rr*state.scores[i]/5);i?c.lineTo(px,py):c.moveTo(px,py);}c.closePath();c.fillStyle='rgba(114,207,224,.28)';c.fill();c.strokeStyle=cyan;c.lineWidth=2;c.stroke();}
-    // The chart keeps its original geometry; a written assessment simply replaces the caption line.
+    // The built-in six-axis radar keeps its original geometry; custom charts get their own block.
+    const rules=window.WikiInfographicRules;
     const scoreText=(state.scoreText||'').trim();
+    const builtIn={name:'',rated:state.rated,axes:rules.axes.map((name,i)=>({name,score:state.scores[i]}))};
+    const captionH=scoreText?58:26;
+    const areaTop=middleY+41,areaH=Math.max(60,scoreBox.h-49-captionH);
+    const cx=radarX+scoreBox.w/2,cy=areaTop+areaH/2;
+    const rr=Math.max(8,Math.min(70,(areaH-46)/2,scoreBox.w/2-46));
+    radarChartArt(c,builtIn,cx,cy,rr,radarX+14,radarX+scoreBox.w-14,14);
+    const rcx=radarX+scoreBox.w/2;
     if(scoreText){
-      const caption=labelLayout(c,scoreText,Math.max(40,scoreBox.w-32),ink,12,2),captionTop=middleY+scoreBox.h-22-(caption.lines.length-1)*caption.lineHeight;
+      const caption=fitted(c,rich(scoreText,ink),Math.max(40,scoreBox.w-32),captionH,12),captionTop=middleY+scoreBox.h-22-(caption.lines.length-1)*caption.lineHeight;
       paintCentered(c,caption,rcx,Math.max(middleY+scoreBox.h-58,captionTop));
     }else{font(c,12);c.fillStyle=muted;c.textAlign='center';styledText(c,'玩家评估 · 0—5',rcx,middleY+scoreBox.h-22);c.textAlign='left';}
     // The footer row keeps the journal at the far right; the base stats slot opens up beside it.
-    const engravingW=842,statsX=x+engravingW+12,statsW=260,notesX=statsX+statsW+22,notesW=394;
+    // Custom radar charts become their own block here instead of crowding the rating block.
+    const radarCharts=rules.radarCharts(state.radarCharts),radarBlockW=radarCharts.length?236:0;
+    const engravingW=842-radarBlockW-(radarBlockW?12:0),radarBlockX=x+engravingW+12;
+    const statsX=(radarBlockW?radarBlockX+radarBlockW+12:x+engravingW+12),statsW=260,notesX=statsX+statsW+22,notesW=394;
     endBlock();const engravingBox=block('engravings',x,footerY,engravingW,footerH);panel(c,x,footerY,engravingBox.w,engravingBox.h);heading('刻印共鸣',x+16,footerY+13);
     if(!engravings.length)plain(c,'从全部组合中选择，可多选并添加说明。',x+16,footerY+52,Math.max(40,engravingBox.w-32),16,muted);
     const engravingMaxCols=Math.max(1,Math.floor((engravingBox.w-32)/180));
@@ -497,12 +570,28 @@ window.WikiInfographicCanvas=(()=>{
     engravings.forEach((e,i)=>{const px=x+16+(i%cols)*cellW,py=footerY+45+Math.floor(i/cols)*cellH;
       contain(c,images.get(e.images[0]),px,py,24,24);contain(c,images.get(e.images[1]),px+33,py,24,24);font(c,14);c.fillStyle=gold;styledText(c,'+',px+25,py+5);
       fit(c,e.name,px+66,py+4,Math.max(30,cellW-77),15,gold);
-      const parts=[...runs(e.description),...(e.note?[{text:'\n'+e.note,color:'#ffd3a0'}]:[])];content(parts,px,py+30,Math.max(20,cellW-14),Math.max(20,cellH-36),16);
+      const parts=[...runs(e.description),...(e.note?rich('\n'+e.note,'#ffd3a0'):[])];content(parts,px,py+30,Math.max(20,cellW-14),Math.max(20,cellH-36),16);
       if(i%cols!==cols-1)line(c,px+cellW-7,py,px+cellW-7,py+cellH-10,'#2d454f',1);
     });
+    if(radarBlockW){
+      endBlock();const radarBox=block('radar',radarBlockX,footerY,radarBlockW,footerH);panel(c,radarBlockX,footerY,radarBox.w,radarBox.h);
+      heading(state.radarTitle?.trim()||'自定义雷达图',radarBlockX+12,footerY+13);
+      const radarTop=footerY+38,radarAreaH=Math.max(60,radarBox.h-48);
+      const radarCols=radarCharts.length<=1?1:2,radarRows=Math.ceil(radarCharts.length/radarCols);
+      const radarCellW=(radarBox.w-20)/radarCols,radarCellH=radarAreaH/radarRows;
+      radarCharts.forEach((chart,index)=>{
+        const chartX=radarBlockX+10+radarCellW*((index%radarCols)+.5),chartY=radarTop+radarCellH*(Math.floor(index/radarCols)+.5);
+        const titleH=chart.name?16:0;
+        if(chart.name){font(c,11.5,700);c.fillStyle=cyan;c.textAlign='center';styledText(c,chart.name,chartX,chartY-radarCellH/2+2);c.textAlign='left';}
+        // The top vertex label sits above the centre, so the title needs its own band.
+        const radius=Math.max(8,Math.min(70,(radarCellH-24-titleH*2)/2,radarCellW/2-30));
+        // Keep max/unit: the chart draws in its own ceiling and display mode.
+        radarChartArt(c,{...chart,rated:true,name:''},chartX,chartY+titleH/2+titleH/2,radius,radarBlockX+8,radarBlockX+radarBox.w-8,11.5);
+      });
+    }
     endBlock();const notesBox=block('notes',notesX,footerY,notesW,footerH);panel(c,notesX,footerY,notesBox.w,notesBox.h);heading('养成手记',notesX+16,footerY+13);
     const signatureH=(state.author.trim()||authorImage)&&!compositionFrames.author?81:8;
-    if(state.notes)content([{text:state.notes,color:ink}],notesX+16,footerY+41,Math.max(40,notesBox.w-32),Math.max(24,notesBox.h-48-signatureH),15);
+    if(state.notes)content(notesParts(state.notes,ink,state.notesSize||15),notesX+16,footerY+41,Math.max(40,notesBox.w-32),Math.max(24,notesBox.h-48-signatureH),state.notesSize||15);
     endBlock();const authorBox=block('author',notesX+12,bottom-85,notesW-24,83);authorArtwork(c,state,authorImage,customAuthorFamily,notesX+24,bottom-83,Math.max(40,authorBox.w-18),Math.max(24,authorBox.h-4));
     endBlock();const statsBox=block('stats',statsX,footerY,statsW,footerH);panel(c,statsX,footerY,statsBox.w,statsBox.h);heading('基础属性',statsX+12,footerY+12);
     {const base=model.baseStats||{},statRows=window.WikiInfographicRules.combatStatDefinitions;
@@ -544,6 +633,7 @@ window.WikiInfographicCanvas=(()=>{
       ...(note.enabled?[{key:'loadoutNotes',...rectOf('loadoutNotes'),absolute:true}]:[]),
       {key:'gear',...rectOf('gear'),absolute:true},
       {key:'scores',...rectOf('scores'),absolute:true},
+      ...(radarBlockW?[{key:'radar',...rectOf('radar'),absolute:true}]:[]),
       {key:'stats',...rectOf('stats'),absolute:true},
       {key:'engravings',...rectOf('engravings'),absolute:true},
       {key:'notes',...rectOf('notes'),absolute:true},

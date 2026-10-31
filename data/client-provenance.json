@@ -671,6 +671,29 @@
           }
         ]
       ],
+      "liberations": [
+        {
+          "name": "火力打击之道",
+          "icon": "icon_skill_gongjiwu",
+          "levels": [
+            {
+              "level": 1,
+              "skillId": 13212,
+              "desc": "（被动）[1级效果]，每命中1个目标，伤害提高4%，最多12%。"
+            },
+            {
+              "level": 2,
+              "skillId": 13213,
+              "desc": "（被动）[2级效果]，攻击提高5%。每命中1个目标，伤害提高4%，最多12%。"
+            },
+            {
+              "level": 3,
+              "skillId": 13214,
+              "desc": "（被动）[3级效果]，攻击提高5%。每命中1个目标，伤害提高8%，最多24%。"
+            }
+          ]
+        }
+      ],
       "sandboxSkills": [
         {
           "id": 4504,
@@ -2482,6 +2505,29 @@
           }
         ]
       ],
+      "liberations": [
+        {
+          "name": "单打独斗",
+          "icon": "icon_skill_dandadudou",
+          "levels": [
+            {
+              "level": 1,
+              "skillId": 22379,
+              "desc": "（被动）[1级效果]，自身范围2格内没有友军时，伤害、穿透伤害提高4%，受到伤害、受到穿透伤害降低4%。"
+            },
+            {
+              "level": 2,
+              "skillId": 22380,
+              "desc": "（被动）[2级效果]，自身范围2格内没有友军时，伤害、穿透伤害提高8%，受到伤害、受到穿透伤害降低8%。"
+            },
+            {
+              "level": 3,
+              "skillId": 22381,
+              "desc": "（被动）[3级效果]，自身范围2格内没有友军时，伤害、穿透伤害提高12%，受到伤害、受到穿透伤害降低12%。"
+            }
+          ]
+        }
+      ],
       "sandboxSkills": [
         {
           "id": 4466,
@@ -3686,6 +3732,2290 @@
         "online_unit_modify": 602,
         "online_unit_rank_modify": 609
       }
+    },
+    "181": {
+      "id": 181,
+      "unitId": 860,
+      "roleId": 174,
+      "name": "埃拉曼重斧斗士",
+      "enabled": true,
+      "availableAt": "2025-10-17T12:00:00+08:00",
+      "available": true,
+      "class": "粉碎者",
+      "profession": "埃拉曼重斧斗士",
+      "rarity": "精英",
+      "weapon": "重型",
+      "gender": "男",
+      "factions": [
+        "漂泊者",
+        "埃拉曼"
+      ],
+      "movement": 3,
+      "jumpUp": 2,
+      "jumpDown": 2,
+      "baseStats": {
+        "生命": 342,
+        "物攻": 210,
+        "魔攻": 139,
+        "物防": 65,
+        "魔防": 48,
+        "敏捷": 205
+      },
+      "stats": {
+        "生命": 3343,
+        "物攻": 1507,
+        "魔攻": 1002,
+        "物防": 469,
+        "魔防": 348,
+        "敏捷": 205
+      },
+      "statBasis": "60级、五星、13阶、左右技能全部解锁；不含装备、天赋、好感、模组及战斗个性增益",
+      "statsSource": {
+        "initial": {
+          "idonline_unit_modify": 583,
+          "physic_attack": 200,
+          "spell_attack": 133,
+          "hp": 326,
+          "id": 7681,
+          "level": 1,
+          "spell_defence": 46,
+          "physic_defence": 62
+        },
+        "level60": {
+          "idonline_unit_modify": 583,
+          "physic_attack": 785,
+          "spell_attack": 523,
+          "hp": 1707,
+          "id": 7740,
+          "level": 60,
+          "spell_defence": 182,
+          "physic_defence": 245
+        },
+        "rarity": 105,
+        "star": {
+          "permillage_spell_attack": 120,
+          "count": 120,
+          "permillage_physic_attack": 120,
+          "id": 5,
+          "permillage_spell_defence": 120,
+          "permillage_physic_defence": 120,
+          "permillage_hp": 120
+        },
+        "ranks": [
+          {
+            "is_skill2_share": false,
+            "material1_id": 37,
+            "skill2_id": 4085,
+            "hp_add": 30,
+            "spell_defence_add": 5,
+            "module_skill_ids": "",
+            "spell_attack_add": 14,
+            "enhance_skill2_id": 0,
+            "id": 56205,
+            "rank": 1,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 100,
+            "skill1_id": 16714,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 21,
+            "material1_count": 1,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 37,
+            "skill2_id": 0,
+            "hp_add": 30,
+            "spell_defence_add": 5,
+            "module_skill_ids": "",
+            "spell_attack_add": 14,
+            "enhance_skill2_id": 0,
+            "id": 56206,
+            "rank": 2,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 200,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 21,
+            "material1_count": 3,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 37,
+            "skill2_id": 18292,
+            "hp_add": 38,
+            "spell_defence_add": 5,
+            "module_skill_ids": "",
+            "spell_attack_add": 14,
+            "enhance_skill2_id": 0,
+            "id": 56207,
+            "rank": 3,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 300,
+            "skill1_id": 4099,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 21,
+            "material1_count": 5,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 37,
+            "skill2_id": 0,
+            "hp_add": 38,
+            "spell_defence_add": 5,
+            "module_skill_ids": "",
+            "spell_attack_add": 14,
+            "enhance_skill2_id": 0,
+            "id": 56208,
+            "rank": 4,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 400,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 1,
+            "material2_id": 36,
+            "physic_attack_add": 21,
+            "material1_count": 5,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 37,
+            "skill2_id": 16720,
+            "hp_add": 53,
+            "spell_defence_add": 6,
+            "module_skill_ids": "",
+            "spell_attack_add": 18,
+            "enhance_skill2_id": 0,
+            "id": 56209,
+            "rank": 5,
+            "physic_defence_add": 9,
+            "enhance_skill1_id": 0,
+            "money": 500,
+            "skill1_id": 4150,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 3,
+            "material2_id": 36,
+            "physic_attack_add": 28,
+            "material1_count": 6,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 37,
+            "skill2_id": 0,
+            "hp_add": 53,
+            "spell_defence_add": 6,
+            "module_skill_ids": "",
+            "spell_attack_add": 18,
+            "enhance_skill2_id": 0,
+            "id": 56210,
+            "rank": 6,
+            "physic_defence_add": 9,
+            "enhance_skill1_id": 0,
+            "money": 600,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 5,
+            "material2_id": 36,
+            "physic_attack_add": 28,
+            "material1_count": 8,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 36,
+            "skill2_id": 16709,
+            "hp_add": 68,
+            "spell_defence_add": 6,
+            "module_skill_ids": "",
+            "spell_attack_add": 18,
+            "enhance_skill2_id": 0,
+            "id": 56211,
+            "rank": 7,
+            "physic_defence_add": 9,
+            "enhance_skill1_id": 0,
+            "money": 700,
+            "skill1_id": 4103,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 1,
+            "material2_id": 35,
+            "physic_attack_add": 28,
+            "material1_count": 8,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 36,
+            "skill2_id": 0,
+            "hp_add": 68,
+            "spell_defence_add": 6,
+            "module_skill_ids": "",
+            "spell_attack_add": 18,
+            "enhance_skill2_id": 0,
+            "id": 56212,
+            "rank": 8,
+            "physic_defence_add": 9,
+            "enhance_skill1_id": 0,
+            "money": 800,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 8,
+            "material2_id": 35,
+            "physic_attack_add": 28,
+            "material1_count": 10,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 36,
+            "skill2_id": 0,
+            "hp_add": 90,
+            "spell_defence_add": 10,
+            "module_skill_ids": "",
+            "spell_attack_add": 28,
+            "enhance_skill2_id": 0,
+            "id": 56213,
+            "rank": 9,
+            "physic_defence_add": 13,
+            "enhance_skill1_id": 0,
+            "money": 900,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 12,
+            "material2_id": 35,
+            "physic_attack_add": 41,
+            "material1_count": 12,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 35,
+            "skill2_id": 0,
+            "hp_add": 90,
+            "spell_defence_add": 10,
+            "module_skill_ids": "",
+            "spell_attack_add": 28,
+            "enhance_skill2_id": 0,
+            "id": 56214,
+            "rank": 10,
+            "physic_defence_add": 13,
+            "enhance_skill1_id": 0,
+            "money": 1000,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 3,
+            "material2_id": 34,
+            "physic_attack_add": 41,
+            "material1_count": 15,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 35,
+            "skill2_id": 0,
+            "hp_add": 113,
+            "spell_defence_add": 10,
+            "module_skill_ids": "",
+            "spell_attack_add": 28,
+            "enhance_skill2_id": 0,
+            "id": 56215,
+            "rank": 11,
+            "physic_defence_add": 13,
+            "enhance_skill1_id": 0,
+            "money": 1100,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 25,
+            "material2_id": 34,
+            "physic_attack_add": 41,
+            "material1_count": 20,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 34,
+            "skill2_id": 0,
+            "hp_add": 225,
+            "spell_defence_add": 19,
+            "module_skill_ids": "",
+            "spell_attack_add": 55,
+            "enhance_skill2_id": 0,
+            "id": 56216,
+            "rank": 12,
+            "physic_defence_add": 26,
+            "enhance_skill1_id": 0,
+            "money": 1200,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 83,
+            "material1_count": 52,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 34,
+            "skill2_id": 0,
+            "hp_add": 225,
+            "spell_defence_add": 19,
+            "module_skill_ids": "31",
+            "spell_attack_add": 55,
+            "enhance_skill2_id": 0,
+            "id": 56217,
+            "rank": 13,
+            "physic_defence_add": 26,
+            "enhance_skill1_id": 0,
+            "money": 1300,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 570,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 83,
+            "material1_count": 100,
+            "is_skill1_share": false
+          }
+        ],
+        "skillLines": [
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 1,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 1
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 2,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 3
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 3,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 30,
+            "rank": 5
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 4,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 7
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 5,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 9
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 6,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 30,
+            "rank": 11
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 7,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 1
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 8,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 3
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 9,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 30,
+            "rank": 5
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 10,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 7
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 11,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 9
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 12,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 30,
+            "rank": 11
+          }
+        ]
+      },
+      "tree": [
+        {
+          "rank": 0,
+          "side": 0,
+          "skillId": 4169
+        },
+        {
+          "rank": 0,
+          "side": 1,
+          "skillId": 18210
+        },
+        {
+          "rank": 1,
+          "side": 0,
+          "skillId": 16714
+        },
+        {
+          "rank": 1,
+          "side": 1,
+          "skillId": 4085
+        },
+        {
+          "rank": 3,
+          "side": 0,
+          "skillId": 4099
+        },
+        {
+          "rank": 3,
+          "side": 1,
+          "skillId": 18292
+        },
+        {
+          "rank": 5,
+          "side": 0,
+          "skillId": 4150
+        },
+        {
+          "rank": 5,
+          "side": 1,
+          "skillId": 16720
+        },
+        {
+          "rank": 7,
+          "side": 0,
+          "skillId": 4103
+        },
+        {
+          "rank": 7,
+          "side": 1,
+          "skillId": 16709
+        }
+      ],
+      "personalityId": 1078,
+      "cv": {
+        "zh": "",
+        "ja": ""
+      },
+      "story": "",
+      "portraits": [
+        {
+          "key": "base",
+          "label": "初始立绘",
+          "asset": "icon/card_full/card_solomonberserkermset01"
+        }
+      ],
+      "avatar": "icon/face/face_solomonberserkermset01",
+      "sprite": "icon/character/character_solomonberserkermset01",
+      "spriteVariants": [
+        {
+          "key": "base",
+          "label": "默认形象",
+          "asset": "icon/character/character_solomonberserkermset01"
+        }
+      ],
+      "modules": [
+        [
+          {
+            "skill_id": 13205,
+            "consume_money": 2000,
+            "sort_id": 10,
+            "id": 31,
+            "consume_param1": 20,
+            "exclusive_unit_id": 0,
+            "consume1_type": 0,
+            "open_at": 0,
+            "next_id": 32,
+            "consume1_param1": 0,
+            "consume1_param0": 0,
+            "name": "模组技能-攻击2-1",
+            "level": 1,
+            "consume_type": 175,
+            "consume_param0": 7
+          },
+          {
+            "skill_id": 13206,
+            "consume_money": 8000,
+            "sort_id": 10,
+            "id": 32,
+            "consume_param1": 80,
+            "exclusive_unit_id": 0,
+            "consume1_type": 0,
+            "open_at": 0,
+            "next_id": 33,
+            "consume1_param1": 0,
+            "consume1_param0": 0,
+            "name": "模组技能-攻击2-2",
+            "level": 2,
+            "consume_type": 175,
+            "consume_param0": 7
+          },
+          {
+            "skill_id": 13207,
+            "consume_money": 18000,
+            "sort_id": 10,
+            "id": 33,
+            "consume_param1": 180,
+            "exclusive_unit_id": 0,
+            "consume1_type": 0,
+            "open_at": 0,
+            "next_id": 0,
+            "consume1_param1": 0,
+            "consume1_param0": 0,
+            "name": "模组技能-攻击2-3",
+            "level": 3,
+            "consume_type": 175,
+            "consume_param0": 7
+          }
+        ]
+      ],
+      "liberations": [
+        {
+          "name": "居高攻下之道",
+          "icon": "icon_skill_gongjier",
+          "levels": [
+            {
+              "level": 1,
+              "skillId": 13205,
+              "desc": "（被动）[1级效果]，[高地]攻击时，伤害提高10%。"
+            },
+            {
+              "level": 2,
+              "skillId": 13206,
+              "desc": "（被动）[2级效果]，攻击提高5%；[高地]攻击时，伤害提高10%。"
+            },
+            {
+              "level": 3,
+              "skillId": 13207,
+              "desc": "（被动）[3级效果]，攻击提高5%；[高地]攻击时，伤害提高20%。"
+            }
+          ]
+        }
+      ],
+      "sandboxSkills": [
+        {
+          "id": 4169,
+          "name": "斩击",
+          "state": 1,
+          "sourceId": 51620
+        },
+        {
+          "id": 16720,
+          "name": "解放・坚韧",
+          "state": 1,
+          "sourceId": 51621
+        },
+        {
+          "id": 16714,
+          "name": "沙海战士",
+          "state": 1,
+          "sourceId": 51622
+        },
+        {
+          "id": 16721,
+          "name": "沙蚀瓶",
+          "state": 1,
+          "sourceId": 51623
+        },
+        {
+          "id": 16719,
+          "name": "解放・仁心",
+          "state": 1,
+          "sourceId": 51624
+        },
+        {
+          "id": 16709,
+          "name": "解放·摧敌",
+          "state": 1,
+          "sourceId": 51625
+        },
+        {
+          "id": 4150,
+          "name": "怒火",
+          "state": 1,
+          "sourceId": 51626
+        },
+        {
+          "id": 4099,
+          "name": "撕裂旋风",
+          "state": 1,
+          "sourceId": 51627
+        },
+        {
+          "id": 4239,
+          "name": "居高临下",
+          "state": 1,
+          "sourceId": 51628
+        },
+        {
+          "id": 4088,
+          "name": "横扫猛击",
+          "state": 1,
+          "sourceId": 51629
+        },
+        {
+          "id": 17127,
+          "name": "不屈意志",
+          "state": 1,
+          "sourceId": 52704
+        },
+        {
+          "id": 4148,
+          "name": "怒视",
+          "state": 1,
+          "sourceId": 52706
+        },
+        {
+          "id": 18210,
+          "name": "热血战歌",
+          "state": 1,
+          "sourceId": 53604
+        },
+        {
+          "id": 18292,
+          "name": "护颚",
+          "state": 1,
+          "sourceId": 53613
+        },
+        {
+          "id": 4172,
+          "name": "会心击",
+          "state": 1,
+          "sourceId": 53614
+        },
+        {
+          "id": 4186,
+          "name": "致命击",
+          "state": 1,
+          "sourceId": 53615
+        },
+        {
+          "id": 4103,
+          "name": "猛虎破阵冲",
+          "state": 1,
+          "sourceId": 53617
+        },
+        {
+          "id": 20548,
+          "name": "热血战歌",
+          "state": 1,
+          "sourceId": 58686
+        }
+      ],
+      "sourceRows": {
+        "online_role": 174,
+        "online_role_unit": 181,
+        "unit": 860,
+        "unit_personality": 1078,
+        "online_unit_modify": 583,
+        "online_unit_rank_modify": 570
+      }
+    },
+    "227": {
+      "id": 227,
+      "unitId": 1111,
+      "roleId": 220,
+      "name": "光辉术师“圣眷”",
+      "enabled": true,
+      "availableAt": "2026-09-20T12:00:00+08:00",
+      "available": true,
+      "class": "守望者",
+      "profession": "法皇国光辉术师",
+      "rarity": "史诗",
+      "weapon": "法术",
+      "gender": "女",
+      "factions": [
+        "法皇国",
+        "列阵如林"
+      ],
+      "movement": 3,
+      "jumpUp": 2,
+      "jumpDown": 2,
+      "baseStats": {
+        "生命": 311,
+        "物攻": 134,
+        "魔攻": 191,
+        "物防": 49,
+        "魔防": 84,
+        "敏捷": 90
+      },
+      "stats": {
+        "生命": 2989,
+        "物攻": 946,
+        "魔攻": 1351,
+        "物防": 349,
+        "魔防": 599,
+        "敏捷": 90
+      },
+      "statBasis": "60级、五星、13阶、左右技能全部解锁；不含装备、天赋、好感、模组及战斗个性增益",
+      "statsSource": {
+        "initial": {
+          "idonline_unit_modify": 613,
+          "physic_attack": 122,
+          "spell_attack": 174,
+          "hp": 283,
+          "id": 9481,
+          "level": 1,
+          "spell_defence": 77,
+          "physic_defence": 45
+        },
+        "level60": {
+          "idonline_unit_modify": 613,
+          "physic_attack": 478,
+          "spell_attack": 683,
+          "hp": 1479,
+          "id": 9540,
+          "level": 60,
+          "spell_defence": 302,
+          "physic_defence": 176
+        },
+        "rarity": 110,
+        "star": {
+          "permillage_spell_attack": 120,
+          "count": 120,
+          "permillage_physic_attack": 120,
+          "id": 5,
+          "permillage_spell_defence": 120,
+          "permillage_physic_defence": 120,
+          "permillage_hp": 120
+        },
+        "ranks": [
+          {
+            "is_skill2_share": false,
+            "material1_id": 55,
+            "skill2_id": 4004,
+            "hp_add": 26,
+            "spell_defence_add": 8,
+            "module_skill_ids": "",
+            "spell_attack_add": 18,
+            "enhance_skill2_id": 0,
+            "id": 56842,
+            "rank": 1,
+            "physic_defence_add": 5,
+            "enhance_skill1_id": 0,
+            "money": 100,
+            "skill1_id": 4226,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 13,
+            "material1_count": 1,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 55,
+            "skill2_id": 0,
+            "hp_add": 26,
+            "spell_defence_add": 8,
+            "module_skill_ids": "",
+            "spell_attack_add": 18,
+            "enhance_skill2_id": 0,
+            "id": 56843,
+            "rank": 2,
+            "physic_defence_add": 5,
+            "enhance_skill1_id": 0,
+            "money": 200,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 13,
+            "material1_count": 3,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 55,
+            "skill2_id": 23122,
+            "hp_add": 33,
+            "spell_defence_add": 8,
+            "module_skill_ids": "",
+            "spell_attack_add": 18,
+            "enhance_skill2_id": 0,
+            "id": 56844,
+            "rank": 3,
+            "physic_defence_add": 5,
+            "enhance_skill1_id": 0,
+            "money": 300,
+            "skill1_id": 4223,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 13,
+            "material1_count": 5,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 55,
+            "skill2_id": 0,
+            "hp_add": 33,
+            "spell_defence_add": 8,
+            "module_skill_ids": "",
+            "spell_attack_add": 18,
+            "enhance_skill2_id": 0,
+            "id": 56845,
+            "rank": 4,
+            "physic_defence_add": 5,
+            "enhance_skill1_id": 0,
+            "money": 400,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 1,
+            "material2_id": 54,
+            "physic_attack_add": 13,
+            "material1_count": 5,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 55,
+            "skill2_id": 4166,
+            "hp_add": 46,
+            "spell_defence_add": 11,
+            "module_skill_ids": "",
+            "spell_attack_add": 24,
+            "enhance_skill2_id": 0,
+            "id": 56846,
+            "rank": 5,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 500,
+            "skill1_id": 23146,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 3,
+            "material2_id": 54,
+            "physic_attack_add": 17,
+            "material1_count": 6,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 55,
+            "skill2_id": 0,
+            "hp_add": 46,
+            "spell_defence_add": 11,
+            "module_skill_ids": "",
+            "spell_attack_add": 24,
+            "enhance_skill2_id": 0,
+            "id": 56847,
+            "rank": 6,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 600,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 5,
+            "material2_id": 54,
+            "physic_attack_add": 17,
+            "material1_count": 8,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 54,
+            "skill2_id": 4224,
+            "hp_add": 59,
+            "spell_defence_add": 11,
+            "module_skill_ids": "",
+            "spell_attack_add": 24,
+            "enhance_skill2_id": 0,
+            "id": 56848,
+            "rank": 7,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 700,
+            "skill1_id": 23119,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 1,
+            "material2_id": 53,
+            "physic_attack_add": 17,
+            "material1_count": 8,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 54,
+            "skill2_id": 0,
+            "hp_add": 59,
+            "spell_defence_add": 11,
+            "module_skill_ids": "",
+            "spell_attack_add": 24,
+            "enhance_skill2_id": 0,
+            "id": 56849,
+            "rank": 8,
+            "physic_defence_add": 6,
+            "enhance_skill1_id": 0,
+            "money": 800,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 8,
+            "material2_id": 53,
+            "physic_attack_add": 17,
+            "material1_count": 10,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 54,
+            "skill2_id": 4512,
+            "hp_add": 78,
+            "spell_defence_add": 16,
+            "module_skill_ids": "",
+            "spell_attack_add": 36,
+            "enhance_skill2_id": 0,
+            "id": 56850,
+            "rank": 9,
+            "physic_defence_add": 9,
+            "enhance_skill1_id": 0,
+            "money": 900,
+            "skill1_id": 4498,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 12,
+            "material2_id": 53,
+            "physic_attack_add": 25,
+            "material1_count": 12,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 53,
+            "skill2_id": 0,
+            "hp_add": 78,
+            "spell_defence_add": 16,
+            "module_skill_ids": "",
+            "spell_attack_add": 36,
+            "enhance_skill2_id": 0,
+            "id": 56851,
+            "rank": 10,
+            "physic_defence_add": 9,
+            "enhance_skill1_id": 0,
+            "money": 1000,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 3,
+            "material2_id": 52,
+            "physic_attack_add": 25,
+            "material1_count": 15,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 53,
+            "skill2_id": 0,
+            "hp_add": 98,
+            "spell_defence_add": 16,
+            "module_skill_ids": "",
+            "spell_attack_add": 36,
+            "enhance_skill2_id": 0,
+            "id": 56852,
+            "rank": 11,
+            "physic_defence_add": 9,
+            "enhance_skill1_id": 0,
+            "money": 1100,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 25,
+            "material2_id": 52,
+            "physic_attack_add": 25,
+            "material1_count": 20,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 52,
+            "skill2_id": 0,
+            "hp_add": 195,
+            "spell_defence_add": 32,
+            "module_skill_ids": "",
+            "spell_attack_add": 72,
+            "enhance_skill2_id": 0,
+            "id": 56853,
+            "rank": 12,
+            "physic_defence_add": 19,
+            "enhance_skill1_id": 0,
+            "money": 1200,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 50,
+            "material1_count": 52,
+            "is_skill1_share": false
+          },
+          {
+            "is_skill2_share": false,
+            "material1_id": 52,
+            "skill2_id": 0,
+            "hp_add": 195,
+            "spell_defence_add": 32,
+            "module_skill_ids": "22",
+            "spell_attack_add": 72,
+            "enhance_skill2_id": 0,
+            "id": 56854,
+            "rank": 13,
+            "physic_defence_add": 19,
+            "enhance_skill1_id": 0,
+            "money": 1300,
+            "skill1_id": 0,
+            "idonline_unit_rank_modify": 619,
+            "material2_count": 0,
+            "material2_id": 0,
+            "physic_attack_add": 50,
+            "material1_count": 100,
+            "is_skill1_share": false
+          }
+        ],
+        "skillLines": [
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 1,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 1
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 2,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 3
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 3,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 30,
+            "rank": 5
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 4,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 7
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 5,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 1,
+            "permillage_physic_attack": 0,
+            "rank": 9
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 6,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 1,
+            "permillage_physic_attack": 30,
+            "rank": 11
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 7,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 1
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 8,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 3
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 9,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 30,
+            "rank": 5
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 30,
+            "id": 10,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 30,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 7
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 11,
+            "permillage_hp": 30,
+            "permillage_spell_attack": 0,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 0,
+            "rank": 9
+          },
+          {
+            "is_enhance": false,
+            "permillage_physic_defence": 0,
+            "id": 12,
+            "permillage_hp": 0,
+            "permillage_spell_attack": 30,
+            "idonline_unit_rank_skill_line": 1,
+            "permillage_spell_defence": 0,
+            "tier": 2,
+            "permillage_physic_attack": 30,
+            "rank": 11
+          }
+        ]
+      },
+      "tree": [
+        {
+          "rank": 0,
+          "side": 0,
+          "skillId": 4504
+        },
+        {
+          "rank": 0,
+          "side": 1,
+          "skillId": 4015
+        },
+        {
+          "rank": 1,
+          "side": 0,
+          "skillId": 4226
+        },
+        {
+          "rank": 1,
+          "side": 1,
+          "skillId": 4004
+        },
+        {
+          "rank": 3,
+          "side": 0,
+          "skillId": 4223
+        },
+        {
+          "rank": 3,
+          "side": 1,
+          "skillId": 23122
+        },
+        {
+          "rank": 5,
+          "side": 0,
+          "skillId": 23146
+        },
+        {
+          "rank": 5,
+          "side": 1,
+          "skillId": 4166
+        },
+        {
+          "rank": 7,
+          "side": 0,
+          "skillId": 23119
+        },
+        {
+          "rank": 7,
+          "side": 1,
+          "skillId": 4224
+        },
+        {
+          "rank": 9,
+          "side": 0,
+          "skillId": 4498
+        },
+        {
+          "rank": 9,
+          "side": 1,
+          "skillId": 4512
+        }
+      ],
+      "personalityId": 1400,
+      "cv": {
+        "zh": "",
+        "ja": ""
+      },
+      "story": "",
+      "portraits": [
+        {
+          "key": "base",
+          "label": "初始立绘",
+          "asset": "icon/card_full/card_papalpriestmset01"
+        }
+      ],
+      "avatar": "icon/face/face_papalpriestmset01",
+      "sprite": "icon/character/character_papalpriestmset01",
+      "spriteVariants": [
+        {
+          "key": "base",
+          "label": "默认形象",
+          "asset": "icon/character/character_papalpriestmset01"
+        }
+      ],
+      "modules": [
+        [
+          {
+            "skill_id": 13195,
+            "consume_money": 2000,
+            "sort_id": 10,
+            "id": 22,
+            "consume_param1": 20,
+            "exclusive_unit_id": 0,
+            "consume1_type": 0,
+            "open_at": 0,
+            "next_id": 23,
+            "consume1_param1": 0,
+            "consume1_param0": 0,
+            "name": "模组技能-防御2-1",
+            "level": 1,
+            "consume_type": 175,
+            "consume_param0": 10
+          },
+          {
+            "skill_id": 13196,
+            "consume_money": 8000,
+            "sort_id": 10,
+            "id": 23,
+            "consume_param1": 80,
+            "exclusive_unit_id": 0,
+            "consume1_type": 0,
+            "open_at": 0,
+            "next_id": 24,
+            "consume1_param1": 0,
+            "consume1_param0": 0,
+            "name": "模组技能-防御2-2",
+            "level": 2,
+            "consume_type": 175,
+            "consume_param0": 10
+          },
+          {
+            "skill_id": 13197,
+            "consume_money": 18000,
+            "sort_id": 10,
+            "id": 24,
+            "consume_param1": 180,
+            "exclusive_unit_id": 0,
+            "consume1_type": 0,
+            "open_at": 0,
+            "next_id": 0,
+            "consume1_param1": 0,
+            "consume1_param0": 0,
+            "name": "模组技能-防御2-3",
+            "level": 3,
+            "consume_type": 175,
+            "consume_param0": 10
+          }
+        ]
+      ],
+      "liberations": [
+        {
+          "name": "不灭庇护之愿",
+          "icon": "icon_skill_fangyuer",
+          "levels": [
+            {
+              "level": 1,
+              "skillId": 13195,
+              "desc": "（被动）[1级效果]，魔防提高10%，受到魔法伤害降低10%。"
+            },
+            {
+              "level": 2,
+              "skillId": 13196,
+              "desc": "（被动）[2级效果]，魔防提高20%，受到魔法伤害降低10%。"
+            },
+            {
+              "level": 3,
+              "skillId": 13197,
+              "desc": "（被动）[3级效果]，魔防提高20%，受到魔法伤害降低20%。"
+            }
+          ]
+        }
+      ],
+      "sandboxSkills": [
+        {
+          "id": 10567,
+          "name": "护盾",
+          "state": 1,
+          "sourceId": 67720
+        },
+        {
+          "id": 10575,
+          "name": "魔法护盾",
+          "state": 1,
+          "sourceId": 67721
+        },
+        {
+          "id": 4243,
+          "name": "严守",
+          "state": 1,
+          "sourceId": 67722
+        },
+        {
+          "id": 4248,
+          "name": "乱战",
+          "state": 1,
+          "sourceId": 67723
+        },
+        {
+          "id": 3838,
+          "name": "优势",
+          "state": 1,
+          "sourceId": 67724
+        },
+        {
+          "id": 4605,
+          "name": "修筑工事",
+          "state": 1,
+          "sourceId": 67725
+        },
+        {
+          "id": 4606,
+          "name": "净化",
+          "state": 1,
+          "sourceId": 67726
+        },
+        {
+          "id": 4611,
+          "name": "召唤保镖",
+          "state": 1,
+          "sourceId": 67727
+        },
+        {
+          "id": 4238,
+          "name": "终结",
+          "state": 1,
+          "sourceId": 67728
+        },
+        {
+          "id": 4241,
+          "name": "守势",
+          "state": 1,
+          "sourceId": 67729
+        },
+        {
+          "id": 14017,
+          "name": "完备·改",
+          "state": 1,
+          "sourceId": 67730
+        },
+        {
+          "id": 10035,
+          "name": "完备强",
+          "state": 1,
+          "sourceId": 67731
+        },
+        {
+          "id": 4247,
+          "name": "完备",
+          "state": 1,
+          "sourceId": 67732
+        },
+        {
+          "id": 4239,
+          "name": "居高临下",
+          "state": 1,
+          "sourceId": 67733
+        },
+        {
+          "id": 4609,
+          "name": "强韧",
+          "state": 1,
+          "sourceId": 67734
+        },
+        {
+          "id": 5167,
+          "name": "急救·改",
+          "state": 1,
+          "sourceId": 67735
+        },
+        {
+          "id": 4608,
+          "name": "急救",
+          "state": 1,
+          "sourceId": 67736
+        },
+        {
+          "id": 6168,
+          "name": "列阵如林",
+          "state": 1,
+          "sourceId": 67737
+        },
+        {
+          "id": 4254,
+          "name": "抗性强化",
+          "state": 1,
+          "sourceId": 67738
+        },
+        {
+          "id": 4246,
+          "name": "护盾",
+          "state": 1,
+          "sourceId": 67739
+        },
+        {
+          "id": 18292,
+          "name": "护颚",
+          "state": 1,
+          "sourceId": 67740
+        },
+        {
+          "id": 4250,
+          "name": "攀爬专精",
+          "state": 1,
+          "sourceId": 67741
+        },
+        {
+          "id": 4252,
+          "name": "攻击强化",
+          "state": 1,
+          "sourceId": 67742
+        },
+        {
+          "id": 5159,
+          "name": "攻击指挥·改",
+          "state": 1,
+          "sourceId": 67743
+        },
+        {
+          "id": 4256,
+          "name": "攻击指挥",
+          "state": 1,
+          "sourceId": 67744
+        },
+        {
+          "id": 4235,
+          "name": "攻势",
+          "state": 1,
+          "sourceId": 67745
+        },
+        {
+          "id": 5164,
+          "name": "晶尘瓶·改",
+          "state": 1,
+          "sourceId": 67746
+        },
+        {
+          "id": 4586,
+          "name": "晶尘瓶",
+          "state": 1,
+          "sourceId": 67747
+        },
+        {
+          "id": 4255,
+          "name": "暴击强化",
+          "state": 1,
+          "sourceId": 67748
+        },
+        {
+          "id": 5162,
+          "name": "暴击指挥·改",
+          "state": 1,
+          "sourceId": 67749
+        },
+        {
+          "id": 4260,
+          "name": "暴击指挥",
+          "state": 1,
+          "sourceId": 67750
+        },
+        {
+          "id": 4242,
+          "name": "死守",
+          "state": 1,
+          "sourceId": 67751
+        },
+        {
+          "id": 4249,
+          "name": "死战",
+          "state": 1,
+          "sourceId": 67752
+        },
+        {
+          "id": 4251,
+          "name": "求生欲望",
+          "state": 1,
+          "sourceId": 67753
+        },
+        {
+          "id": 5163,
+          "name": "燃烧瓶·改",
+          "state": 1,
+          "sourceId": 67754
+        },
+        {
+          "id": 4600,
+          "name": "燃烧瓶",
+          "state": 1,
+          "sourceId": 67755
+        },
+        {
+          "id": 5160,
+          "name": "物防指挥·改",
+          "state": 1,
+          "sourceId": 67756
+        },
+        {
+          "id": 4258,
+          "name": "物防指挥",
+          "state": 1,
+          "sourceId": 67757
+        },
+        {
+          "id": 4453,
+          "name": "破攻",
+          "state": 1,
+          "sourceId": 67758
+        },
+        {
+          "id": 4240,
+          "name": "破盾",
+          "state": 1,
+          "sourceId": 67759
+        },
+        {
+          "id": 4454,
+          "name": "破防",
+          "state": 1,
+          "sourceId": 67760
+        },
+        {
+          "id": 4244,
+          "name": "硬盔",
+          "state": 1,
+          "sourceId": 67761
+        },
+        {
+          "id": 4455,
+          "name": "禁疗",
+          "state": 1,
+          "sourceId": 67762
+        },
+        {
+          "id": 4607,
+          "name": "绷带",
+          "state": 1,
+          "sourceId": 67763
+        },
+        {
+          "id": 12875,
+          "name": "绷带",
+          "state": 1,
+          "sourceId": 67764
+        },
+        {
+          "id": 4237,
+          "name": "背水",
+          "state": 1,
+          "sourceId": 67765
+        },
+        {
+          "id": 5165,
+          "name": "腐蚀武器·改",
+          "state": 1,
+          "sourceId": 67766
+        },
+        {
+          "id": 4604,
+          "name": "腐蚀武器",
+          "state": 1,
+          "sourceId": 67767
+        },
+        {
+          "id": 5166,
+          "name": "腐蚀盔甲·改",
+          "state": 1,
+          "sourceId": 67768
+        },
+        {
+          "id": 4603,
+          "name": "腐蚀盔甲",
+          "state": 1,
+          "sourceId": 67769
+        },
+        {
+          "id": 4245,
+          "name": "臂甲",
+          "state": 1,
+          "sourceId": 67770
+        },
+        {
+          "id": 6120,
+          "name": "侵掠如火",
+          "state": 1,
+          "sourceId": 67771
+        },
+        {
+          "id": 5806,
+          "name": "不动如山",
+          "state": 1,
+          "sourceId": 67772
+        },
+        {
+          "id": 4253,
+          "name": "防御强化",
+          "state": 1,
+          "sourceId": 67773
+        },
+        {
+          "id": 6167,
+          "name": "锐疾如风",
+          "state": 1,
+          "sourceId": 67774
+        },
+        {
+          "id": 4236,
+          "name": "高昂",
+          "state": 1,
+          "sourceId": 67775
+        },
+        {
+          "id": 5161,
+          "name": "魔防指挥·改",
+          "state": 1,
+          "sourceId": 67776
+        },
+        {
+          "id": 4259,
+          "name": "魔防指挥",
+          "state": 1,
+          "sourceId": 67777
+        },
+        {
+          "id": 4512,
+          "name": "仁心击",
+          "state": 1,
+          "sourceId": 67778
+        },
+        {
+          "id": 4511,
+          "name": "会心击",
+          "state": 1,
+          "sourceId": 67779
+        },
+        {
+          "id": 4510,
+          "name": "催眠击",
+          "state": 1,
+          "sourceId": 67780
+        },
+        {
+          "id": 4509,
+          "name": "回能击",
+          "state": 1,
+          "sourceId": 67781
+        },
+        {
+          "id": 4508,
+          "name": "寒冰击",
+          "state": 1,
+          "sourceId": 67782
+        },
+        {
+          "id": 4507,
+          "name": "封印击",
+          "state": 1,
+          "sourceId": 67783
+        },
+        {
+          "id": 4504,
+          "name": "能量波",
+          "state": 1,
+          "sourceId": 67784
+        },
+        {
+          "id": 21706,
+          "name": "能量波·穿透",
+          "state": 1,
+          "sourceId": 67785
+        },
+        {
+          "id": 4506,
+          "name": "强力击",
+          "state": 1,
+          "sourceId": 67786
+        },
+        {
+          "id": 4505,
+          "name": "感染击",
+          "state": 1,
+          "sourceId": 67787
+        },
+        {
+          "id": 4503,
+          "name": "沉默击",
+          "state": 1,
+          "sourceId": 67788
+        },
+        {
+          "id": 22291,
+          "name": "沉默击",
+          "state": 1,
+          "sourceId": 67789
+        },
+        {
+          "id": 4502,
+          "name": "灼烧击",
+          "state": 1,
+          "sourceId": 67790
+        },
+        {
+          "id": 4501,
+          "name": "狂热击",
+          "state": 1,
+          "sourceId": 67791
+        },
+        {
+          "id": 4500,
+          "name": "破甲击",
+          "state": 1,
+          "sourceId": 67792
+        },
+        {
+          "id": 4499,
+          "name": "破盾击",
+          "state": 1,
+          "sourceId": 67793
+        },
+        {
+          "id": 4498,
+          "name": "破闪击",
+          "state": 1,
+          "sourceId": 67794
+        },
+        {
+          "id": 21707,
+          "name": "破闪击",
+          "state": 1,
+          "sourceId": 67795
+        },
+        {
+          "id": 4497,
+          "name": "缴械击",
+          "state": 1,
+          "sourceId": 67796
+        },
+        {
+          "id": 4496,
+          "name": "致命击",
+          "state": 1,
+          "sourceId": 67797
+        },
+        {
+          "id": 4495,
+          "name": "蓄势击",
+          "state": 1,
+          "sourceId": 67798
+        },
+        {
+          "id": 4494,
+          "name": "驱散击",
+          "state": 1,
+          "sourceId": 67799
+        },
+        {
+          "id": 21708,
+          "name": "驱散击·穿透",
+          "state": 1,
+          "sourceId": 67800
+        },
+        {
+          "id": 4225,
+          "name": "净化之光",
+          "state": 1,
+          "sourceId": 67801
+        },
+        {
+          "id": 5280,
+          "name": "制裁·改",
+          "state": 1,
+          "sourceId": 67802
+        },
+        {
+          "id": 5263,
+          "name": "制裁之光·改",
+          "state": 1,
+          "sourceId": 67803
+        },
+        {
+          "id": 4223,
+          "name": "制裁之光",
+          "state": 1,
+          "sourceId": 67804
+        },
+        {
+          "id": 4014,
+          "name": "制裁",
+          "state": 1,
+          "sourceId": 67805
+        },
+        {
+          "id": 4231,
+          "name": "圣疗术",
+          "state": 1,
+          "sourceId": 67806
+        },
+        {
+          "id": 5249,
+          "name": "圣疗术·改",
+          "state": 1,
+          "sourceId": 67807
+        },
+        {
+          "id": 6284,
+          "name": "圣疗术·改",
+          "state": 1,
+          "sourceId": 67808
+        },
+        {
+          "id": 5262,
+          "name": "审判之光·改",
+          "state": 1,
+          "sourceId": 67809
+        },
+        {
+          "id": 4630,
+          "name": "审判之光",
+          "state": 1,
+          "sourceId": 67810
+        },
+        {
+          "id": 4222,
+          "name": "审判之光",
+          "state": 1,
+          "sourceId": 67811
+        },
+        {
+          "id": 5264,
+          "name": "心灵之光·改",
+          "state": 1,
+          "sourceId": 67812
+        },
+        {
+          "id": 4226,
+          "name": "心灵之光",
+          "state": 1,
+          "sourceId": 67813
+        },
+        {
+          "id": 5271,
+          "name": "愈合·改",
+          "state": 1,
+          "sourceId": 67814
+        },
+        {
+          "id": 5272,
+          "name": "愈合·改",
+          "state": 1,
+          "sourceId": 67815
+        },
+        {
+          "id": 4595,
+          "name": "愈合",
+          "state": 1,
+          "sourceId": 67816
+        },
+        {
+          "id": 4004,
+          "name": "愈合",
+          "state": 1,
+          "sourceId": 67817
+        },
+        {
+          "id": 5265,
+          "name": "治疗之光·改",
+          "state": 1,
+          "sourceId": 67818
+        },
+        {
+          "id": 4224,
+          "name": "治疗之光",
+          "state": 1,
+          "sourceId": 67819
+        },
+        {
+          "id": 5281,
+          "name": "治疗术·改",
+          "state": 1,
+          "sourceId": 67820
+        },
+        {
+          "id": 4015,
+          "name": "治疗术",
+          "state": 1,
+          "sourceId": 67821
+        },
+        {
+          "id": 7668,
+          "name": "治疗术",
+          "state": 1,
+          "sourceId": 67822
+        },
+        {
+          "id": 23146,
+          "name": "虔心不灭",
+          "state": 1,
+          "sourceId": 67901
+        },
+        {
+          "id": 23122,
+          "name": "光辉征召",
+          "state": 1,
+          "sourceId": 67902
+        },
+        {
+          "id": 23119,
+          "name": "净化加护",
+          "state": 1,
+          "sourceId": 67903
+        },
+        {
+          "id": 9801,
+          "name": "战地治疗·改",
+          "state": 1,
+          "sourceId": 67904
+        },
+        {
+          "id": 4140,
+          "name": "卸力",
+          "state": 1,
+          "sourceId": 68275
+        },
+        {
+          "id": 4146,
+          "name": "咒骂",
+          "state": 1,
+          "sourceId": 68276
+        },
+        {
+          "id": 4154,
+          "name": "回击",
+          "state": 1,
+          "sourceId": 68277
+        },
+        {
+          "id": 4155,
+          "name": "回能",
+          "state": 1,
+          "sourceId": 68278
+        },
+        {
+          "id": 9233,
+          "name": "忍痛",
+          "state": 1,
+          "sourceId": 68279
+        },
+        {
+          "id": 4145,
+          "name": "忍痛",
+          "state": 1,
+          "sourceId": 68280
+        },
+        {
+          "id": 11103,
+          "name": "隐忍之心",
+          "state": 1,
+          "sourceId": 68281
+        },
+        {
+          "id": 4139,
+          "name": "忍耐",
+          "state": 1,
+          "sourceId": 68282
+        },
+        {
+          "id": 4150,
+          "name": "怒火",
+          "state": 1,
+          "sourceId": 68283
+        },
+        {
+          "id": 4148,
+          "name": "怒视",
+          "state": 1,
+          "sourceId": 68284
+        },
+        {
+          "id": 4143,
+          "name": "正面防御",
+          "state": 1,
+          "sourceId": 68285
+        },
+        {
+          "id": 20336,
+          "name": "活性化·改",
+          "state": 1,
+          "sourceId": 68286
+        },
+        {
+          "id": 4156,
+          "name": "活性化",
+          "state": 1,
+          "sourceId": 68287
+        },
+        {
+          "id": 4157,
+          "name": "激活力量",
+          "state": 1,
+          "sourceId": 68288
+        },
+        {
+          "id": 4158,
+          "name": "激活耐力",
+          "state": 1,
+          "sourceId": 68289
+        },
+        {
+          "id": 4152,
+          "name": "物理反射",
+          "state": 1,
+          "sourceId": 68290
+        },
+        {
+          "id": 4138,
+          "name": "生存大师",
+          "state": 1,
+          "sourceId": 68291
+        },
+        {
+          "id": 4151,
+          "name": "硬化",
+          "state": 1,
+          "sourceId": 68292
+        },
+        {
+          "id": 4149,
+          "name": "脱兔",
+          "state": 1,
+          "sourceId": 68293
+        },
+        {
+          "id": 4144,
+          "name": "避开要害",
+          "state": 1,
+          "sourceId": 68294
+        },
+        {
+          "id": 4136,
+          "name": "防御头部",
+          "state": 1,
+          "sourceId": 68295
+        },
+        {
+          "id": 4135,
+          "name": "防御溅射",
+          "state": 1,
+          "sourceId": 68296
+        },
+        {
+          "id": 4133,
+          "name": "防御物理",
+          "state": 1,
+          "sourceId": 68297
+        },
+        {
+          "id": 4142,
+          "name": "防御箭矢",
+          "state": 1,
+          "sourceId": 68298
+        },
+        {
+          "id": 17396,
+          "name": "主动防御者",
+          "state": 1,
+          "sourceId": 68299
+        },
+        {
+          "id": 18108,
+          "name": "主动防御大师",
+          "state": 1,
+          "sourceId": 68300
+        },
+        {
+          "id": 9229,
+          "name": "防御者·改",
+          "state": 1,
+          "sourceId": 68301
+        },
+        {
+          "id": 4132,
+          "name": "防御者",
+          "state": 1,
+          "sourceId": 68302
+        },
+        {
+          "id": 4137,
+          "name": "防御背刺",
+          "state": 1,
+          "sourceId": 68303
+        },
+        {
+          "id": 4134,
+          "name": "防御魔法",
+          "state": 1,
+          "sourceId": 68304
+        },
+        {
+          "id": 4141,
+          "name": "顽强",
+          "state": 1,
+          "sourceId": 68305
+        },
+        {
+          "id": 4153,
+          "name": "魔法反射",
+          "state": 1,
+          "sourceId": 68306
+        }
+      ],
+      "sourceRows": {
+        "online_role": 220,
+        "online_role_unit": 227,
+        "unit": 1111,
+        "unit_personality": 1400,
+        "online_unit_modify": 613,
+        "online_unit_rank_modify": 619
+      }
     }
   },
   "assets": {
@@ -4206,6 +6536,294 @@
       "bundle": "icon/character/icon_character1.unity3d",
       "bundleSha256": "074766ea9f684dc56558408e255fd1d9f6f0c2067844e25164596d058051e893",
       "sha256": "e1ee4a990eae3cb7d9aee977ef91649319b6a63f46c46e48ff46e6633fcfc8fb",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_gongjiwu": {
+      "path": "assets/client/52f84d5fc68f67d09c1989e3.webp",
+      "bundle": "icon/skill/icon_skill5.unity3d",
+      "bundleSha256": "4f85b9591278a5327a37fbe7d2ad0db1c0fc1bdb9a3357c155406df5edbb8098",
+      "sha256": "52f84d5fc68f67d09c1989e35690a97c75fdd70b43c783afb127d698ddb77bc1",
+      "width": 128,
+      "height": 128
+    },
+    "icon/buff/buff_ailaman_jiefang": {
+      "path": "assets/client/5a9718c60a9f24f40b87b97e.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "5a9718c60a9f24f40b87b97e1f7b85ff2150e4a76101a251fd56c270e0301a6f",
+      "width": 64,
+      "height": 64
+    },
+    "icon/buff/buff_rexuezhange": {
+      "path": "assets/client/b65f5ba5d24b6797d376e9cb.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "b65f5ba5d24b6797d376e9cb0c630d5a73337c1c39b5838b54041e05ab537b90",
+      "width": 64,
+      "height": 64
+    },
+    "icon/skill/icon_skill_zhicanmengji": {
+      "path": "assets/client/b71a50d1eca730a64ad15f5e.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "b71a50d1eca730a64ad15f5e571bf53e27c9af50d8208c8ac15aab92f34e9aa2",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_siliexuanfeng": {
+      "path": "assets/client/0999c9c31d7d6bfcd03cbc75.webp",
+      "bundle": "icon/skill/icon_skill3.unity3d",
+      "bundleSha256": "4dc4065206be914cfec7ebb7f05927feb8a5f633bb54ea7132ece84a7f53dfb0",
+      "sha256": "0999c9c31d7d6bfcd03cbc75342997c85e1fe8a77e38f482d17439cb5b99cce0",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_menghupozhenchong": {
+      "path": "assets/client/be60755692233f6606a4ba21.webp",
+      "bundle": "icon/skill/icon_skill2.unity3d",
+      "bundleSha256": "d34dc18748536946576b2af5ce95109c078f45396dbdc4312334a72b1440319a",
+      "sha256": "be60755692233f6606a4ba212aab7a8518732d501be1d219c76dbf1a530a81e3",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_nuhuo": {
+      "path": "assets/client/9f258f508c7e4becb980e820.webp",
+      "bundle": "icon/skill/icon_skill2.unity3d",
+      "bundleSha256": "d34dc18748536946576b2af5ce95109c078f45396dbdc4312334a72b1440319a",
+      "sha256": "9f258f508c7e4becb980e82005bbbac6bfd8bee16583709313d1af409f6f8eec",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_jinzhan": {
+      "path": "assets/client/836ffbfd2152a69ee89de620.webp",
+      "bundle": "icon/skill/icon_skill2.unity3d",
+      "bundleSha256": "d34dc18748536946576b2af5ce95109c078f45396dbdc4312334a72b1440319a",
+      "sha256": "836ffbfd2152a69ee89de62019e0738a5cb801bfc8e5a5d756124bf9784f065a",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_ailaman_common01": {
+      "path": "assets/client/2931c0d3118abeda70694b2a.webp",
+      "bundle": "icon/skill/icon_skill6.unity3d",
+      "bundleSha256": "f5f5d4e2a598cb57c3e07268a83a7a5745e3d72bb0316a2dec0e66ef2d5da48e",
+      "sha256": "2931c0d3118abeda70694b2a3ade9430bda1bc22d09d155851fad260d5034cf5",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_ailaman_common03": {
+      "path": "assets/client/fe3f2c0a5b87a8dfbe2ba6a8.webp",
+      "bundle": "icon/skill/icon_skill6.unity3d",
+      "bundleSha256": "f5f5d4e2a598cb57c3e07268a83a7a5745e3d72bb0316a2dec0e66ef2d5da48e",
+      "sha256": "fe3f2c0a5b87a8dfbe2ba6a8f080dbd833ad8766b6558e54ef1eb91be1a48172",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_ailaman_common06": {
+      "path": "assets/client/119dc363563b7bdbbd718f67.webp",
+      "bundle": "icon/skill/icon_skill6.unity3d",
+      "bundleSha256": "f5f5d4e2a598cb57c3e07268a83a7a5745e3d72bb0316a2dec0e66ef2d5da48e",
+      "sha256": "119dc363563b7bdbbd718f67fc8449ed1dbad79e57b5df79d613404144bf418d",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_ailaman_common08": {
+      "path": "assets/client/9fc6f06d052361611978f7a1.webp",
+      "bundle": "icon/skill/icon_skill7.unity3d",
+      "bundleSha256": "bff8d37a5d166f55d0e0f29818e7c170028562245bd5c070408963914d89ab70",
+      "sha256": "9fc6f06d052361611978f7a1bb9c135a6c1d2f4aa8049c590ca7c08b4b8fc801",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_yingkui": {
+      "path": "assets/client/3970caaea926433e9d1e89c0.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "3970caaea926433e9d1e89c0cfb08a47e5ff6257a028be9660a9502b9c5ae5ac",
+      "width": 128,
+      "height": 128
+    },
+    "icon/unitpersonality/unitpersonality_ailaman_common06": {
+      "path": "assets/client/227cbd30addf849331f0922b.webp",
+      "bundle": "icon/unitpersonality/icon_unitpersonality2.unity3d",
+      "bundleSha256": "783de87d5aa9ea90682b34d87d522d20eb1fd1893122b53fd558e4e376a3ef1e",
+      "sha256": "227cbd30addf849331f0922b847e2a3a69c334fdb2ef27c1a74389380c21de68",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_gongjier": {
+      "path": "assets/client/2eb5db31d6f53ccf3edd98ce.webp",
+      "bundle": "icon/skill/icon_skill5.unity3d",
+      "bundleSha256": "4f85b9591278a5327a37fbe7d2ad0db1c0fc1bdb9a3357c155406df5edbb8098",
+      "sha256": "2eb5db31d6f53ccf3edd98ce41618613152575960bc13d20b894180c539b0fed",
+      "width": 128,
+      "height": 128
+    },
+    "icon/card_full/card_solomonberserkermset01": {
+      "path": "assets/client/36cc62e2d646557b20713af3.webp",
+      "bundle": "icon/card_full/card_solomonberserkermset01.unity3d",
+      "bundleSha256": "4c78ba7da71ce2cc4029e4fdb9a18ff9749227780ffeb35f094a7930b3f01370",
+      "sha256": "36cc62e2d646557b20713af330cb35496f186aeacba547816690f1f00df174f0",
+      "width": 2292,
+      "height": 3300
+    },
+    "icon/face/face_solomonberserkermset01": {
+      "path": "assets/client/290e2b168e9829eb0b438c84.webp",
+      "bundle": "icon/face/icon_face8.unity3d",
+      "bundleSha256": "f6d2fa227d05efe33070663f114e02c671ae872c501d7f99d12e3c442b56eb6a",
+      "sha256": "290e2b168e9829eb0b438c84f2ae0e2383c14d91d844517611260c29dbb742c5",
+      "width": 288,
+      "height": 288
+    },
+    "icon/character/character_solomonberserkermset01": {
+      "path": "assets/client/894e96c56e610184cccda7a8.webp",
+      "bundle": "icon/character/icon_character1.unity3d",
+      "bundleSha256": "074766ea9f684dc56558408e255fd1d9f6f0c2067844e25164596d058051e893",
+      "sha256": "894e96c56e610184cccda7a895184cebcea0e2b8a83be845184a21e0a7d4799f",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_dandadudou": {
+      "path": "assets/client/359d5baf317a4251455a5034.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "359d5baf317a4251455a503466747e02a4741705782a608e115e3c276b6cb1c3",
+      "width": 128,
+      "height": 128
+    },
+    "icon/buff/buff_fangyujiahu": {
+      "path": "assets/client/2ec3127330ee771081b69f6c.webp",
+      "bundle": "icon/buff/icon_buff1.unity3d",
+      "bundleSha256": "4b627cdc2451e2385e332012c9d7e6c0a6b0d842c7f1f3ae1323bfb0242075b4",
+      "sha256": "2ec3127330ee771081b69f6cd69db9d85f753e3d2f2939349f9d8d25909bc0f6",
+      "width": 64,
+      "height": 64
+    },
+    "icon/skill/icon_skill_yuhe": {
+      "path": "assets/client/50fad497b122794eb47b0dda.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "50fad497b122794eb47b0dda889ca60369790af40c9508028416958674e85ec1",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_zhiliaoshu": {
+      "path": "assets/client/3b3ee19cb37190dacb7f94d2.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "3b3ee19cb37190dacb7f94d20bf4269c2328bb65cecef0a4579f26dbb8ce0206",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_zhandizhiliao": {
+      "path": "assets/client/ccaa502c6f98be5073b729bf.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "ccaa502c6f98be5073b729bfbb8cf5b7281c8e8ee853a9a9ab602fb08339623a",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_zhicaizhiguang": {
+      "path": "assets/client/f9343cc141281e1043b2c68c.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "f9343cc141281e1043b2c68c0107745e416c221db06e53ea60314057aa33ed00",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_zhiliaozhiguang": {
+      "path": "assets/client/e38cb1cfdafc1d69adce950d.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "e38cb1cfdafc1d69adce950d7f48090f872f119106aa3022e1e3818c9ba0c828",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_xinlingzhiguang": {
+      "path": "assets/client/5ab5d3304b20367a8ceef748.webp",
+      "bundle": "icon/skill/icon_skill4.unity3d",
+      "bundleSha256": "a5857813eb18900d45c8166487f9b27093517a556f7d927541c31e2be1c93b68",
+      "sha256": "5ab5d3304b20367a8ceef7481beb4c4f007cf78e06b4b8729feb37a87ebe77dc",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_fashi_poshanji": {
+      "path": "assets/client/a0b7b4324c148b51f97135cf.webp",
+      "bundle": "icon/skill/icon_skill1.unity3d",
+      "bundleSha256": "4b795449d542d22966a914dc6eecc60813484719db65d4a7d7fe4a594e1a7305",
+      "sha256": "a0b7b4324c148b51f97135cf7471374ed8eee6c0d447499e3293c027b89c7338",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_fashi_renxinji": {
+      "path": "assets/client/4586d904f985d78c39174011.webp",
+      "bundle": "icon/skill/icon_skill1.unity3d",
+      "bundleSha256": "4b795449d542d22966a914dc6eecc60813484719db65d4a7d7fe4a594e1a7305",
+      "sha256": "4586d904f985d78c39174011c63f57b8658af61a968caa4cb8f2846e759ef06a",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_fahuangguojingyingmushi_jinghuajiahu": {
+      "path": "assets/client/ecb918348a9dc00293dfe61a.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "ecb918348a9dc00293dfe61a7c92c87ec0a2d3769857579ebc0f25a1209f63ca",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_fahuangguojingyingmushi_guanghuizhengzhao": {
+      "path": "assets/client/e2f0fb85ecdbd77b53631fac.webp",
+      "bundle": "icon/skill/icon_skill8.unity3d",
+      "bundleSha256": "55c5aaef45f38553704262fd084fe6392649dfa5e7180cf0e58ee9199efe0c77",
+      "sha256": "e2f0fb85ecdbd77b53631fac94217ffde334d0f31d49ef26ce0d29393e610324",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_huineng": {
+      "path": "assets/client/ed208805c61e141c8c6b1546.webp",
+      "bundle": "icon/skill/icon_skill2.unity3d",
+      "bundleSha256": "d34dc18748536946576b2af5ce95109c078f45396dbdc4312334a72b1440319a",
+      "sha256": "ed208805c61e141c8c6b15462faaa8fc3bd97b9b2fab52941e5fc4c1bf4cdf42",
+      "width": 128,
+      "height": 128
+    },
+    "icon/unitpersonality/unitpersonality_fahuangguojingyingmushi_shengjuan": {
+      "path": "assets/client/1272b58741d074cbefb23264.webp",
+      "bundle": "icon/unitpersonality/icon_unitpersonality2.unity3d",
+      "bundleSha256": "783de87d5aa9ea90682b34d87d522d20eb1fd1893122b53fd558e4e376a3ef1e",
+      "sha256": "1272b58741d074cbefb2326412d9a6a299102230064fb8ae6ba67c7727b4cae0",
+      "width": 128,
+      "height": 128
+    },
+    "icon/skill/icon_skill_fangyuer": {
+      "path": "assets/client/a2722419bf501ae83e019dbe.webp",
+      "bundle": "icon/skill/icon_skill5.unity3d",
+      "bundleSha256": "4f85b9591278a5327a37fbe7d2ad0db1c0fc1bdb9a3357c155406df5edbb8098",
+      "sha256": "a2722419bf501ae83e019dbe7a8a26175628a8b10b09d171ded7b69a3139e0d2",
+      "width": 128,
+      "height": 128
+    },
+    "icon/card_full/card_papalpriestmset01": {
+      "path": "assets/client/7bf0f4b37ab66823e779c0ab.webp",
+      "bundle": "icon/card_full/card_papalpriestmset01.unity3d",
+      "bundleSha256": "9c2296ae49a5296aeabeebfa8985e16d0e78ceeea4aab085e337b6b9b5bba620",
+      "sha256": "7bf0f4b37ab66823e779c0aba5714c805bf49ab761fdfeef0edeccf08be3f94c",
+      "width": 1548,
+      "height": 3232
+    },
+    "icon/face/face_papalpriestmset01": {
+      "path": "assets/client/b26b4bbb2f192f63263f173a.webp",
+      "bundle": "icon/face/icon_face12.unity3d",
+      "bundleSha256": "1ebba4836074faca43ce05e88f57eea1c2b7d02a1e28c448ca5e0c4854cf590a",
+      "sha256": "b26b4bbb2f192f63263f173a8afb865d7a14a6df925b549ab649f320e9fde8dd",
+      "width": 288,
+      "height": 288
+    },
+    "icon/character/character_papalpriestmset01": {
+      "path": "assets/client/c9c3ad14c03ce57ff05e367d.webp",
+      "bundle": "icon/character/icon_character1.unity3d",
+      "bundleSha256": "074766ea9f684dc56558408e255fd1d9f6f0c2067844e25164596d058051e893",
+      "sha256": "c9c3ad14c03ce57ff05e367dad6d0c1fa3bf8967132d82ff9e858233ad226a65",
       "width": 128,
       "height": 128
     }

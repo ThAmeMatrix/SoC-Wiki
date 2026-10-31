@@ -142,15 +142,15 @@ def plan_update(wiki: Path, game: Path, snapshot: dict, names=None, all_existing
             pid=manifest['ids'][identity]
             return by_id[pid],document(pid)
         prefix={'skill':'技能图鉴库','talent':'个性','status':'中括号介绍','character':'角色图鉴库',
-            'equipment':'装备图鉴库'}[kind]
+            'equipment':'装备图鉴库','liberation':'极限解放'}[kind]
         title=prefix+'/'+name
         if title in data['titles']:title+='（'+owner+'）'
         if title in data['titles']:title+='·'+str(gid)
         pid={'skill':100_000_000,'talent':200_000_000,'status':300_000_000,'character':400_000_000,
-            'equipment':500_000_000}[kind]+gid
+            'equipment':500_000_000,'liberation':600_000_000}[kind]+gid
         if pid in by_id:raise ValueError('客户端页面 ID 与现有页面冲突：'+str(pid))
-        entry={'id':pid,'title':title,'name':name,'type':kind,'image':'','date':snapshot['extractedAt'][:10],
-            'summary':'','categories':['客户端资料'],'class':'','rarity':'','faction':'','weapon':'','aliases':'','redirect':False,
+        entry={'id':pid,'title':title,'name':name,'type':'talent' if kind=='liberation' else kind,'image':'','date':snapshot['extractedAt'][:10],
+            'summary':'','categories':['极限解放','客户端资料'] if kind=='liberation' else ['客户端资料'],'class':'','rarity':'','faction':'','weapon':'','aliases':'','redirect':False,
             # Imported pages follow the whole archive instead of jumping to the front.
             'sourceOrder':ORDER_BASE+pid}
         by_id[pid]=entry;data['pages'].append(entry);data['titles'][title]=pid
@@ -285,6 +285,24 @@ def plan_update(wiki: Path, game: Path, snapshot: dict, names=None, all_existing
             weapon_art=assets.get(weapon.get('art',''))
             we.update({'summary':weapon['desc'][:220],'rarity':weapon['rarity'],'weapon':weapon['type'],
                 'image':weapon_art or ''})
+        # 极限解放：one page per liberation skill, listing its three client levels.
+        liberation_names=[]
+        for item in char.get('liberations') or []:
+            levels=sorted((item.get('levels') or []),key=lambda row:row.get('level') or 0)[:3]
+            if not levels:continue
+            le,ld=record('liberation',levels[0]['skillId'],item['name'],char['name'])
+            raw_liberation={'极限解放名称':item['name'],'极限解放图标':item['name']}
+            for index,level in enumerate(levels):raw_liberation['极限解放描述'+str(index+1)]=level['desc']
+            fields_liberation={key:html.escape(value) for key,value in raw_liberation.items()}
+            for index,level in enumerate(levels):fields_liberation['极限解放描述'+str(index+1)]=render(level['desc'],links)
+            ld.update(fields=fields_liberation,rawFields=raw_liberation,
+                html='<h2>游戏客户端极限解放资料</h2><p class="source-notice">取自客户端模组技能链，按客户端的等级效果原样呈现。</p>'
+                    +''.join('<h3>'+str(index+1)+' 级</h3>'+fields_liberation['极限解放描述'+str(index+1)] for index in range(len(levels))),
+                clientSource={**source,'table':'online_module_skill','rowId':levels[0]['skillId']})
+            ld['related']=sorted(set(ld.get('related',[])+[pid]))
+            liberation_art=assets.get('icon/skill/'+item.get('icon','')) if item.get('icon') else ''
+            le.update({'summary':(levels[0]['desc'] or '')[:220],'image':liberation_art})
+            liberation_names.append(item['name'])
         changes={'角色名称':char['name'],'显示名称':char['name'],'角色职业':char['class'],'武器类型':char['weapon'],
             '特职':char['profession'],'稀有度':char['rarity'],'所属阵营':'，'.join(char['factions']),
             '移动':str(char['movement']),'跳跃高度':str(char['jumpUp']),'跳跃远度':str(char['jumpDown']),
@@ -292,6 +310,7 @@ def plan_update(wiki: Path, game: Path, snapshot: dict, names=None, all_existing
         changes.update({'初始'+key:str(value) for key,value in char['baseStats'].items()})
         changes.update({'满级满星'+key:str(value) for key,value in char['stats'].items()})
         if weapon:changes['专武']=weapon['name']
+        if liberation_names:changes['极限解放']='，'.join(liberation_names)
         for node in char['tree']:
             se,sd=skill_records[node['skillId']]
             if node['rank']==0:
