@@ -194,7 +194,7 @@
   function removeLoadout(state,index){if(!Number.isInteger(index)||index<0||index>=state.loadouts.length||state.loadouts.length<=1)return false;state.loadouts.splice(index,1);return true;}
 
   function defaults(model){
-    return {version:6,canvas:{width:1920,height:1080},composition:'auto',decoration:{style:'gilded',intensity:.65},background:{portrait:model.character.portraits?.some(p=>p.key==='awakened')?'awakened':'base',x:0,y:0,scale:1},customTitle:null,titleName:'',titleMode:model.character.id===9296?'reference':'text',titleFont:'serif',bodyFont:'sans',bodyBold:false,bodyItalic:false,bodyOutlineWidth:0,bodyOutlineColor:'#071018',titleItalic:false,titleBold:false,titleScale:1,titleOutlineWidth:0,titleOutlineColor:'#08121b',titleShadow:true,generatedDate:'',datePrefix:'',roleText:'',layout:{},topText:'',topTextX:1000,topTextY:152,topTextSize:22,topTextColor:'#e8dbc0',branchWidth:1.5,branchLength:100,titleImageTint:false,characterId:model.character.id,subtitle:'角色养成一图流',titleColor:'#ef9b73',treeNotes:'',author:'',authorFont:'signature',authorMode:'text',authorImage:null,authorCustomFont:null,notes:'',
+    return {version:6,canvas:{width:1920,height:1080},composition:'auto',decoration:{style:'gilded',intensity:.65},background:{portrait:model.character.portraits?.some(p=>p.key==='awakened')?'awakened':'base',x:0,y:0,scale:1},customTitle:null,titleName:'',titleMode:model.referenceTitle?'reference':'text',titleFont:'serif',bodyFont:'sans',bodyBold:false,bodyItalic:false,bodyOutlineWidth:0,bodyOutlineColor:'#071018',titleItalic:false,titleBold:false,titleScale:1,titleOutlineWidth:0,titleOutlineColor:'#08121b',titleShadow:true,generatedDate:'',datePrefix:'',roleText:'',layout:{},topText:'',topTextX:1000,topTextY:152,topTextSize:22,topTextColor:'#e8dbc0',branchWidth:1.5,branchLength:100,titleImageTint:false,characterId:model.character.id,subtitle:'角色养成一图流',titleColor:'#ef9b73',treeNotes:'',author:'',authorFont:'signature',authorMode:'text',authorImage:null,authorCustomFont:null,notes:'',
       backgroundOpacity:.65,panelOpacity:.92,markWidth:3,gearIconSize:40,radarTitle:'',notesSize:15,exclusive:null,marks:{},loadouts:[loadout(model)],loadoutCommentary:commentary(),
       weapons:[null],accessories:[null],tarot:[null],engravings:[],gearNotes:{weapons:[''],accessories:[''],tarot:['']},groupNotes:{weapons:'',accessories:'',tarot:''},scores:[0,0,0,0,0,0],rated:false,scoreText:'',radarCharts:[],backgroundImage:null};
   }
@@ -224,7 +224,8 @@
     if(background.portrait==='custom'&&state.backgroundImage)state.background.portrait='custom';
     state.background.x=number(background.x,-state.canvas.width*2,state.canvas.width*2,0);state.background.y=number(background.y,-state.canvas.height*2,state.canvas.height*2,0);state.background.scale=number(background.scale,.15,4,1);
     if(typeof value.customTitle==='string'&&value.customTitle.length<=1000000&&/^data:image\/(png|webp);base64,[a-z0-9+/]+=*$/i.test(value.customTitle))state.customTitle=value.customTitle;
-    const reference=model.character.id===9296&&(!state.titleName||state.titleName===model.character.name);
+    // Characters with a baked official wordmark default to it (and return to it on reset).
+    const reference=model.referenceTitle&&(!state.titleName||state.titleName===model.character.name);
     state.titleMode=['text','image','reference'].includes(value.titleMode)?value.titleMode:state.customTitle?'image':reference?'reference':'text';
     if(state.titleMode==='reference'&&!reference)state.titleMode='text';
     if(['sans','serif'].includes(value.titleFont))state.titleFont=value.titleFont;

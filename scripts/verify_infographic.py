@@ -47,6 +47,14 @@ def run():
         pick(page,'character');assert page.locator('[data-ig-choice]').count()==177
         assert page.locator('[data-ig-choice]').first.get_attribute('data-ig-choice')=='9295'
         page.keyboard.press('Escape')
+        # Both wordmark characters offer their baked art as a name mode.
+        ready(page)
+        assert page.eval_on_selector_all('[data-ig-title-mode]','els=>els.map(e=>e.dataset.igTitleMode)')==['text','image','reference']
+        assert page.locator('[data-ig-title-status]').inner_text().startswith('保留薇佩拉')
+        pick(page,'character','君士坦丁');choose_first(page);ready(page)
+        assert page.locator('[data-ig-title-status]').inner_text().startswith('保留君士坦丁')
+        assert page.eval_on_selector('[data-ig-title-mode=reference]',"e=>e.getAttribute('aria-pressed')")=='true'
+        pick(page,'character','薇佩拉');choose_first(page);ready(page)
         assert page.locator('.ig-tier[data-rank="0"] button').count()==0
         assert page.locator('.ig-tier[data-rank="0"] img').count()==2
         assert page.locator('[data-ig-paint],[data-ig-field=star],[data-ig-field=weaponStar]').count()==0
