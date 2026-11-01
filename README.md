@@ -209,39 +209,54 @@ python scripts/package.py
 
 ## 本地客户端更新（SoCdecode 已并入本项目）
 
-读取本机安装的铃兰之剑客户端配置与图片，把角色词条、技能、个性、专武（装备图鉴）与关联状态写入这个离线资料馆。解码逻辑已并入 `scripts/socdecode/`（原 `D:\Workspace\SoCdecode`，后续在本仓库维护），不再依赖外部目录；网页与 APK 本身仍然不需要 Python。
+本地工具做两件事：**资源归档**——把本机铃兰之剑客户端里的全部资源解析成可直接查看的文件，按分类整理，并以解析时间记录版本、自动生成差分；**Wiki 更新**——把角色词条、技能、个性、专武与关联状态写入这个离线资料馆。解码逻辑在 `scripts/socdecode/`，网页与 APK 本身不需要 Python。
 
-**图形界面（推荐）**：双击根目录 `本地更新.cmd`，或运行打包出的 `dist/SoCwiki本地更新.exe`。界面里选择一次客户端目录后会记住，然后：
+**图形界面（推荐）**：双击根目录 `本地更新.cmd`，或运行打包出的 `dist/SoCwiki本地更新.exe`。选择一次客户端目录与归档目录后会记住。界面分三页：
 
-- **差量更新**：只处理客户端新增的角色与缺失字段；与 Wiki 已有事实冲突时以客户端为准。
-- **全覆盖**：所有已匹配角色按客户端重算并覆盖（攻略、推荐配装、作者署名与 `data/raw` 原始归档保留）。
-- 勾选「更新后重建」会自动重建一图流星级文本与素材（默认开启）。
-- 支持「检查新角色」「预览差异」「一键拉取并更新」「回滚上次更新」。
+- **资源归档**：选择解析范围（12 个分类可单独勾选）与并行进程数，点「开始解析」。五个阶段（扫描 → 比对上次结果 → 解析 → 生成版本与差分 → 整理分类目录）实时显示进度条、吞吐量、剩余时间、新写入文件数与复用数；可随时取消，已完成的部分下次直接复用。与上一版本不同时以当前时间生成新版本并提示查看差分；完全相同则不生成。
+- **版本库**：列出全部版本（时间、游戏资源版本、资源数、体积、新增 / 修改 / 删除 / 改名数、客户端文件变化、耗时）。选一个「浏览」，选任意两个「比较」，也可打开版本报告、导出分类目录、删除版本与清理未引用文件。
+- **Wiki 更新**：差量更新（只补缺失与客户端新增角色，冲突以客户端为准）/ 全覆盖；检查新角色、预览差异、一键拉取、回滚上次更新。
+
+**资源浏览器**（「打开资源浏览器」，或 `archive serve`，只监听 127.0.0.1）：左侧版本时间线（每个版本的变化徽标，一键设为基准 / 目标或对比上一版），中间分类树与可搜索、可分页的资源列表，右侧预览与差分。
+
+- 预览：图片（棋盘格背景、原始大小）、配置表（分页、全文搜索）、文本 / JSON（行号）、视频、字体样张、模型线框（可旋转缩放）、二进制十六进制视图；可下载或在文件夹中定位原文件。
+- 差分：版本概览按分类给出新增 / 修改 / 删除 / 改名与体积变化；图片支持并排、滑动对比、闪烁与差异高亮（标出变化像素数量与范围）；配置表按主键逐行、逐字段列出修改前后值，以及新增 / 删除的行与列；文本逐行并排对比并高亮行内改动；内容相同、路径不同的资源识别为改名；另列客户端原始文件的增删改。
+- 地址栏保留当前版本、分类、筛选与选中资源，可直接分享或用前进 / 后退切换；`/` 聚焦搜索，`↑↓` 切换资源，`Esc` 回到概览；明暗主题。
+
+**归档内容与分类**：配置表（全部 1,249 张客户端配置表解码为 JSON，含主键与行列数）、图片（Texture2D，PNG）、精灵（Sprite 裁切）、文本、数据（不可读的 TextAsset 与带容器路径的 MonoBehaviour 结构）、脚本（Lua 字节码）、音频（Wwise `.wem` / `.bnk`，客户端已加密，只做存档与变化比较）、视频（`.mp4`）、字体、模型（OBJ）、资源包清单（每个资源包的对象构成）、程序文件。当前客户端（资源版本 6265075，49,023 个文件，9.1 GB）解析为 177,277 项资源。账号记录、启动器数据库、战斗回放（`assets/Report`）与玩家偏好设置始终不读取。
+
+**存储与性能**：每项资源按内容指纹只保存一份（`output/archive/objects/`，只读），版本只记录「路径 → 指纹」清单，因此多个版本共享未变的资源，新版本只占用变化部分的空间。`library/当前版本/` 是按「分类 / 位置 / 文件名」整理的目录，由硬链接组成，不额外占用空间，每次解析后只更新变化的文件；任意版本都可另外导出成同样的目录。解析在多进程中并行；每个客户端文件的解析结果按内容缓存，未变的文件不再解析。本机实测（20 线程 CPU）：首次完整解析 9.1 GB 约 5.5 分钟，首次建立分类目录另需约 3 分钟；客户端未变时重新检查约 2.5 秒；部分更新只解析变化的文件。
 
 **命令行**：
 
 ```powershell
-python -X utf8 scripts/update_client.py characters --missing      # 客户端有、Wiki 还没有的角色
-python -X utf8 scripts/update_client.py add --character 君士坦丁   # 导入一个角色（--dry-run 只看差异）
-python -X utf8 scripts/update_client.py diff                       # 差量：补缺失与新角色，冲突以本地为准
-python -X utf8 scripts/update_client.py full                       # 全覆盖：已匹配角色全部重算
-python -X utf8 scripts/update_client.py rollback "<备份目录>"      # 回滚一次更新
+python -X utf8 scripts/update_client.py archive scan                 # 解析全部资源；有变化才生成新版本（--only table,image 只解析部分分类）
+python -X utf8 scripts/update_client.py archive versions             # 列出全部版本
+python -X utf8 scripts/update_client.py archive diff [基准] [目标]   # 比较任意两个版本（省略则为最新与上一版）
+python -X utf8 scripts/update_client.py archive serve                # 打开资源浏览器
+python -X utf8 scripts/update_client.py archive export <版本> [目录] # 把某个版本导出为分类目录（硬链接）
+python -X utf8 scripts/update_client.py archive delete <版本>        # 删除版本记录；随后 archive gc 释放空间
+python -X utf8 scripts/update_client.py characters --missing         # 客户端有、Wiki 还没有的角色
+python -X utf8 scripts/update_client.py add --character 君士坦丁     # 导入一个角色（--dry-run 只看差异）
+python -X utf8 scripts/update_client.py diff                         # Wiki 差量更新
+python -X utf8 scripts/update_client.py full                         # Wiki 全覆盖
+python -X utf8 scripts/update_client.py rollback "<备份目录>"        # 回滚一次 Wiki 更新
 ```
 
 **打包成 exe**：
 
 ```powershell
 python -m pip install -r requirements.txt pyinstaller
-python -X utf8 scripts/build_client_updater.py      # 生成 dist/SoCwiki本地更新.exe
+python -X utf8 scripts/build_client_updater.py      # 生成 dist/SoCwiki本地更新.exe（含资源浏览器）
 ```
 
-**单元测试**（进入 `scripts` 目录后运行，覆盖属性截断、状态符号、转义、格式检查、幂等写入、失败恢复与回滚冲突）：
+**单元测试**（进入 `scripts` 目录后运行；覆盖属性截断、状态符号、转义、格式检查、幂等写入、失败恢复与回滚冲突，以及归档的分类与隐私排除、差分（改名识别、表格逐字段、文本分块）、版本生成、复用与清理）：
 
 ```powershell
 cd scripts
 python -X utf8 -m unittest discover -s socdecode/tests -v
 ```
 
-**规则与边界**：需要 Windows x64 与 Python 3.10+；读取客户端配置表（`assets/lua`）与图片资源，不登录、不启动游戏、不读取账号或战斗记录。每次写入前在 `output/backups/时间-编号/` 保存逐文件备份与变动报告，重复运行相同数据不会改动文件；写入失败自动恢复，`rollback` 只操作该次更新的文件。预览后文件被改动、格式未知或缺少必要配置时会停止，不会猜测数值。属性按客户端 `PlayerRoleUnit.CalculateAttributeByType` 的整数截断顺序计算（60 级、五星、13 阶、左右技能全解锁），不含装备、天赋、好感与模组加成。技能范围图只绘制字段或描述惯例能确定的形状；动态 Live2D、音频与战斗演出不转网页格式。
+**规则与边界**：需要 Windows x64 与 Python 3.10+；只读取客户端文件，不登录、不启动游戏。配置表在隔离的 Lua 环境中由客户端自带的运行库解码（无文件、进程与网络能力）。某个文件导致解析进程崩溃时会自动重启进程并逐个重试，仍失败的文件记入版本记录而不中断整个解析；无法解码的对象只记录指纹，同样参与比较。Wiki 更新每次写入前在 `output/backups/时间-编号/` 保存逐文件备份与变动报告，重复运行相同数据不会改动文件；写入失败自动恢复，`rollback` 只操作该次更新的文件。属性按客户端 `PlayerRoleUnit.CalculateAttributeByType` 的整数截断顺序计算（60 级、五星、13 阶、左右技能全解锁），不含装备、天赋、好感与模组加成。技能范围图只绘制字段或描述惯例能确定的形状。
 
-**注意**：客户端更新会直接把新页面合并进 `data/index.js`、`data/search.js` 与 `data/advanced-search.js`。`scripts/build_data.py` 只从 `data/raw` 重建这些索引，会清掉客户端写入的条目，因此客户端更新后不要运行它（本工具自带的重建只跑 `scripts/build_infographic.py --metadata-only`）。`output/`（缓存、报告、备份）已加入 `.gitignore`。
+**注意**：Wiki 更新会直接把新页面合并进 `data/index.js`、`data/search.js` 与 `data/advanced-search.js`。`scripts/build_data.py` 只从 `data/raw` 重建这些索引，会清掉客户端写入的条目，因此客户端更新后不要运行它（本工具自带的重建只跑 `scripts/build_infographic.py --metadata-only`）。`output/`（归档、缓存、报告、备份）已加入 `.gitignore`。

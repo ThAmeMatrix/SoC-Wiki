@@ -1,15 +1,19 @@
 """Local client update entry point for SoCwiki.
 
 Reads the installed Sword of Convallaria client on this machine and writes the
-characters, skills, traits and exclusive weapons into this offline wiki.
+characters, skills, traits and exclusive weapons into this offline wiki. The
+``archive`` commands keep a versioned copy of every client resource instead.
 
     python -X utf8 scripts/update_client.py characters --missing
     python -X utf8 scripts/update_client.py diff            # 差量：补缺失与新角色，冲突以本地为准
     python -X utf8 scripts/update_client.py full            # 全覆盖：已匹配角色全部按客户端重算
-    python -X utf8 scripts/update_client.py gui             # 打开图形界面（选择目录、一键拉取）
+    python -X utf8 scripts/update_client.py archive scan    # 解析全部资源并记录版本（有变化才生成）
+    python -X utf8 scripts/update_client.py archive serve   # 可视化浏览资源、比较任意两个版本
+    python -X utf8 scripts/update_client.py gui             # 打开图形界面
 """
 from __future__ import annotations
 
+import multiprocessing
 import sys
 from pathlib import Path
 
@@ -38,6 +42,9 @@ def main_entry(argv=None):
     if args and args[0] == 'gui':
         from update_client_gui import launch
         return launch()
+    if args and args[0] == 'archive':
+        from socdecode.archive.cli import main as archive_main
+        return archive_main(args[1:])
     if args and args[0] == 'client-path':
         print(game_path())
         return 0
@@ -70,4 +77,5 @@ def main_entry(argv=None):
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     raise SystemExit(main_entry())

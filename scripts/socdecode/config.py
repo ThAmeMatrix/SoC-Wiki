@@ -2,13 +2,28 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]          # SoCwiki project root
+
+def _root() -> Path:
+    """The wiki folder. A packaged exe runs from a temporary unpack folder, so it
+    looks beside itself (e.g. ``<wiki>/dist/``) instead of at its own sources."""
+    if getattr(sys, 'frozen', False):
+        here = Path(sys.executable).resolve().parent
+        for folder in (here, *here.parents):
+            if (folder / 'index.html').is_file() and (folder / 'data').is_dir():
+                return folder
+        return here
+    return Path(__file__).resolve().parents[2]
+
+
+ROOT = _root()                                        # SoCwiki project root
 WIKI = ROOT
 OUTPUT = ROOT / 'output'
 CONFIG = OUTPUT / 'client-update.json'
 DEFAULT_GAME = Path(r'C:\Game\SwordofConvallaria\SoCLauncher')
+DEFAULT_ARCHIVE = OUTPUT / 'archive'
 
 
 def load() -> dict:
@@ -34,6 +49,12 @@ def game_path() -> Path:
 
 def remember_game(path) -> None:
     save(game=str(path))
+
+
+def archive_path() -> Path:
+    """Where extracted resources and versions live (``output/archive`` by default)."""
+    value = load().get('archive')
+    return Path(value) if value else DEFAULT_ARCHIVE
 
 
 def last_backup():

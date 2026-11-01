@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SoC 资源档案馆</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="mark">◆</span><b>SoC 资源档案馆</b><small id="root-path"></small></div>
+  <nav class="modes" role="tablist" aria-label="模式">
+    <button type="button" data-mode="browse" role="tab">浏览版本</button>
+    <button type="button" data-mode="compare" role="tab">版本差分</button>
+  </nav>
+  <div class="compare-bar" id="compare-bar">
+    <label>基准 <select id="pick-a" aria-label="基准版本"></select></label>
+    <button type="button" id="swap" title="交换基准与目标" aria-label="交换基准与目标">⇄</button>
+    <label>目标 <select id="pick-b" aria-label="目标版本"></select></label>
+    <button type="button" class="primary" id="go-compare">比较</button>
+  </div>
+  <button type="button" class="ghost" id="theme" aria-label="切换明暗主题">◐</button>
+</header>
+<main class="layout">
+  <aside class="timeline" aria-label="版本时间线">
+    <div class="pane-head"><b>版本时间线</b><small id="version-count"></small></div>
+    <ol id="versions"></ol>
+  </aside>
+  <nav class="tree" aria-label="分类">
+    <div class="pane-head"><b id="tree-title">分类</b></div>
+    <div id="tree"></div>
+  </nav>
+  <section class="list" aria-label="资源列表">
+    <div class="list-tools">
+      <input id="search" type="search" placeholder="搜索路径（按 / 聚焦）" aria-label="搜索路径">
+      <div class="chips" id="kinds" role="group" aria-label="变化类型"></div>
+    </div>
+    <div class="list-status" id="list-status"></div>
+    <div id="rows" role="listbox" aria-label="资源"></div>
+    <button type="button" class="more" id="more" hidden>加载更多</button>
+  </section>
+  <section class="detail" id="detail" aria-live="polite"></section>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
