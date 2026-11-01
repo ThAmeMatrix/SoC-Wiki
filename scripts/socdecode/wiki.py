@@ -82,8 +82,21 @@ def patch_ui(wiki,files,observed):
 
 def plan_update(wiki: Path, game: Path, snapshot: dict, names=None, all_existing=False, refresh=False,
                 sprite_variant='base'):
-    if not (wiki/'data/index.js').is_file():raise ValueError('指定目录不是 SoCwiki 离线资料馆')
     observed={}
+    index=wiki/'data/index.js'
+    if not index.is_file():
+        # No offline snapshot present yet: bootstrap a minimal but valid wiki
+        # index so the pulled client resources can be written in one click
+        # instead of failing with "not a SoCwiki archive".
+        (wiki/'data').mkdir(parents=True, exist_ok=True)
+        index.write_text(
+            'window.WIKI_DATA=' + json.dumps(
+                {'pages': [], 'titles': {}, 'archive': {'expectedPages': 0, 'wikiSnapshotExpectedPages': 0}},
+                ensure_ascii=False, separators=(',', ':')) + ';window.WIKI_PAGES={};\n',
+            encoding='utf-8')
+        (wiki/'data/search.js').write_text('window.WIKI_SEARCH={};\n', encoding='utf-8')
+        (wiki/'data/advanced-search.js').write_text('window.WIKI_ADVANCED_DATA={};\n', encoding='utf-8')
+        print('资料馆还没有 data/index.js，已用客户端资源初始化空索引，稍后将写入角色数据。')
     def read_json(name,assignment=False):
         raw=(wiki/name).read_bytes();observed[name]=sha(raw);text=raw.decode('utf8')
         return json.JSONDecoder().raw_decode(text[text.index('=')+1:])[0] if assignment else json.loads(text)
@@ -97,7 +110,11 @@ def plan_update(wiki: Path, game: Path, snapshot: dict, names=None, all_existing
         if absent:raise ValueError('客户端没有这些角色（请查看 output/characters.json）：'+', '.join(sorted(absent)))
         selected=[current[name] for name in dict.fromkeys(names)]
     elif all_existing:
-        selected=[c for c in snapshot['characters'] if c['name'] in by_name and c['available']]
+        if data['pages']:
+            selected=[c for c in snapshot['characters'] if c['name'] in by_name and c['available']]
+        else:
+            # Fresh wiki (just bootstrapped from the client): populate every available character.
+            selected=[c for c in snapshot['characters'] if c['available']]
     else:raise ValueError('请指定 --character，或使用 --all 更新已匹配并开放的角色')
     if not selected:raise ValueError('没有可更新的角色')
     duplicate=[c['name'] for c in selected if len(by_name.get(c['name'],[]))>1]
