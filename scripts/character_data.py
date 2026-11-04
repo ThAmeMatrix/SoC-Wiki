@@ -125,11 +125,27 @@ def html_slice(soup, start: int, end: int, changes=()) -> str:
     return str(output).strip()
 
 
-def star_comparison(fields: dict):
-    prefix = next((p for p in ('个性描述', '天赋描述', '特性描述') if any(fields.get(p + str(n)) for n in range(1, 6))), None)
-    if not prefix:
-        return None
-    documents = [effect_document(fields.get(prefix + str(n), '')) for n in range(1, 6)]
+#: Equipment stars are named with Chinese numerals, not ``prefix + 1``.
+EQUIPMENT_STAR_KEYS = ('一星技能', '二星技能', '三星技能', '四星技能', '五星技能')
+
+
+def star_comparison(fields: dict, keys=None):
+    """Diff the five star levels of a trait or of an equipment skill.
+
+    ``keys`` names the five fields in star order; without it the trait prefixes
+    are probed, which is what talents use.
+    """
+    if keys is None:
+        prefix = next((p for p in ('个性描述', '天赋描述', '特性描述') if any(fields.get(p + str(n)) for n in range(1, 6))), None)
+        if not prefix:
+            return None
+        keys = [prefix + str(n) for n in range(1, 6)]
+    else:
+        keys = list(keys)
+        prefix = None
+        if not any(fields.get(k) for k in keys):
+            return None
+    documents = [effect_document(fields.get(k, '')) for k in keys]
     groups = [list(sentences(text)) for _, text in documents]
     common_counts = Counter(k for _, _, k in groups[0])
     for group in groups[1:]:
@@ -161,4 +177,4 @@ def star_comparison(fields: dict):
                        'removed': removed, 'previous': previous + 1 if previous is not None else None,
                        'changed': previous is not None and normalized(documents[previous][1]) != normalized(text)})
         previous = i
-    return {'prefix': prefix, 'common': ''.join('<div class="star-paragraph">' + value + '</div>' for value in common_html), 'levels': levels}
+    return {'prefix': prefix, 'keys': keys, 'common': ''.join('<div class="star-paragraph">' + value + '</div>' for value in common_html), 'levels': levels}

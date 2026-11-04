@@ -21,11 +21,12 @@ def stored(p, character):
 
 # Face rectangles are manually checked against the original images, normalized
 # to the entire source including transparent margins (not inferred by the code).
+# Characters are named rather than numbered: page ids differ between archives.
 CASES = [
-    (9295, 'base', 'constantine', (.39, .025, .11, .09)),
-    (3637, 'base', 'assassin', (.39, .025, .21, .10)),
-    (9296, 'base', 'vipera-base', (.46, .25, .10, .11)),
-    (9296, 'awakened', 'vipera-awakened', (.49, .30, .07, .09)),
+    ('君士坦丁', 'base', 'constantine', (.39, .025, .11, .09)),
+    ('暗影刺客', 'base', 'assassin', (.39, .025, .21, .10)),
+    ('薇佩拉', 'base', 'vipera-base', (.46, .25, .10, .11)),
+    ('薇佩拉', 'awakened', 'vipera-awakened', (.49, .30, .07, .09)),
 ]
 report, thumbs, errors = [], [], []
 with sync_playwright() as pw:
@@ -34,9 +35,15 @@ with sync_playwright() as pw:
     p.on('pageerror', lambda e: errors.append(str(e)))
     p.goto((BASE / 'index.html').as_uri() + '#/tools/infographic')
     ready(p)
+    ids = {who: p.evaluate('(n)=>{const c=window.WIKI_DATA.pages.find(x=>x.type==="character"&&x.name===n);return c?c.id:null}', who)
+           for who in {case[0] for case in CASES}}
+    missing = [who for who, found in ids.items() if not found]
+    if missing:
+        raise SystemExit('archive has no character page for: %s' % '、'.join(missing))
     p.evaluate("(()=>{const draw=WikiInfographicCanvas.draw;WikiInfographicCanvas.draw=async(...args)=>{const r=await draw(...args);window.focusResult={...r,canvas:null,characterId:args[0].character.id,portrait:args[1].background.portrait};return r}})()")
     for size in [{'width': 1920, 'height': 1080}, {'width': 1280, 'height': 1920}]:
-        for character, art, name, face in CASES:
+        for who, art, name, face in CASES:
+            character = ids[who]
             state = {'version': 6, 'characterId': character, 'canvas': size,
                      'background': {'portrait': art, 'x': 90, 'y': -200, 'scale': 2},
                      'notes': '保留养成手记与技能资料', 'treeNotes': '优先核心技能', 'roleText': '输出 / 辅助'}

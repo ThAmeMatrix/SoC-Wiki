@@ -10,7 +10,9 @@ Packaged as ``SoCwiki本地更新.exe`` by ``scripts/build_client_updater.py``.
 """
 from __future__ import annotations
 
+import argparse
 import io
+import json
 import multiprocessing
 import os
 import queue
@@ -33,6 +35,10 @@ from socdecode.archive.catalog import CATEGORIES, KEYS  # noqa: E402
 from socdecode.archive.scan import STAGES, Cancelled, default_workers, locate  # noqa: E402
 from socdecode.archive.store import Store  # noqa: E402
 from socdecode.config import OUTPUT, ROOT, archive_path, game_path, last_backup, load, save  # noqa: E402
+from socdecode.client import game_root  # noqa: E402
+from socdecode.wiki import plan_update  # noqa: E402
+from socdecode.transaction import apply  # noqa: E402
+from socdecode.rebuild import run as rebuild_wiki  # noqa: E402
 
 
 class QueueWriter(io.TextIOBase):
@@ -72,6 +78,8 @@ class App(tk.Tk):
         self.minsize(940, 640)
         self.messages = queue.Queue()
         self.busy = None
+        self.busy_since = None
+        self.last_log = None
         self.cancel = None
         self.server = None
         self.server_root = None
@@ -84,10 +92,15 @@ class App(tk.Tk):
         self.categories = {key: tk.BooleanVar(value=key in chosen) for key in KEYS}
         self.mode = tk.StringVar(value='diff')
         self.rebuild = tk.BooleanVar(value=True)
+        self.force_extract = tk.BooleanVar(value=False)
         self.status = tk.StringVar(value='就绪')
+        self.pulls = {}          # fingerprint -> (label, game, snapshot)
+        self.pull_items = []     # [(fingerprint, (label, game))] sorted by time
+        self.pull_label = tk.StringVar(value='')
         self.build()
         self.after(100, self.pump)
         self.after(300, self.refresh_versions)
+        self.after(350, self.safe_refresh_pulls)
 
     # -- layout ---------------------------------------------------------------
     def build(self):
@@ -206,23 +219,41 @@ class App(tk.Tk):
 
     def build_wiki(self):
         tab = self.wiki_tab
-        ttk.Label(tab, text='从本机客户端读取角色、技能、个性与专武，写入这个离线资料馆。写入前自动备份，可一键回滚。',
-                  foreground='#4a5761').pack(anchor='w')
-        ttk.Label(tab, text=f'资料馆：{ROOT}', foreground='#7a8790').pack(anchor='w', pady=(2, 8))
+        ttk.Label(tab, text='纯本地客户端解析，无需联网 wiki：从本机客户端读取角色、技能、个性与专武，生成离线资料馆的 data/ 与 assets/。所有页面与一图流均由客户端数据构建，BWIKI 专有装饰（标题 Logo、稀有度/职业/阵营徽章、属性图标、塔罗/刻印原图、自定义字体）在缺失时自动留空，不影响资料馆使用。写入前自动备份，可一键回滚。',
+                  foreground='#4a5761', wraplength=1040).pack(anchor='w')
+        ttk.Label(tab, text=f'资料馆：{ROOT}', foreground='#7a8790').pack(anchor='w', pady=(2, 6))
         modes = ttk.LabelFrame(tab, text='更新方式', padding=8)
         modes.pack(fill='x', pady=(4, 6))
-        ttk.Radiobutton(modes, text='差量更新（只补缺失内容与客户端新增角色；冲突以本地客户端为准）', value='diff', variable=self.mode).pack(anchor='w')
-        ttk.Radiobutton(modes, text='全覆盖（已匹配角色全部按客户端重算并覆盖；攻略、署名与备份保留）', value='full', variable=self.mode).pack(anchor='w')
-        ttk.Checkbutton(tab, text='更新后重建一图流数据（推荐）', variable=self.rebuild).pack(anchor='w', pady=(0, 8))
+        ttk.Radiobutton(modes, text='差量更新（只补缺失与空白字段；手动修改与署名保留）', value='diff', variable=self.mode).pack(anchor='w')
+        ttk.Radiobutton(modes, text='全覆盖（全部已匹配角色按客户端重算并覆盖；攻略、署名与备份保留）', value='full', variable=self.mode).pack(anchor='w')
+        ttk.Checkbutton(tab, text='更新后重建索引与一图流数据（推荐）', variable=self.rebuild).pack(anchor='w', pady=(0, 6))
+        ttk.Checkbutton(tab, text='强制重新解析客户端（忽略已缓存的配置表）', variable=self.force_extract).pack(anchor='w', pady=(0, 8))
+        select = ttk.LabelFrame(tab, text='解析出的版本（一键拉取后在此选择；已拉取的版本无需重复拉取）', padding=8)
+        select.pack(fill='x', pady=(4, 6))
+        self.pull_choice = ttk.Combobox(select, textvariable=self.pull_label, state='readonly', width=72)
+        self.pull_choice.pack(side='left', padx=(0, 6))
+        ttk.Button(select, text='刷新列表', command=self.safe_refresh_pulls).pack(side='left')
         buttons = ttk.Frame(tab)
         buttons.pack(fill='x')
         self.wiki_buttons = []
-        for text, action in (('检查新角色', self.check), ('预览差异', self.preview), ('一键拉取并更新', self.run_update),
-                             ('回滚上次更新', self.rollback)):
+        for text, action in (('检查新角色', self.check), ('补充新角色', self.add_new), ('预览差异', self.preview),
+                             ('一键拉取', self.pull), ('更新', self.update_wiki), ('回滚上次更新', self.rollback)):
             button = ttk.Button(buttons, text=text, command=action)
             button.pack(side='left', padx=(0, 6))
             self.wiki_buttons.append(button)
-        self.wiki_log = self.log_box(tab, 18)
+        prog = ttk.LabelFrame(tab, text='当前进度', padding=(10, 6))
+        prog.pack(fill='x', pady=(4, 6))
+        self.wiki_step = tk.StringVar(value='就绪')
+        self.wiki_elapsed = tk.StringVar(value='')
+        ttk.Label(prog, textvariable=self.wiki_step, style='Now.TLabel', wraplength=1040).pack(anchor='w')
+        self.wiki_bar = ttk.Progressbar(prog, maximum=1000, mode='determinate')
+        self.wiki_bar.pack(fill='x', pady=(4, 0))
+        foot = ttk.Frame(prog)
+        foot.pack(fill='x', pady=(4, 0))
+        ttk.Label(foot, textvariable=self.wiki_elapsed, foreground='#4a5761').pack(side='left')
+        ttk.Button(foot, text='打开日志目录', command=lambda: self.open_folder(OUTPUT / 'logs')).pack(side='right')
+        ttk.Button(foot, text='打开本次日志', command=self.open_last_log).pack(side='right', padx=(0, 6))
+        self.wiki_log = self.log_box(tab, 16)
 
     def log_box(self, parent, height):
         box = scrolledtext.ScrolledText(parent, height=height, wrap='word', font=('Consolas', 9))
@@ -245,11 +276,30 @@ class App(tk.Tk):
                     self.append(*payload)
                 elif kind == 'progress':
                     self.show_progress(payload[0])
+                elif kind == 'wikistep':
+                    self.wiki_step.set(payload[0])
+                    self.set_bar(None if len(payload) > 1 and payload[1] else 0, 1)
+                elif kind == 'wikiprog':
+                    text, done, total = payload
+                    self.wiki_step.set(text)
+                    self.set_bar(done, total)
                 elif kind == 'call':
                     payload[0]()
         except queue.Empty:
             pass
+        if self.busy and self.busy_since:
+            self.wiki_elapsed.set(f'{self.busy} · 已用时 {clock(time.monotonic() - self.busy_since)}')
         self.after(100, self.pump)
+
+    def set_bar(self, done, total):
+        """done=None: indeterminate (busy, unknown length); otherwise determinate."""
+        if done is None:
+            if str(self.wiki_bar.cget('mode')) != 'indeterminate':
+                self.wiki_bar.configure(mode='indeterminate')
+                self.wiki_bar.start(25)
+            return
+        self.wiki_bar.stop()
+        self.wiki_bar.configure(mode='determinate', value=int(done / total * 1000) if total else 0)
 
     def later(self, fn):
         self.messages.put(('call', fn))
@@ -301,6 +351,7 @@ class App(tk.Tk):
             messagebox.showinfo('请稍候', f'「{self.busy}」还在进行中。')
             return False
         self.busy = label
+        self.busy_since = time.monotonic()
         self.status.set(label + '…')
         box = box or self.archive_log
 
@@ -316,7 +367,10 @@ class App(tk.Tk):
                 self.messages.put(('log', box, '\n' + traceback.format_exc()))
             finally:
                 def finish():
+                    if self.busy_since:
+                        self.wiki_elapsed.set(f'{self.busy} 结束 · 用时 {clock(time.monotonic() - self.busy_since)}')
                     self.busy = None
+                    self.busy_since = None
                     self.status.set('就绪')
                     if on_done:
                         on_done(result)
@@ -558,65 +612,317 @@ class App(tk.Tk):
         self.thread('清理未引用文件', job, lambda _: self.refresh_versions())
 
     # -- wiki --------------------------------------------------------------------------
-    def wiki_job(self, label, job):
+    def wiki_job(self, label, job, context=()):
+        """Run ``job`` on a worker; every line goes to the GUI log and to output/logs/<time>-<label>.log."""
+        if self.busy:
+            messagebox.showinfo('请稍候', f'「{self.busy}」还在进行中，进度见下方日志。')
+            return
+        logs = OUTPUT / 'logs'
+        logs.mkdir(parents=True, exist_ok=True)
+        path = logs / f"{time.strftime('%Y%m%d-%H%M%S')}-{label}.log"
+        self.last_log = path
+        stream = open(path, 'a', encoding='utf-8', buffering=1)
+
+        def sink(text):
+            self.messages.put(('log', self.wiki_log, text))
+            try:
+                stream.write(text)
+            except (OSError, ValueError):
+                pass
+        sink(f"\n—— {time.strftime('%Y-%m-%d %H:%M:%S')} 开始「{label}」 ——\n日志文件：{path}\n")
+        for line in context:
+            sink(f'  {line}\n')
+        self.wiki_step.set(f'「{label}」已开始…')
+        self.set_bar(None, 1)
+        started = time.monotonic()
+
         def wrapped():
-            writer = QueueWriter(lambda text: self.messages.put(('log', self.wiki_log, text)))
-            original = sys.stdout
-            sys.stdout = writer
+            writer = QueueWriter(sink)
+            original = sys.stdout, sys.stderr
+            sys.stdout = sys.stderr = writer
             try:
                 job()
-                print(f'\n{label}完成。')
+                print(f"[{time.strftime('%H:%M:%S')}] 「{label}」完成，用时 {clock(time.monotonic() - started)}。")
+            except BaseException as error:
+                print(f"[{time.strftime('%H:%M:%S')}] 「{label}」失败：{type(error).__name__}：{error}")
+                print(traceback.format_exc())
+                self.messages.put(('wikistep', f'出错：{type(error).__name__}：{error}（详见日志）', False))
             finally:
-                sys.stdout = original
+                sys.stdout, sys.stderr = original
+                try:
+                    stream.close()
+                except OSError:
+                    pass
         for button in self.wiki_buttons:
             button.configure(state='disabled')
         if not self.thread(label, wrapped, lambda _: [b.configure(state='normal') for b in self.wiki_buttons], self.wiki_log):
+            stream.close()
             for button in self.wiki_buttons:
                 button.configure(state='normal')
+
+    def open_last_log(self):
+        if self.last_log and Path(self.last_log).is_file() and os.name == 'nt':
+            os.startfile(self.last_log)
+        else:
+            self.open_folder(OUTPUT / 'logs')
+
+    def progress(self, message, done=None, total=None):
+        """Progress callback for worker code: updates the label/bar and logs a timestamped line."""
+        self.messages.put(('wikiprog', message, done, total))
+        print(f"[{time.strftime('%H:%M:%S')}] {message}", flush=True)
 
     def arguments(self, *extra):
         return [*extra, '--game', self.game.get(), '--output', str(OUTPUT), '--wiki', str(ROOT)]
 
-    def snapshot(self):
-        args = cli.parser().parse_args(self.arguments('characters', '--missing'))
-        game, snap = cli.extract(args)
-        have = cli.wiki_names(ROOT)
-        names = list(dict.fromkeys(c['name'] for c in snap['characters'] if c['name'] not in have))
-        return game, snap, names
+    def extract_args(self):
+        argv = ['extract', '--game', self.game.get(), '--output', str(OUTPUT)]
+        if self.force_extract.get():
+            argv.append('--force-extract')
+        return cli.parser().parse_args(argv)
+
+    def do_extract(self):
+        """Pull (extract) client configuration; returns (game, snapshot)."""
+        return cli.extract(self.extract_args(), progress=lambda msg: self.progress(msg))
+
+    def set_pulled(self, game, snapshot):
+        fp = snapshot['client']['fingerprint']
+        label = f"{snapshot['extractedAt'][:19]} · {fp[:12]} · {len(snapshot['characters'])} 角色"
+        self.pulls[fp] = (label, str(game), snapshot)
+        (OUTPUT / 'pulls').mkdir(parents=True, exist_ok=True)
+        (OUTPUT / 'pulls' / (fp + '.json')).write_text(
+            json.dumps(snapshot, ensure_ascii=False, separators=(',', ':')), 'utf8')
+        self.later(lambda: self.safe_refresh_pulls(select=fp))
+
+    def safe_refresh_pulls(self, select=None):
+        try:
+            self.refresh_pulls(select)
+            self.append(self.wiki_log, f"已载入 {len(self.pull_items)} 个可用版本。\n")
+        except Exception:
+            self.append(self.wiki_log, '读取已拉取版本失败：\n' + traceback.format_exc())
+
+    def refresh_pulls(self, select=None):
+        try:
+            default_game = str(game_root(Path(self.game.get())))
+        except (ValueError, OSError):
+            default_game = str(self.game.get())
+        found = {}
+        pulls_dir = OUTPUT / 'pulls'
+        candidates = sorted(pulls_dir.glob('*.json'), key=lambda p: p.stat().st_mtime, reverse=True) \
+            if pulls_dir.is_dir() else []
+        cd = OUTPUT / 'client-data.json'
+        if cd.is_file():
+            candidates.insert(0, cd)
+        for f in candidates:
+            try:
+                snap = json.loads(f.read_text('utf8'))
+            except (OSError, ValueError):
+                continue
+            fp = snap.get('client', {}).get('fingerprint') or f.stem
+            if fp in found:
+                continue
+            game = str(snap.get('client', {}).get('game') or default_game)
+            tag = '（库内快照）' if f is cd else '（已保存）'
+            label = f"{snap['extractedAt'][:19]} · {fp[:12]} · {len(snap['characters'])} 角色{tag}"
+            found[fp] = (label, game, snap)
+        for fp, (label, game, snap) in self.pulls.items():
+            found.setdefault(fp, (label, game, snap))
+        ordered = sorted(found.items(), key=lambda kv: kv[1][0], reverse=True)
+        self.pulls = {fp: v for fp, v in ordered}
+        self.pull_items = ordered
+        self.pull_choice['values'] = [v[0] for _, v in ordered]
+        if select:
+            for index, (fp, _) in enumerate(ordered):
+                if fp == select or fp.startswith(select):
+                    self.pull_choice.current(index)
+                    break
+        elif ordered and self.pull_choice.current() < 0:
+            self.pull_choice.current(0)
+
+    def current_pull(self):
+        # Main-thread only: reads the version selector and resolves it to (game, snapshot).
+        index = self.pull_choice.current()
+        if index < 0 or index >= len(self.pull_items):
+            return None
+        fp = self.pull_items[index][0]
+        if fp in self.pulls:
+            _, game, snapshot = self.pulls[fp]
+            return game, snapshot
+        return self.load_pull(fp)
+
+    def load_pull(self, fp):
+        path = OUTPUT / 'pulls' / (fp + '.json')
+        if not path.is_file():
+            return None
+        snap = json.loads(path.read_text('utf8'))
+        game = str(snap.get('client', {}).get('game') or self.game.get())
+        self.pulls[fp] = (f"{snap['extractedAt'][:19]} · {fp[:12]} · {len(snap['characters'])} 角色 (磁盘)", game, snap)
+        return game, snap
+
+    def step(self, text, busy=True):
+        self.messages.put(('wikistep', text, busy))
+        print(f"[{time.strftime('%H:%M:%S')}] {text}", flush=True)
+
+    def context(self, label, chosen=None):
+        index = self.pull_choice.current()
+        version = self.pull_items[index][1][0] if 0 <= index < len(self.pull_items) else '（未选择，将现场解析客户端）'
+        lines = [f'版本：{version}', f'资料馆：{ROOT}', f'客户端：{self.game.get()}',
+                 f"方式：{'全覆盖' if self.mode.get() == 'full' else '差量更新'} · 重建索引：{'是' if self.rebuild.get() else '否'}"]
+        if chosen:
+            lines.append(f'解析用客户端目录：{chosen[0]}')
+        return lines
+
+    def pull(self):
+        def job():
+            self.step('正在读取客户端配置表…')
+            game, snapshot = self.do_extract()
+            self.set_pulled(game, snapshot)
+            self.step(f"拉取完成：{len(snapshot['characters'])} 个角色 · "
+                       f"{len(snapshot['skills'])} 条技能 · {len(snapshot['statuses'])} 个关联词条", False)
+        self.wiki_job('一键拉取', job)
 
     def check(self):
-        self.wiki_job('检查新角色', lambda: cli.main(self.arguments('characters', '--missing')))
+        chosen = self.current_pull()
+        def job():
+            if chosen:
+                game, snapshot = chosen
+            else:
+                self.step('正在读取客户端配置表…')
+                game, snapshot = self.do_extract()
+                self.set_pulled(game, snapshot)
+            self.step('正在比对已收录角色…')
+            have = cli.wiki_names(ROOT)
+            counts = {}
+            for char in snapshot['characters']:
+                counts[char['name']] = counts.get(char['name'], 0) + 1
+            missing = [c for c in snapshot['characters'] if c['name'] not in have]
+            print(f"客户端共 {len(snapshot['characters'])} 个成长配置完整的角色；"
+                  f"资料馆已收录 {len(have)} 个；客户端有而资料馆缺 {len(missing)} 个。")
+            for char in sorted(missing, key=lambda c: c['name']):
+                print(f"  缺：{char['name']}（{'同名重复' if counts[char['name']] > 1 else char['rarity']}）")
+            self.step(f"检查完成：资料馆缺 {len(missing)} 个客户端角色。", False)
+        self.wiki_job('检查新角色', job)
 
-    def update_argv(self, game, names, dry):
-        if self.mode.get() == 'diff':
-            argv = ['add']
-            for name in names:
-                argv += ['--character', name]
-            argv += ['--refresh', '--game', str(game), '--output', str(OUTPUT), '--wiki', str(ROOT)]
-            argv += ['--dry-run'] if dry else ([] if self.rebuild.get() else ['--no-rebuild'])
-            return argv
-        if dry:
-            return self.arguments('plan', '--all', '--refresh')
-        return ['update', '--all', '--refresh', '--game', str(game), '--output', str(OUTPUT), '--wiki', str(ROOT)] + \
-            ([] if self.rebuild.get() else ['--no-rebuild'])
+    def add_new(self):
+        """Import the characters the client has and the wiki does not.
+
+        「检查新角色」only lists them; this runs the same one-shot import the
+        ``add`` command performs, so a new character never needs the console.
+        """
+        chosen = self.current_pull()
+        def job():
+            if chosen:
+                game, snapshot = chosen
+            else:
+                self.step('正在读取客户端配置表…')
+                game, snapshot = self.do_extract()
+                self.set_pulled(game, snapshot)
+            self.step('正在比对已收录角色…')
+            have = cli.wiki_names(ROOT)
+            counts = {}
+            for char in snapshot['characters']:
+                counts[char['name']] = counts.get(char['name'], 0) + 1
+            missing = [c['name'] for c in snapshot['characters']
+                       if c['name'] not in have and c.get('enabled', True)]
+            names = [name for name in dict.fromkeys(missing) if counts[name] == 1]
+            ambiguous = [name for name in dict.fromkeys(missing) if counts[name] > 1]
+            for name in ambiguous:
+                print(f'  跳过：{name}（客户端有多个同名角色，需先用命令行指定完整名称）')
+            if not names:
+                self.step('资料馆已收录客户端全部角色，没有需要补录的新角色。', False)
+                return
+            upcoming = [c['name'] for c in snapshot['characters']
+                        if c['name'] in names and not c.get('available')]
+            print(f'待补录 {len(names)} 个角色：' + '、'.join(names))
+            for name in upcoming:
+                print(f'  尚未开放（已按客户端配置收录）：{name}')
+            args = argparse.Namespace(character=names, wiki=ROOT, output=OUTPUT,
+                                      refresh=self.mode.get() == 'full', sprite_variant='base',
+                                      dry_run=False, no_rebuild=not self.rebuild.get())
+            self.step(f'正在导入 {len(names)} 个新角色（先备份，耗时数分钟）…')
+            cli.add_character(args, Path(game), snapshot)
+            self.step(f'补录完成：{len(names)} 个新角色已写入资料馆。', False)
+        self.wiki_job('补充新角色', job, self.context('补充新角色', chosen))
 
     def preview(self):
+        chosen = self.current_pull()
         def job():
-            game, _, names = self.snapshot()
-            if self.mode.get() == 'diff' and not names:
-                print('没有客户端新增的角色；可改用「全覆盖」刷新已收录角色。')
+            if chosen:
+                game, snapshot = chosen
+            else:
+                self.step('正在读取客户端配置表…')
+                game, snapshot = self.do_extract()
+                self.set_pulled(game, snapshot)
+            self.step('正在生成预览（不写入）…')
+            refresh = self.mode.get() == 'full'
+            # 客户端已启用、只是开放时间还没到的角色也要收录：配置是完整的，
+            # 只是还没上线（新角色常常提前进包）。只有 enable=0 的废案才跳过。
+            names = [c['name'] for c in snapshot['characters'] if c.get('enabled', True)]
+            if not names:
+                self.step('该版本没有可更新的角色（客户端配置可能不完整），请重新「一键拉取」。', False)
                 return
-            cli.main(self.update_argv(game, names, True))
-        self.wiki_job('预览差异', job)
+            files, expected, report = plan_update(ROOT, Path(game), snapshot, names, False, refresh, 'base',
+                                                  progress=self.progress)
+            print(f"预览：将更新 {len(report['characters'])} 个角色 · "
+                  f"页面 {sum(1 for f in report['files'] if f['path'].startswith('data/pages/'))} 个 · "
+                  f"图片 {sum(1 for f in report['files'] if f['path'].startswith('assets/'))} 张 · "
+                  f"字段差异 {len(report['conflicts'])} · 缺失原资源 {len(report['missingAssets'])}")
+            print('预览完成，Wiki 未写入。')
+            self.step('预览完成，Wiki 未写入。', False)
+        self.wiki_job('预览差异', job, self.context('预览差异', chosen))
 
-    def run_update(self):
+    def update_wiki(self):
+        chosen = self.current_pull()
+        if not chosen:
+            messagebox.showinfo('还没有拉取的版本',
+                                '请先点「一键拉取」解析客户端；或在上方版本列表里选择一个已拉取的版本。')
+            return
+        game, snapshot = chosen
+
+        refresh = self.mode.get() == 'full'
+        rebuild = self.rebuild.get()
+
         def job():
-            game, _, names = self.snapshot()
-            if self.mode.get() == 'diff' and not names:
-                print('没有客户端新增的角色；可改用「全覆盖」刷新已收录角色。')
+            # 客户端已启用、只是开放时间还没到的角色也要收录：配置是完整的，
+            # 只是还没上线（新角色常常提前进包）。只有 enable=0 的废案才跳过。
+            names = [c['name'] for c in snapshot['characters'] if c.get('enabled', True)]
+            upcoming = [c['name'] for c in snapshot['characters'] if c.get('enabled', True) and not c.get('available')]
+            self.step(f'第 1/3 步：生成角色、技能、个性与专武页面（{len(names)} 个角色，耗时数分钟）…')
+            if not names:
+                self.step('该版本没有可更新的角色（客户端配置可能不完整），请重新「一键拉取」。', False)
                 return
-            cli.main(self.update_argv(game, names, False))
-        self.wiki_job('一键拉取并更新', job)
+            files, expected, report = plan_update(ROOT, Path(game), snapshot, names, False, refresh, 'base',
+                                                  progress=self.progress)
+            self.step('第 2/3 步：写入 data/ 与 assets/（先备份）…')
+            backup = apply(ROOT, files, expected, OUTPUT / 'backups', progress=self.progress)
+            (OUTPUT / 'update-report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), 'utf8')
+            (OUTPUT / 'update-report.md').write_text(cli.report_markdown(report), 'utf8')
+            if not backup:
+                self.step('数据已是当前版本，data/ 与 assets/ 无需修改。', False)
+                return
+            (backup / 'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), 'utf8')
+            (backup / 'report.md').write_text(cli.report_markdown(report), 'utf8')
+            (OUTPUT / 'last-backup.txt').write_text(str(backup), 'utf8')
+            print(f'备份：{backup}')
+            if rebuild:
+                self.step('第 3/3 步：重建搜索索引与一图流数据…')
+                try:
+                    rebuild_wiki(print)
+                except Exception as error:
+                    print('重建索引出错（data/ 与 assets/ 已写入，可忽略或稍后重试）：', error)
+                    self.step(f'更新完成，但重建索引失败：{error}（data/ 与 assets/ 已落地，可重试「更新」）', False)
+                    return
+            else:
+                self.step('第 3/3 步：已按设置跳过重建索引。')
+            pages = sum(1 for f in report['files'] if f['path'].startswith('data/pages/'))
+            images = sum(1 for f in report['files'] if f['path'].startswith('assets/'))
+            self.step(f"更新完成：{len(report['characters'])} 个角色 · 页面 {pages} 个 · 图片 {images} 张"
+                      f" · 字段差异 {len(report['conflicts'])} · 缺失原资源 {len(report['missingAssets'])}", False)
+            for name in upcoming:
+                print('  尚未开放（已按客户端配置收录）：' + name)
+            for line in cli.missing_lines(report['missingAssets']):
+                print('  ' + line)
+            print(f"报告：{OUTPUT / 'update-report.md'}")
+        self.wiki_job('更新 Wiki', job, self.context('更新 Wiki', chosen))
 
     def rollback(self):
         def job():

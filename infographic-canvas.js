@@ -27,6 +27,9 @@ window.WikiInfographicCanvas=(()=>{
   }
   const signatureFonts=new Map();
   function signatureFont(source,family,variable,label='签名字体',descriptors={}){
+    // 纯客户端构建没有自定义题名字体（nameFont.script 为空），直接使用系统后备字体，
+    // 不要去加载一个空路径的脚本（会触发 onerror 且永久卡死成图）。
+    if(!source)return Promise.resolve();
     if(!signatureFonts.has(family))signatureFonts.set(family,new Promise((resolve,reject)=>{
       const script=document.createElement('script');let timer,done=false;
       const finish=error=>{if(done)return;done=true;clearTimeout(timer);script.remove();if(error){signatureFonts.delete(family);reject(error);}else resolve();};
@@ -291,8 +294,11 @@ window.WikiInfographicCanvas=(()=>{
   }
   async function titleArtwork(model,state,data,{maxWidth=695,height=143,density=2}={}){
     maxWidth*=state.titleScale??1;height*=state.titleScale??1;
-    const name=titleText(model,state),mode=state.titleMode||(state.customTitle?'image':data.referenceTitles?.[model.character.id]&&name===model.character.name?'reference':'text');
-    const reference=mode==='reference'&&name===model.character.name?data.referenceTitles?.[model.character.id]:null;
+    // Reference wordmarks are keyed by character name, with the page id kept as a
+    // fallback so older archives still resolve.
+    const titled=key=>data.referenceTitles?.[model.character.name]||data.referenceTitles?.[key]||null;
+    const name=titleText(model,state),mode=state.titleMode||(state.customTitle?'image':titled(model.character.id)&&name===model.character.name?'reference':'text');
+    const reference=mode==='reference'&&name===model.character.name?titled(model.character.id):null;
     const uploaded=mode==='image'?state.customTitle:null;
     const key=[name,state.titleColor,mode,state.titleFont,state.titleImageTint,state.titleItalic,state.titleBold,state.titleScale,state.titleOutlineWidth,state.titleOutlineColor,state.titleShadow,uploaded||reference||data.nameFont.version,maxWidth,height,density].join('|');
     if(titleCache.has(key))return titleCache.get(key);
@@ -406,7 +412,8 @@ window.WikiInfographicCanvas=(()=>{
     // A uploaded background wins over the archived portraits; it is stored with the draft.
     const customArt=state.background.portrait==='custom'?state.backgroundImage:null;
     const portrait=customArt||model.character.portraits?.find(p=>p.key===state.background.portrait)?.src||model.portrait,liberations=model.liberations||[];
-    const referenceTitle=!state.titleName?.trim()||titleText(model,state)===character.name?data.referenceTitles?.[character.id]:null;
+    const referenceTitle=!state.titleName?.trim()||titleText(model,state)===character.name
+      ?(data.referenceTitles?.[character.name]||data.referenceTitles?.[character.id]||null):null;
     const paths=new Set([data.logo,portrait,referenceTitle,character.sprite,...model.badges.flatMap(b=>[b.background,b.image]),...Object.values(data.statIcons||{}),model.trait?.image,...liberations.map(s=>s.image)]);
     for(const skill of model.skills)paths.add(skill.image);
     for(const id of [state.exclusive,...state.weapons,...state.accessories])paths.add(equipmentMap.get(id)?.image);
@@ -603,7 +610,7 @@ window.WikiInfographicCanvas=(()=>{
       const iconSize=Math.min(20,cellH*.52,cellW*.18),iconX=px+7,iconY=py+4,source=images.get(data.statIcons?.[key]);
       c.save();c.translate(iconX,iconY);c.fillStyle='#9ebfc7';
       if(source){const mask=document.createElement('canvas');mask.width=26;mask.height=26;const mc=mask.getContext('2d');mc.drawImage(source,0,0,26,26);mc.globalCompositeOperation='source-in';mc.fillStyle='#9ebfc7';mc.fillRect(0,0,26,26);c.drawImage(mask,0,0,iconSize,iconSize);}
-      else{c.scale(iconSize/26,iconSize/26);c.fill(new Path2D(window.WikiInfographicRules.speedIconPath));}c.restore();
+      else{c.scale(iconSize/26,iconSize/26);c.fill(new Path2D(window.WikiInfographicRules.statIconPaths?.[key]||window.WikiInfographicRules.speedIconPath));}c.restore();
       // Compact labels identify the icons while the current value remains the visual focus.
       c.save();c.bodyStyle={...state,bodyOutlineWidth:0};font(c,Math.min(8,detailSize),500);c.fillStyle='#adc4c9';c.textAlign='left';styledText(c,label,iconX+iconSize+2,py+5);
       font(c,valueSize,700);c.fillStyle='#e7c479';c.textAlign='right';styledText(c,String(value||'—'),px+cellW-9,py+3);

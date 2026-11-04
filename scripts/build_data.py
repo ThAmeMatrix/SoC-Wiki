@@ -4,7 +4,7 @@ import collections, hashlib, html, json, pathlib, re, warnings
 from datetime import datetime, timezone, timedelta
 from urllib.parse import unquote, urlparse, parse_qs
 from bs4 import BeautifulSoup, Comment, MarkupResemblesLocatorWarning
-from character_data import catalog_order, character_images, star_comparison
+from character_data import catalog_order, character_images, star_comparison, EQUIPMENT_STAR_KEYS
 warnings.filterwarnings('ignore', category=MarkupResemblesLocatorWarning)
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -262,7 +262,7 @@ def main():
         if t in ('skill','talent'):
             related=list(dict.fromkeys(TITLES[name] for name in re.findall(r'title="(角色图鉴库/[^"<>]+)"',p['text']) if name in TITLES))
         doc={'id':pid,'title':title,'html':body,'fields':ff,'rawFields':props,'related':related,'recoveredFields':recovered,'revision':p.get('revid'),'date':date,'sections':p.get('sections',[]),'source':'https://wiki.biligame.com/llzj/index.php?title='+title+'&oldid='+str(p.get('revid','')),'hasOnlineMedia':pid in EXTERNAL_PAGES}
-        comparison=star_comparison(ff) if t=='talent' else None
+        comparison=star_comparison(ff, EQUIPMENT_STAR_KEYS) if t=='equipment' else star_comparison(ff) if t=='talent' else None
         if comparison:doc['starComparison']=comparison
         (OUT/(str(pid)+'.js')).write_text('window.WIKI_PAGES['+str(pid)+']='+dumps(doc)+';\n',encoding='utf-8')
         sources.append({'id':pid,'title':title,'revision':p.get('revid'),'date':date})

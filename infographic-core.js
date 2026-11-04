@@ -304,6 +304,15 @@
   const mobilityStatDefinitions=[['movement','移动'],['jump','跳跃']];
   const baseStatDefinitions=[...combatStatDefinitions,...mobilityStatDefinitions];
   const speedIconPath='M3 5C10 8 17 6 23 2C21 9 16 13 8 12L11 16C16 16 19 13 21 11C20 17 17 20 13 20L15 25C9 21 5 14 3 5ZM6 6L12 23L10 13Z';
+  // 客户端没有单独的属性图标贴图，资料馆自带的 BWIKI 图标删掉后这里给出矢量替代图，
+  // 保证一图流与预览里六种属性各自有图形可认（全部画在 26x26 的方格里）。
+  const statIconPaths={
+    attack:'M13 1.5L20.5 19.5L13 16L5.5 19.5L13 1.5ZM13 7.6L10.2 15.6L13 14.3L15.8 15.6L13 7.6Z',
+    magic:'M13 1.5L15.7 10.3L24.5 13L15.7 15.7L13 24.5L10.3 15.7L1.5 13L10.3 10.3L13 1.5Z',
+    defense:'M13 1.5L22.5 5.5V13C22.5 18.8 18.4 22.9 13 24.5C7.6 22.9 3.5 18.8 3.5 13V5.5L13 1.5ZM13 4.6L6 7.3V13C6 17.2 9.2 20.4 13 21.8C16.8 20.4 20 17.2 20 13V7.3L13 4.6Z',
+    resistance:'M13 1.5C13 1.5 22.5 11.2 22.5 16.2C22.5 20.9 18.2 24.5 13 24.5C7.8 24.5 3.5 20.9 3.5 16.2C3.5 11.2 13 1.5 13 1.5ZM13 6.1C13 6.1 6.7 12.9 6.7 16.2C6.7 19.8 9.5 22.6 13 22.6C16.5 22.6 19.3 19.8 19.3 16.2C19.3 12.9 13 6.1 13 6.1Z',
+    health:'M13 22.5C6.6 17.4 2.6 13.8 2.6 9.7C2.6 6.5 5.1 4.2 8 4.2C9.9 4.2 11.8 5.3 13 7C14.2 5.3 16.1 4.2 18 4.2C20.9 4.2 23.4 6.5 23.4 9.7C23.4 13.8 19.4 17.4 13 22.5Z',
+    agility:speedIconPath};
   function baseStats(character,fields={}){const text=v=>String(v??'').trim();return {attack:text(character.stats?.['物攻']||fields['满级满星物攻']),magic:text(character.stats?.['魔攻']||fields['满级满星魔攻']),defense:text(character.stats?.['物防']||fields['满级满星物防']),resistance:text(character.stats?.['魔防']||fields['满级满星魔防']),health:text(character.stats?.['生命']||fields['满级满星生命']),agility:text(character.stats?.['敏捷']||fields['满级满星敏捷']||fields['初始敏捷']),movement:text(fields['移动']),jump:text(fields['跳跃高度']),jumpFar:text(fields['跳跃远度'])};}
   function statRatio(value,max){const n=Number(value),m=Number(max);return String(value??'').trim()!==''&&Number.isFinite(n)&&n>=0&&Number.isFinite(m)&&m>0?Math.min(100,n/m*100):null;}
   function validDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const d=new Date(value+'T12:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;}
@@ -328,5 +337,5 @@
     const scale=number(background.scale*factor,.15,4,background.scale),ratio=scale/background.scale;
     return {...background,scale,x:number(background.x+(1-ratio)*(anchor.x-(rect.x+rect.w/2)),-W*2,W*2,0),y:number(background.y+(1-ratio)*(anchor.y-(rect.y+rect.h/2)),-H*2,H*2,0)};
   }
-  return {canvasSize,commentary,addLoadout,removeLoadout,richRuns,richColors,richColorNames:Object.keys(richColors),sanitizeRich,radarChart,radarCharts,addRadarChart,removeRadarChart,renameRadarChart,addRadarAxis,removeRadarAxis,renameRadarAxis,setRadarScore,setRadarMax,setRadarAxisMax,setRadarUnit,chartAxes,chartMax,chartUnit,axisLimits,chartLimits,imageData,radarAxes,combatStatDefinitions,mobilityStatDefinitions,speedIconPath,baseStatDefinitions,baseStats,statRatio,layoutKeys,layoutRect,snapLayout,axes,ranks,treeNames,kind,pool,defaults,restore,canMark,cycleMark,setSlot,moveSlot,branchSpan,branchEnds,posterDate,validDate,backgroundRect,zoomBackground};
+  return {canvasSize,commentary,addLoadout,removeLoadout,richRuns,richColors,richColorNames:Object.keys(richColors),sanitizeRich,radarChart,radarCharts,addRadarChart,removeRadarChart,renameRadarChart,addRadarAxis,removeRadarAxis,renameRadarAxis,setRadarScore,setRadarMax,setRadarAxisMax,setRadarUnit,chartAxes,chartMax,chartUnit,axisLimits,chartLimits,imageData,radarAxes,combatStatDefinitions,mobilityStatDefinitions,speedIconPath,statIconPaths,baseStatDefinitions,baseStats,statRatio,layoutKeys,layoutRect,snapLayout,axes,ranks,treeNames,kind,pool,defaults,restore,canMark,cycleMark,setSlot,moveSlot,branchSpan,branchEnds,posterDate,validDate,backgroundRect,zoomBackground};
 });

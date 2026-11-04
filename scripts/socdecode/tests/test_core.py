@@ -27,6 +27,18 @@ class ContentTests(TestCase):
         self.assertNotIn('<script>',result)
         self.assertIn('&lt;script&gt;',result)
 
+    def test_less_than_sign_does_not_swallow_the_next_colour_tag(self):
+        # 「<」在技能文案里是小于号：它紧挨着的那个 <style> 必须照样解析成颜色，
+        # 不能和小于号粘成一个 token（那样配色失效、两个「<」还一起漏成可见文本）。
+        result=render('[虔诚值]<<style=red>0</style>的敌人，攻防属性降低')
+        self.assertIn('wiki-color-red',result)
+        self.assertNotIn('&lt;&lt;style',result)
+        self.assertIn('&lt;',result)          # 小于号本身仍要转义显示
+        result=render('伤害<50%时，提高<style=red>25%</style>。')
+        self.assertIn('伤害&lt;50%时',result)
+        self.assertIn('wiki-color-red',result)
+        self.assertNotIn('&lt;style=red&gt;',result)
+
     def test_confirmed_gloria_stat_formula_and_rounding(self):
         values={'hp':1741,'physic_attack':694,'spell_attack':486,'physic_defence':245,'spell_defence':199}
         rank={'hp_add':1143,'physic_attack_add':425,'spell_attack_add':300,'physic_defence_add':151,'spell_defence_add':123}

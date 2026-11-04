@@ -3,3 +3,5 @@ beautifulsoup4>=4.12,<5
 Pillow>=10,<13
 UnityPy>=1.24,<2
 numpy>=1.26,<3
+# 可选：安装后搜索支持拼音（如 sms、samansha）；缺失时其余功能不受影响。
+pypinyin>=0.50

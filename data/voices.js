@@ -1,0 +1,1 @@
+window.WIKI_VOICES={};

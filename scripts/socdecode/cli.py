@@ -47,11 +47,11 @@ def parser():
     sub.add_argument('--no-rebuild',action='store_true',help='写入后不重建搜索索引与一图流数据')
     return p
 
-def extract(args):
+def extract(args, progress=None):
     game=game_root(args.game)
     remember_game(args.game)
     args.output.mkdir(parents=True,exist_ok=True)
-    tables,meta=extract_tables(game,args.output/'cache',args.force_extract)
+    tables,meta=extract_tables(game,args.output/'cache',args.force_extract, progress=progress)
     path=args.output/'client-data.json'
     previous=json.loads(path.read_text('utf8')) if path.exists() else None
     snapshot=build_snapshot(tables,meta)
@@ -62,7 +62,26 @@ def extract(args):
     listing=[{k:c[k] for k in ('name','id','unitId','class','rarity','available','availableAt')} for c in snapshot['characters']]
     (args.output/'characters.json').write_text(json.dumps(listing,ensure_ascii=False,indent=2),'utf8')
     print(f"提取完成：{len(snapshot['characters'])} 个成长配置完整的角色，{len(snapshot['skills'])} 条相关技能，{len(snapshot['statuses'])} 个关联词条。",flush=True)
+    if progress:
+        progress(f"提取完成：{len(snapshot['characters'])} 个角色 · {len(snapshot['skills'])} 条技能 · {len(snapshot['statuses'])} 个关联词条")
     return game,snapshot
+
+def missing_lines(items):
+    """How the missing-client-asset list should read.
+
+    Skin wordmarks live in ``icon/skin_card*`` and the client simply does not ship
+    them (each of those characters keeps its base portrait), so listing twenty of
+    them as failures reads as a broken update. Everything else is a real gap.
+    """
+    skins = [x for x in items if x.startswith('icon/skin_card')]
+    others = [x for x in items if not x.startswith('icon/skin_card')]
+    lines = ['本地缺失资源：' + x for x in others]
+    if skins:
+        count = sum(1 for x in skins if not x.endswith('/'))
+        lines.append(f'说明：客户端未打包 {count} 个皮肤卡面（icon/skin_card_full）。'
+                     '这些皮肤没有独立立绘，角色页与一图流沿用基础立绘，不影响显示。')
+    return lines
+
 
 def report_markdown(report):
     lines=['# 客户端更新差异报告','',f"资源版本：{report['clientVersion']['change_number']}",
@@ -82,7 +101,7 @@ def report_markdown(report):
         lines+=['','## 保留的差异','', '默认模式保留已有 Wiki 事实。使用 `--refresh` 可更新这些事实字段。','']
         for row in report['conflicts']:lines.append(f"- {row['character']} / {row['field']}：Wiki `{row['wiki']}`；客户端 `{row['client']}`")
     if report['missingAssets']:
-        lines+=['','## 本地缺失的原始资源','',*['- '+x for x in report['missingAssets']]]
+        lines+=['','## 本地缺失的原始资源','',*['- '+x for x in missing_lines(report['missingAssets'])]]
     if report['warnings']:lines+=['','## 提取说明','',*['- '+x for x in report['warnings']]]
     return '\n'.join(lines)+'\n'
 
@@ -147,7 +166,7 @@ def add_character(args,game,snapshot):
     print(f"\n页面 {len(pages)} 个 · 图片 {sum(1 for f in report['files'] if f['path'].startswith('assets/'))} 张"
           f" · 字段变化 {len(report['fieldChanges'])} 处 · 保留差异 {len(report['conflicts'])} 处")
     for warning in report['warnings']:print('  说明：'+warning)
-    for missing in report['missingAssets']:print('  本地缺失资源：'+missing)
+    for line in missing_lines(report['missingAssets']):print('  '+line)
     print('报告：'+str(args.output/'update-report.md'))
     if args.dry_run:print('预览完成，Wiki 未写入。')
     elif backup:print('备份：'+str(backup)+'\n回滚：python -X utf8 scripts/update_client.py rollback "'+str(backup)+'"')

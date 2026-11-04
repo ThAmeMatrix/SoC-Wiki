@@ -4,8 +4,12 @@ import re
 from .model import plain
 
 COLORS={'red':('#ff0000','red'),'purple':('#d68fe2','purple'),'green':('#58cb48','green'),
-        'blue':('#54b4db','blue'),'brown':('#a0522d','brown'),'C4':('#f3c156','gold'),'C5':('#f3c156','gold')}
-TOKEN=re.compile(r'\[[^\[\]]+\]|<[^>]+>|\n')
+        'blue':('#54b4db','blue'),'brown':('#a0522d','brown'),'C4':('#f3c156','gold'),
+        'C5':('#54b4db','blue')}  # C5 = 角色独有效果（如万千祈愿之光），游戏内为蓝色
+# 「<」不只是标签开头，技能文案里也是小于号（伤害<50%、[虔诚值]<0）。标签内部不能再
+# 出现「<」，否则「<<style=red>」会被整体吞成一个 token：标签没被解析成颜色，两个「<」
+# 还一起变成可见的 &lt;，后面第一个配色也跟着失效。
+TOKEN=re.compile(r'\[[^\[\]]+\]|<[^<>]+>|\n')
 
 def render(text,links=None):
     links=links or {};result=[];pos=0;stack=[]

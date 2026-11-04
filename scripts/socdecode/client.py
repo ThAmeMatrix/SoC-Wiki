@@ -21,8 +21,13 @@ TABLES = (
     'online_role_life_story', 'online_unit_modify_level', 'online_unit_star',
     'online_unit_rank_modify', 'online_unit_rank_modify_rank', 'online_unit_rank_skill_line_modify',
     'unit_personality', 'unit_personality_skill', 'skill', 'buff', 'skill_keyword',
+    # 技能特效表：技能 -> speciality(施加BUFF) -> buff -> speciality(技能替换)，
+    # 即「使用后变更为另一个技能」这条链（如 神怒·瞬 -> 神怒·断）。
+    'speciality', 'speciality_type',
     'weapon_type', 'const_param', 'timestamp', 'target_method', 'range_select',
     'online_module_skill', 'unit_pool_skill',
+    # 极限解放的消耗：consume_type 指向 treasure_type，param0 指向其中的材料表。
+    'treasure_type', 'online_boss_challenge_material',
     'online_weapon', 'online_weapon_modify', 'online_weapon_modify_level', 'online_weapon_rarity',
     'online_weapon_personality', 'online_weapon_personality_skill',
 )
@@ -172,14 +177,16 @@ class LuaTables:
         ''',capture=True)
         return [row for _,row in sorted(rows.items())]
 
-def extract_tables(game: Path, cache: Path, force=False):
+def extract_tables(game: Path, cache: Path, force=False, progress=None):
     sources=[game/'assets/lua'/f'{name}.unity3d' for name in ('lua_db',*TABLE_BUNDLES)]
     sources.extend([game/'SoC_Data/Plugins/x86_64/slua.dll',game/'assets/resource_version.unity3d',game/'assets/asset_bundle.unity3d'])
     hashes={str(p.relative_to(game)).replace('\\','/'):digest(p) for p in sources}
     fingerprint=hashlib.sha256(json.dumps(hashes,sort_keys=True).encode()).hexdigest()
     folder=cache/fingerprint; manifest=folder/'manifest.json'
     if not force and manifest.exists() and all((folder/f'{name}.json').is_file() for name in TABLES):
-        print('使用已校验客户端缓存 '+fingerprint[:12],flush=True)
+        note='使用已校验客户端缓存 '+fingerprint[:12]
+        print(note,flush=True)
+        if progress:progress(note)
         return {name:json.loads((folder/f'{name}.json').read_text('utf8')) for name in TABLES},json.loads(manifest.read_text('utf8'))
     vm=LuaTables(game/'SoC_Data/Plugins/x86_64/slua.dll'); result={}
     try:
@@ -189,7 +196,9 @@ def extract_tables(game: Path, cache: Path, force=False):
             for name in TABLES:
                 if name in scripts:
                     result[name]=vm.table(name,scripts[name])
-                    print(f'读取 {name}: {len(result[name])} 条',flush=True)
+                    note=f'读取 {name}: {len(result[name])} 条'
+                    print(note,flush=True)
+                    if progress:progress(note)
         absent=set(TABLES)-result.keys()
         if absent:raise ValueError('客户端缺少必要配置表：'+', '.join(sorted(absent)))
     finally:vm.close()

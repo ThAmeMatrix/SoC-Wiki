@@ -3,14 +3,15 @@ window.WikiSearch=(()=>{
   'use strict';
   const M=window.WikiSemantic,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clean=s=>String(s??'').trim().slice(0,60),normalize=s=>String(s??'').toLowerCase().replace(/[·•・\s]/g,'');
-  let preparation,rows=[],linked=new Map(),badges={},lastKey='',lastResults=[];
+  let preparation,rows=[],linked=new Map(),badges={},lastKey='',lastResults=[],pinyin={};
   function script(path,key){return new Promise((resolve,reject)=>{
     if(window[key])return resolve(window[key]);const node=document.createElement('script');node.src=path;
     node.onload=()=>{node.remove();resolve(window[key]);};node.onerror=()=>{node.remove();reject(new Error('搜索资料未能载入：'+path));};document.head.append(node);
   });}
   function fieldLabel(key){const star=key.match(/(?:个性|天赋|特性)描述([1-5])/);if(star)return star[1]+'星';const equipment=key.match(/^([一二三四五])星技能$/);return equipment?'一二三四五'.indexOf(equipment[1])+1+'星':key;}
   function prepare(pages){return preparation??=(async()=>{
-    const [original,catalog]=await Promise.all([script('data/advanced-search.js','WIKI_ADVANCED_DATA'),script('data/infographic.js','WIKI_INFOGRAPHIC_DATA').catch(()=>({}))]);
+    const [original,catalog,py]=await Promise.all([script('data/advanced-search.js','WIKI_ADVANCED_DATA'),script('data/infographic.js','WIKI_INFOGRAPHIC_DATA').catch(()=>({})),script('data/pinyin.js','WIKI_PINYIN').catch(()=>({}))]);
+    pinyin=py||{};
     const data={...original};for(const [id,doc] of Object.entries(window.WikiUpdates?.documents()||{}))data[id]={fields:doc.rawFields,related:doc.related};
     badges=(window.WikiUpdates?.catalog(catalog)||catalog).badges?.factions||{};
     rows=pages.filter(p=>!p.redirect).map(p=>{const fields=data[p.id]?.fields||{},parts=Object.entries(fields).filter(([key,value])=>value&&/描述|介绍|效果|星技能|抉择/.test(key)).map(([key,value])=>({label:fieldLabel(key),text:String(value)}));return {p,fields,parts};});
@@ -31,6 +32,19 @@ window.WikiSearch=(()=>{
     }
     lastKey='';return true;
   })().catch(error=>{preparation=null;throw error;});}
+  /* 拼音表：优先用 prepare() 载入的那份，没走 prepare() 的页面（资料馆分类、一图流）直接读全局。 */
+  function pinyinTable(){return pinyin&&Object.keys(pinyin).length?pinyin:(window.WIKI_PINYIN||{});}
+  /* 拼音模糊搜索：全拼（samansha）与首字母（sms）都支持，返回排序分，0 表示未命中。 */
+  function pinyinScore(p,q){
+    if(!q||!/^[a-z0-9]+$/.test(q))return 0;
+    const raw=pinyinTable()[p.id];if(!raw)return 0;
+    const [fulls,initials]=String(raw).split('|');
+    const full=(fulls||'').split(' ').filter(Boolean),init=(initials||'').split(' ').filter(Boolean);
+    if(full.some(t=>t===q)||init.some(t=>t===q))return 900;
+    if(full.some(t=>t.startsWith(q))||init.some(t=>t.startsWith(q)))return 800;
+    if(full.some(t=>t.includes(q))||init.some(t=>t.includes(q)))return 700;
+    return 0;
+  }
   function queryMatch(text,query){
     const {camp,rest}=M.parseCamp(query);if(camp&&!M.matchWithCamp(text,'',camp))return false;
     return rest.split(/\s+/).filter(Boolean).every(term=>term.length>28?normalize(text).includes(normalize(term)):M.findMatches(text,term).length>0);
@@ -55,7 +69,8 @@ window.WikiSearch=(()=>{
       if(query){
         if(!options.hitKind){
           const aliases=normalize(p.aliases).split(/[、,，]/),identity=p.title+' '+p.aliases+' '+p.faction;
-          if(normalize(p.name)===q)score=1000;else if(aliases.includes(q))score=950;else if(normalize(p.name).startsWith(q))score=850;else if(normalize(identity).includes(q))score=750;else if(matches(identity))score=300;
+          if(normalize(p.name)===q)score=1000;else if(aliases.includes(q))score=950;else if(normalize(p.name).startsWith(q))score=850;else if(normalize(identity).includes(q))score=750;
+          else {const py=pinyinScore(p,q);if(py)score=py;else if(matches(identity))score=300;}
           for(const hit of effects(r))hits.push({...hit,type:p.type==='equipment'?'装备效果':p.type==='talent'?'个性 / 天赋':'正文'});
         }
         if(p.type==='character')for(const source of linked.get(p.id)||[]){
@@ -84,5 +99,7 @@ window.WikiSearch=(()=>{
     const word=query.split(/\s+/).find(part=>part&&M.findMatches(text,part).length)||query;return M.snippet(text,word,length);
   }
   function filters(){return {weapons:[...new Set(rows.map(r=>r.p.weapon).filter(Boolean))],camps:[...new Set(rows.filter(r=>r.p.type==='character').flatMap(r=>String(r.p.faction).split(/[，,、]/)).filter(Boolean))]};}
-  return {prepare,search,highlight,snippet,clean,filters,badge:name=>badges[name]||'',groupTag:M.groupHitTag};
+  /* 供资料馆分类页、一图流选择器等不走 prepare() 的入口复用同一套拼音匹配。 */
+  const pinyinHit=(p,value)=>pinyinScore(p,normalize(clean(value)));
+  return {prepare,search,highlight,snippet,clean,filters,pinyinHit,badge:name=>badges[name]||'',groupTag:M.groupHitTag};
 })();

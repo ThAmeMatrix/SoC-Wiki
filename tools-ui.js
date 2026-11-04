@@ -19,11 +19,13 @@
     if(!R||!D){root.innerHTML='<div class="empty-state"><h1>工具数据未能载入</h1><p>请完整解压离线包，保留 tools-core.js、tools-ui.js 和 data/tools.js。</p></div>';return;}
     if(type==='infographic'){const dispose=window.WikiInfographic.mount(root,h);cleanup=()=>{controller.abort();dispose();};}
     else if(type==='damage')damage();
+    else if(type==='panel')panel();
     else if(type==='gacha')gacha();
     else if(type==='equipment')equipment();
-    else root.innerHTML=`${intro('THE TRAVELER’S WORKBENCH','让每一步，都心中有数。','制作角色一图流，计算战斗伤害，模拟卡池结果。所有操作均在本机完成。')}<div class="tool-grid">${[
+    else root.innerHTML=`${intro('THE TRAVELER’S WORKBENCH','让每一步，都心中有数。','制作角色一图流，计算战斗伤害与局外面板，模拟卡池结果。所有操作均在本机完成。')}<div class="tool-grid">${[
       ['infographic','feather','一图流工坊','以觉醒立绘为底，标注技能加点、编辑三套搭配，搭配专武、塔罗与刻印，制作自己的角色攻略。','技能树 · 六维能力 · 高清图片导出'],
       ['damage','compare','伤害计算器','逐项设置攻击、防御与伤害区间，实时查看普通伤害、暴击伤害和计算过程。','实时计算 · 方案保存 · 结果导出'],
+      ['panel','grid','局外面板计算器','选择角色星级等级、技能轴与好感度，配置武器装具、刻印与塔罗，算出局外五维面板。','客户端数值 · 公式分解 · 完全离线'],
       ['gacha','spark','邂逅模拟器','使用原站快照中的角色与卡池，单次或批量模拟，查看保底进度和完整统计。','双卡池 · 共享保底 · 本地记录'],
       ['equipment','sword','装备属性参考','按类型与稀有度查看原站记录的满级满星属性，直接定位同类装备。','原站数据 · 收录情况 · 快速查表'],
       ['compare','users','角色对比','从角色图鉴选择至多三位伙伴，横向对比满级满星属性与阵营信息。','176 位角色 · 属性对比']
@@ -89,6 +91,173 @@
         }
       });
       showPresets();update();
+    }
+    function panel(){
+      const P=window.WIKI_PANEL_DATA, C=window.WikiPanelCalc;
+      if(!P||!C){root.innerHTML=`${back}${intro('PANEL LAB','面板，算得明明白白。','')}<div class="empty-state"><h1>面板数据未能载入</h1><p>请完整解压离线包，保留 data/panel-data.js 与 panel-calc.js。</p></div>`;return;}
+      const labels=P.statLabels, five=P.stats.length, zero=()=>new Array(five).fill(0);
+      const options=(from,to,suffix='')=>Array.from({length:to-from+1},(_,i)=>[from+i,String(from+i)+suffix]);
+      const charOptions=P.characters.map(c=>[c.key,c.wiki?c.name:c.name+'（客户端）']);
+      const weaponOptions=P.weapons.map(w=>[w.id,`${w.name} · ${w.type}`]);
+      const rarityOptions=Object.entries(P.charmRarities).map(([id,r])=>[id,r[0]]);
+      const starOptions=options(1,5,' 星');
+      const levelOptions=options(1,P.maxLevel,' 级');
+      const rankOptions=options(0,P.maxRank,' 阶');
+      const friendOptions=options(0,5,' 级');
+
+      function normalize(raw){
+        const d=C.defaults(P), src=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
+        const c={...d,...src};
+        for(const slot of ['weapon','offhand']){
+          const s=src[slot]||{}, en=s.enchant||{};
+          c[slot]={...d[slot],...s,enchant:{...d[slot].enchant,...en,
+            values:zero().map((_,i)=>C.int(Array.isArray(en.values)?en.values[i]:0)),
+            percents:zero().map((_,i)=>C.int(Array.isArray(en.percents)?en.percents[i]:0))}};
+        }
+        const cs=src.charm||{};
+        c.charm={...d.charm,...cs,entries:Array.isArray(cs.entries)?cs.entries.slice(0,8):[]};
+        return c;
+      }
+      let cfg=normalize(h.read('panel.current',null));
+      let presets=h.read('panel.presets',[]);
+      if(!Array.isArray(presets))presets=[];
+      presets=presets.filter(p=>p&&typeof p.name==='string'&&p.config).slice(0,20);
+
+      const sel=(path,label,opts,value)=>`<label class="tool-field"><span>${label}</span><select data-path="${path}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${String(value)===String(v)?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+      const num=(path,label,value,min,max,hint='')=>`<label class="tool-field" ><span>${label}</span><input data-path="${path}" type="number" min="${min}" max="${max}" step="1" value="${esc(value)}"><small>${hint}</small></label>`;
+      const heading=(n,title,note)=>`<div class="tool-section-heading"><span class="step-dot">${n}</span><h2>${title}</h2><span>${note}</span></div>`;
+
+      function enchantBlock(slot){
+        const ench=cfg[slot].enchant, caps=C.enchantCaps(P,ench.element);
+        const elementOptions=P.elements.map(e=>[e.id,e.name]);
+        return `<div class="panel-sub"><div class="panel-sub-head">${slot==='weapon'?'武器':'装具'}刻印</div>
+          <div class="tool-fields">${sel(`${slot}.enchant.element`,'刻印元素',elementOptions,ench.element)}</div>
+          <div class="panel-affix-head"><span>属性</span><span>固定值</span><span>千分比 ‰</span></div>
+          ${labels.map((lb,i)=>`<div class="panel-affix-row"><span>${lb}</span>
+            <input data-path="${slot}.enchant.values.${i}" type="number" min="0" max="${caps.flat[i]}" step="1" value="${esc(ench.values[i]||0)}" aria-label="${lb}刻印固定值">
+            <input data-path="${slot}.enchant.percents.${i}" type="number" min="0" max="${caps.percent[i]}" step="1" value="${esc(ench.percents[i]||0)}" aria-label="${lb}刻印千分比"></div>`).join('')}
+          <p class="small-text muted">上限取自客户端刻印属性表（固定值 ${caps.flat.join('/')}、千分比 ${caps.percent.join('/')}）；千分比在最终面板统一结算。</p></div>`;
+      }
+      function entriesBlock(){
+        const r=P.charmRarities[cfg.charm.rarity]||['',100,0,60];
+        const count=C.clamp(C.int(cfg.charm.entryCount,r[2]),0,r[2]);
+        if(!count)return '<p class="small-text muted">该稀有度没有可配置的词条。</p>';
+        const typeOptions=P.entryTypes.map(t=>[t.id,`${t.label}（${t.percent?'‰':'固定'}）`]);
+        return Array.from({length:count},(_,i)=>{
+          const e=cfg.charm.entries[i]||{type:P.entryTypes[0]?.id||1,value:0};
+          const t=P.entryTypes.find(x=>String(x.id)===String(e.type))||P.entryTypes[0]||{percent:false,stat:0};
+          const cap=C.entryCap(P,cfg.charm.rarity,t);
+          return `<div class="panel-entry-row"><span class="panel-entry-index">${i+1}</span>${sel(`charm.entries.${i}.type`,'词条属性',typeOptions,e.type)}${num(`charm.entries.${i}.value`,'数值',e.value,0,cap.max,`0 ~ ${cap.max}（0 表示未洗出）`)}</div>`;
+        }).join('');
+      }
+      function showPresets(){
+        const list=root.querySelector('#panel-preset-list');if(!list)return;
+        list.innerHTML=presets.length?presets.map((p,i)=>`<div class="preset-row"><button type="button" data-panel-preset="${i}">${esc(p.name)}</button><button type="button" data-panel-delete="${i}" aria-label="删除方案 ${esc(p.name)}">×</button></div>`).join(''):'<p class="small-text muted">保存后可在此一键恢复。仅保存在当前浏览器。</p>';
+      }
+      function paint(focusPath){
+        const char=C.findCharacter(P,cfg.character)||P.characters[0];
+        const tierOptions=[[1,char?.tier1||'技能轴一'],[2,char?.tier2||'技能轴二']];
+        const r=P.charmRarities[cfg.charm.rarity]||['',100,0,60];
+        root.innerHTML=`${back}${intro('PANEL LAB','面板，算得明明白白。','按角色星级、等级、技能轴、好感度，配合武器装具、刻印与塔罗，逐项算出局外五维面板。数值全部取自本地客户端配置表。')}
+          <div class="damage-layout panel-layout"><form id="panel-form" novalidate>
+            <section class="content-card">${heading('01','角色','成长 · 星级 · 技能轴 · 好感度')}<div class="tool-fields">
+              ${sel('character','角色',charOptions,cfg.character)}
+              ${sel('star','星级',starOptions,cfg.star)}
+              ${sel('level','等级',levelOptions,cfg.level)}
+              ${sel('rank','已解锁阶数',rankOptions,cfg.rank)}
+              ${sel('tier','技能轴',tierOptions,cfg.tier)}
+              ${sel('friendship','好感度',friendOptions,cfg.friendship)}
+              <label class="tool-check"><input data-path="enhance" type="checkbox" ${cfg.enhance?'checked':''}><span>极限解放技能轴<small>塔罗角色等拥有强化技能轴时启用</small></span></label>
+            </div></section>
+            <section class="content-card">${heading('02','武器','星级 · 等级 · 刻印')}<div class="tool-fields">
+              ${sel('weapon.id','武器',weaponOptions,cfg.weapon.id)}
+              ${sel('weapon.star','星级',starOptions,cfg.weapon.star)}
+              ${sel('weapon.level','等级',levelOptions,cfg.weapon.level)}
+            </div>${enchantBlock('weapon')}</section>
+            <section class="content-card">${heading('03','装具','星级 · 等级 · 刻印')}<div class="tool-fields">
+              ${sel('offhand.id','装具',weaponOptions,cfg.offhand.id)}
+              ${sel('offhand.star','星级',starOptions,cfg.offhand.star)}
+              ${sel('offhand.level','等级',levelOptions,cfg.offhand.level)}
+            </div>${enchantBlock('offhand')}</section>
+            <section class="content-card">${heading('04','塔罗','牌面 · 稀有度 · 等级 · 词条')}<div class="tool-fields">
+              ${sel('charm.id','塔罗',P.charms.map(c=>[c.id,c.name]),cfg.charm.id)}
+              ${sel('charm.rarity','稀有度',rarityOptions,cfg.charm.rarity)}
+              ${sel('charm.level','等级',levelOptions,cfg.charm.level)}
+              ${sel('charm.entryCount','词条数',options(0,r[2]),cfg.charm.entryCount)}
+            </div><div class="panel-entries">${entriesBlock()}</div></section>
+          </form><aside class="damage-aside panel-aside">
+            <section class="damage-result" aria-label="局外面板结果"><div class="eyebrow">OUT-OF-BATTLE PANEL</div><h2>局外面板</h2><div id="panel-error" role="alert" hidden></div><div id="panel-output" aria-live="polite"></div><button class="button" type="button" data-tool="export-panel">${h.icon('download',15)}导出计算结果</button></section>
+            <section class="content-card"><h3>计算分解</h3><div id="panel-steps"></div></section>
+            <section class="content-card preset-card"><h3>我的面板方案</h3><label class="tool-field"><span>方案名称</span><input id="panel-preset-name" maxlength="40" placeholder="例如：贝拉 · 满配"></label><button class="button secondary small" type="button" data-tool="save-panel">保存当前方案</button><div id="panel-preset-list"></div><div class="tool-backup-actions"><button class="button secondary small" type="button" data-tool="reset-panel">恢复默认配置</button></div></section>
+          </aside></div>
+          <details class="content-card tool-help"><summary>公式与使用说明</summary><div class="rich-text"><p>角色基础 = ⌊等级成长 × 稀有度调整 × (1000 + 星级‰ + 技能轴‰ + 好感度‰) ÷ 1000 ÷ 100⌋ + 已解锁各阶的固定加成。与客户端 <code>CalculateAttributeByType</code> 的定点数算法一致。</p><p>武器、装具与塔罗也按同样的百分位约定计算等级成长；刻印固定值、塔罗词条固定值直接累加；刻印千分比与塔罗词条千分比对累加后的面板统一结算：最终值 = ⌊合计 × (1000 + 千分比) ÷ 1000⌋。</p><p>星级、技能轴、好感度作用于角色成长本身，装备/刻印/词条的千分比作用于最终合计，是两个不同的乘区。敏捷来自客户端单位表，不参与上述计算。</p><p>所有输入上限来自本地配置表；结果不含战斗内增益、技能被动、阵营加成与个性。游戏实际结算如有额外取整，以实机为准。</p></div></details>
+          <div class="source-footer"><span>数值取自本地游戏客户端配置表 · 完全离线运行</span><a href="#/archive">查看资料馆信息 →</a></div>`;
+        showPresets();update();
+        if(focusPath){const el=root.querySelector(`[data-path="${focusPath}"]`);el?.focus({preventScroll:true});}
+      }
+      function setPath(obj,path,value){
+        const keys=path.split('.');let cur=obj;
+        for(let i=0;i<keys.length-1;i++){
+          if(cur[keys[i]]==null||typeof cur[keys[i]]!=='object')cur[keys[i]]={};
+          cur=cur[keys[i]];
+        }
+        cur[keys[keys.length-1]]=value;
+      }
+      function readForm(){
+        const form=root.querySelector('#panel-form');if(!form)return;
+        for(const el of form.querySelectorAll('[data-path]')){
+          let value;
+          if(el.type==='checkbox')value=el.checked;
+          else if(el.type==='number')value=C.int(el.value);
+          else value=el.value;
+          setPath(cfg,el.dataset.path,value);
+        }
+      }
+      function update(){
+        readForm();
+        const cr=P.charmRarities[cfg.charm.rarity]||['',100,0,60];
+        cfg.charm.entryCount=C.clamp(C.int(cfg.charm.entryCount,cr[2]),0,cr[2]);
+        const error=root.querySelector('#panel-error'), output=root.querySelector('#panel-output'), steps=root.querySelector('#panel-steps');
+        if(!output)return;
+        try{
+          const r=C.calculate(cfg,P);h.persist('panel.current',cfg);error.hidden=true;
+          output.innerHTML=`<div class="panel-total-grid">${labels.map((lb,i)=>`<div><span>${lb}</span><strong>${fmt(r.total[i])}</strong></div>`).join('')}</div>
+            <dl class="calculation-steps"><div><dt>敏捷</dt><dd>${fmt(r.speed)}</dd></div><div><dt>角色基础</dt><dd>${r.base.map(fmt).join(' / ')}</dd></div><div><dt>武器 + 装具 + 塔罗</dt><dd>${r.weapon.map((v,i)=>fmt(v+r.offhand[i]+r.tarot[i])).join(' / ')}</dd></div><div><dt>最终千分比</dt><dd>${r.permillage.map(v=>'+'+fmt(v)+'‰').join(' / ')}</dd></div></dl>`;
+          steps.innerHTML=`<dl class="calculation-steps panel-step-list">${r.extras.map(e=>`<div><dt>${esc(e.label)}</dt><dd>${e.values.map((v,i)=>labels[i]+' '+fmt(v)).join(' · ')}</dd></div>`).join('')}</dl><p class="small-text muted">顺序：${esc(labels.join(' / '))}。角色基础已含星级、技能轴与好感度加成。</p>`;
+          const btn=root.querySelector('[data-tool="export-panel"]');if(btn)btn.dataset.ready='1';
+        }catch(e){error.textContent=e.message;error.hidden=false;output.innerHTML='<p class="result-empty">修正输入后即可继续计算。</p>';steps.innerHTML='';}
+      }
+      on('submit',e=>e.preventDefault());
+      on('input',e=>{if(e.target.closest&&e.target.closest('#panel-form'))update();});
+      on('change',e=>{
+        const el=e.target;if(!el.closest||!el.closest('#panel-form'))return;
+        const path=el.dataset.path||'';
+        if(path==='character'||path==='charm.rarity'||path==='charm.entryCount'||path.endsWith('.enchant.element')||path.endsWith('.type')){readForm();paint(path);}
+        else update();
+      });
+      on('click',e=>{
+        const target=e.target.closest('button');if(!target)return;
+        if(target.dataset.panelPreset!==undefined){const p=presets[Number(target.dataset.panelPreset)];if(p){cfg=normalize(p.config);paint();root.querySelector('#panel-preset-name').value=p.name;h.toast('已载入方案：'+p.name);}}
+        if(target.dataset.panelDelete!==undefined){presets.splice(Number(target.dataset.panelDelete),1);h.persist('panel.presets',presets);showPresets();h.toast('已删除面板方案');}
+        if(target.dataset.tool==='reset-panel'){cfg=normalize(null);paint();h.toast('已恢复默认配置');}
+        if(target.dataset.tool==='save-panel'){
+          const name=root.querySelector('#panel-preset-name').value.trim();
+          if(!name){root.querySelector('#panel-preset-name').focus();h.toast('先为方案起个名字');return;}
+          const i=presets.findIndex(p=>p.name===name);
+          if(i<0&&presets.length>=20){h.toast('最多保存 20 个方案');return;}
+          const item={name,config:JSON.parse(JSON.stringify(cfg))};
+          if(i<0)presets.push(item);else presets[i]=item;
+          h.persist('panel.presets',presets);showPresets();h.toast(i<0?'方案已保存':'同名方案已更新');
+        }
+        if(target.dataset.tool==='export-panel'){
+          try{
+            const r=C.calculate(cfg,P);
+            download('铃兰档案馆-局外面板.json',JSON.stringify({format:'socwiki-panel',version:1,exportedAt:new Date().toISOString(),config:cfg,
+              labels:r.labels,total:r.total,base:r.base,weapon:r.weapon,offhand:r.offhand,tarot:r.tarot,permillage:r.permillage,speed:r.speed,steps:r.extras},null,2));
+          }catch(err){h.toast(err.message);}
+        }
+      });
+      paint();
     }
     function equipment(){
       const data=D.equipment,order={'SSR':0,'SR':1,'R':2,'N':3},rarities=[...new Set(data.rows.map(r=>r.rarity))].sort((a,b)=>(order[a]??9)-(order[b]??9)),weapons=[...new Set(data.rows.map(r=>r.weapon))];

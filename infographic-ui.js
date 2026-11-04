@@ -19,7 +19,9 @@ window.WikiInfographic=(()=>{
     const controller=new AbortController(),signal=controller.signal;
     const $=s=>root.querySelector(s),$$=s=>[...root.querySelectorAll(s)];
     const on=(event,fn)=>root.addEventListener(event,fn,{signal});
-    const characters=h.pages.filter(p=>p.type==='character'&&!p.redirect).sort((a,b)=>(a.sourceOrder??1e6)-(b.sourceOrder??1e6));
+    // 角色候选与角色图鉴共用同一套排序口径（原站目录优先，客户端导入的按稀有度）。
+    const characters=window.WikiCatalog.sort(h.pages.filter(p=>p.type==='character'&&!p.redirect),'source');
+    const characterFacets=window.WikiCatalog.facets(characters);
     let equipment=h.pages.filter(p=>p.type==='equipment'&&!p.redirect);
     const byId=new Map(h.pages.map(p=>[p.id,p]));
     let catalog,model,state,picker=null,change=0,renderVersion=0,timer,ready=false,alive=true,currentCanvas=null,currentBackground=null,currentHero=null,canvasReflow=true,fitComposition=false,currentHitRegions=[],navQuery='',activeJump='',highlightTimer,layoutRegions=[],layoutMode=false,layoutSelected='trait',layoutDrag=null,layoutSnap=true,layoutPreviewTimer=null,layoutGuides=[],layoutUndo=[],layoutRedo=[],layoutHistoryKey='',layoutHistoryTime=0,fullResizeObserver=null;
@@ -27,7 +29,12 @@ window.WikiInfographic=(()=>{
     const models=new Map();let statMaxima={};
     async function loadStatMaxima(){
       // Some summoned companions are categorized as animals; only the source's recruitable roster is a reference.
-      const reference=characters.filter(character=>character.categories?.includes('可邂逅角色')&&!character.categories.includes('召唤物'));
+      const summon=c=>c.categories?.includes('召唤物')||(c.faction||'').includes('召唤物');
+      const roster=characters.filter(c=>!summon(c));
+      const tagged=roster.filter(c=>c.categories?.includes('可邂逅角色'));
+      // 纯客户端解析的资料馆没有 BWIKI 的「可邂逅角色」分类（只有少数导入条目还带着它），
+      // 这时若仍按分类取，上限就只由那几条决定；覆盖不到半数就退回全部可上场角色。
+      const reference=tagged.length>=roster.length/2?tagged:roster;
       const rows=await Promise.all(reference.map(async character=>R.baseStats(character,(await h.loadPage(character.id)).rawFields||{})));
       statMaxima=Object.fromEntries(R.baseStatDefinitions.map(([key])=>[key,Math.max(0,...rows.map(row=>Number(row[key])||0))]));
     }
@@ -49,11 +56,13 @@ window.WikiInfographic=(()=>{
       const rarityText={SSR:'传说',SR:'史诗',R:'精英',N:'普通'};
       const badges=[{name:character.rarity,image:catalog.badges?.rarities?.[character.rarity]||catalog.badges?.rarities?.[rarityText[character.rarity]],kind:'rarity'},
         {name:character.class,image:catalog.badges?.professions?.[character.class]||character.professionIcon,kind:'profession',background:catalog.badges?.professionBackgrounds?.[character.class]},
-        ...(character.faction||'').split(/[，,、]/).map(name=>({name:name.trim(),image:catalog.badges?.factions?.[name.trim()],kind:'faction'}))].filter(b=>b.image&&b.kind!=='rarity');
+        ...(character.faction||'').split(/[，,、]/).map(name=>({name:name.trim(),image:catalog.badges?.factions?.[name.trim()]||character.factionIcons?.[name.trim()],kind:'faction'}))].filter(b=>b.image&&b.kind!=='rarity');
       const number=field=>String(field??'').trim();
       const result={character,badges,liberations,equipment,skills,tiers:nodes.map(t=>({rank:t.rank,names:t.names,skills:t.pages.map(p=>p?skillMap.get(p.id):null)})),trait,
         // Characters with a baked official wordmark offer it as a name mode.
-        referenceTitle:catalog.referenceTitles?.[character.id]||'',
+        // Keyed by name first: the same wordmark must resolve whether the archive
+        // carries BWIKI page ids or client-side ones.
+        referenceTitle:catalog.referenceTitles?.[character.name]||catalog.referenceTitles?.[character.id]||'',
         baseStats:R.baseStats(character,fields),statMaxima,
         initialBasic:basic?.id,initialSkillIds:nodes.find(t=>t.rank===0).pages.filter(Boolean).map(p=>p.id),cvZh:fields['中文CV'],cvJa:fields['日文CV'],portrait:(character.portraits?.find(p=>p.key==='awakened')||character.portraits?.find(p=>p.key==='base'))?.src||null,awakened:!!character.portraits?.some(p=>p.key==='awakened')};
       models.set(character.id,result);if(models.size>6)models.delete(models.keys().next().value);return result;
@@ -274,11 +283,11 @@ window.WikiInfographic=(()=>{
     root.addEventListener('toggle',()=>requestAnimationFrame(syncBranches),{signal,capture:true});
     function baseStatsMarkup(){
       const base=model.baseStats||{};
-      const icon=(key,label)=>catalog.statIcons?.[key]?`<img class="ig-stat-icon" src="${esc(catalog.statIcons[key])}" alt="" title="${label}">`:`<svg class="ig-stat-icon" viewBox="0 0 26 26" aria-hidden="true"><path d="${R.speedIconPath}"/></svg>`;
+      const icon=(key,label)=>catalog.statIcons?.[key]?`<img class="ig-stat-icon" src="${esc(catalog.statIcons[key])}" alt="" title="${label}">`:`<svg class="ig-stat-icon" viewBox="0 0 26 26" aria-hidden="true"><path d="${esc(R.statIconPaths?.[key]||R.speedIconPath)}"/></svg>`;
       return `<div class="ig-base-stats ig-stat-bars"><div class="ig-stat-heading"><strong>基础属性</strong><small>当前 / 角色最高 · 占比</small></div><div class="ig-stat-grid">${R.combatStatDefinitions.map(([key,label])=>{
         const value=base[key],max=model.statMaxima?.[key],pct=R.statRatio(value,max);
         return `<div class="ig-stat-card" data-stat-key="${key}"><div class="ig-stat-value">${icon(key,label)}<small class="ig-stat-label">${label}</small><b class="ig-stat-current">${esc(value||'—')}</b></div><div class="ig-stat-comparison"><small class="ig-stat-max">/ ${max||'—'}</small><em>${pct===null?'—':pct.toFixed(1)+'%'}</em></div><progress max="100" value="${pct??0}" aria-label="${label}占角色最高值（不含召唤物）" aria-valuetext="当前 ${esc(value||'未收录')}，角色最高（不含召唤物）${max||'未收录'}${pct===null?'':'，占 '+pct.toFixed(1)+'%'}"></progress></div>`;
-      }).join('')}</div><div class="ig-mobility">${R.mobilityStatDefinitions.map(([key,label])=>`<div data-stat-key="${key}"><small>${label}</small><b class="ig-stat-current">${esc(base[key]||'—')}</b></div>`).join('')}</div></div><small>高亮数值为当前角色属性。六项基础属性以可邂逅角色同项最高值为 100%，不含召唤物；移动与跳跃仅展示当前值。属性取满级满星值，跳跃取跳跃高度，缺失值显示 —。</small>`;
+      }).join('')}</div><div class="ig-mobility">${R.mobilityStatDefinitions.map(([key,label])=>`<div data-stat-key="${key}"><small>${label}</small><b class="ig-stat-current">${esc(base[key]||'—')}</b></div>`).join('')}</div></div><small>高亮数值为当前角色属性。六项基础属性以可上场角色同项最高值为 100%，不含召唤物；移动与跳跃仅展示当前值。属性取满级满星值，跳跃取跳跃高度，缺失值显示 —。</small>`;
     }
 
     function canvasControls(){const size=canvasSize();return `<div class="ig-canvas-controls"><h4>画布与整体风格</h4><div class="ig-canvas-presets">${[['1920x1080','横版 16:9'],['1280x1920','竖版海报'],['1080x1920','竖版 9:16'],['1920x1920','方形']].map(([value,label])=>`<button type="button" data-ig-canvas-preset="${value}">${label}</button>`).join('')}</div><div class="ig-commentary-pair"><label class="ig-label">画布宽度<input type="number" min="480" max="4096" step="1" data-ig-canvas-size="width" aria-label="画布宽度" value="${size.width}"></label><label class="ig-label">画布高度<input type="number" min="320" max="8192" step="1" data-ig-canvas-size="height" aria-label="画布高度" value="${size.height}"></label></div><label class="ig-cutout-check"><input type="checkbox" data-ig-canvas-reflow${canvasReflow?' checked':''}>尺寸变更时自动重排区块</label><button type="button" class="button secondary" data-ig="canvas-apply">应用画布尺寸</button><small>关闭自动重排可按比例保留当前布局；尺寸与布局修改均可撤销，文字和选择会保留。</small><label class="ig-label">边框风格<select data-ig-decoration="style" aria-label="边框风格"><option value="gilded"${state.decoration.style==='gilded'?' selected':''}>金饰 · 双层细边与角饰</option><option value="plain"${state.decoration.style==='plain'?' selected':''}>简洁 · 原有青色细边</option></select></label><label class="ig-label">装饰强度<input type="range" min="0" max="100" step="5" data-ig-decoration="intensity" aria-label="装饰强度" value="${Math.round(state.decoration.intensity*100)}"></label><small>使用顶部固定工具栏，可一键凸显立绘主体或按完整信息整理布局；内容较多时自动增加画布高度。两种操作均可撤销。</small></div>`;}
@@ -300,7 +309,7 @@ window.WikiInfographic=(()=>{
       const missing=!model.awakened?`<p class="ig-notice">${model.portrait?'此角色尚未收录觉醒立绘，成图暂用初始立绘。':'此角色尚未收录立绘，成图使用纯色背景。'}</p>`:'';
       const characterInfo=`<button type="button" class="ig-character" data-ig-pick="character">${image(c.sprite||c.avatar,'ig-pixel')}<span><small>当前角色 · 点击更换</small><strong>${esc(c.name)}</strong><span class="ig-profile-badges">${model.badges.map(b=>b.background?`<span class="ig-profession-badge" title="${esc(b.name)}"><img src="${esc(b.background)}" alt=""><img class="ig-profession-symbol" src="${esc(b.image)}" alt="${esc(b.name)}"></span>`:`<img class="ig-badge-${b.kind}" src="${esc(b.image)}" alt="${esc(b.name)}" title="${esc(b.name)}">`).join('')}</span></span>${h.icon('chevron',19)}</button><div class="ig-cv"><span>中 CV <b>${esc(model.cvZh||'未收录')}</b></span><span>日 CV <b>${esc(model.cvJa||'未收录')}</b></span></div>${baseStatsMarkup()}${richField('roleText','角色定位','例如：持续伤害 / 控场辅助',2,100)}`;
       const traitInfo=`<p class="ig-hint">个性与专武按 1→5 星完整展示，变化数值以 / 分隔，未解锁效果记为 0。</p><details class="ig-effect-preview ig-trait-info"><summary>查看个性全星级文本</summary><div class="rich-text">${catalog.starEffects?.[model.trait?.id]?.html||'该角色暂无个性星级资料。'}</div></details>`;
-      const titleControls=`<label class="ig-label">标题后缀<input data-ig-field="subtitle" value="${esc(state.subtitle)}" maxlength="48" placeholder="角色养成一图流"></label><label class="ig-label">角色显示名<input data-ig-field="titleName" aria-label="角色显示名" value="${esc(state.titleName)}" maxlength="48" placeholder="${esc(c.name)}"><span>留空使用角色名；也可输入其他名字。</span></label><div class="ig-title-controls"><b>名字展示方式</b><div class="ig-title-modes" role="group" aria-label="名字展示方式">${[['text','普通文字'],['image','图片字标'],...(model.referenceTitle?[['reference',{9296:'薇佩拉原图',9295:'君士坦丁原图'}[c.id]||'参考原图']]:[])].map(([key,label])=>`<button type="button" data-ig-title-mode="${key}" aria-pressed="${state.titleMode===key}"${key==='reference'&&state.titleName&&state.titleName!==c.name?' disabled':''}>${label}</button>`).join('')}</div><label class="ig-label" data-ig-font-controls${state.titleMode!=='text'?' hidden':''}>普通字体<select data-ig-field="titleFont" aria-label="名字普通字体"><option value="serif"${state.titleFont==='serif'?' selected':''}>宋体 · 思源宋体</option><option value="sans"${state.titleFont==='sans'?' selected':''}>黑体 · 简洁清晰</option></select></label><label class="ig-label ig-title-color">角色名字颜色<input type="color" data-ig-field="titleColor" aria-label="角色名字颜色" value="${esc(state.titleColor)}"></label><label class="ig-cutout-check" data-ig-image-controls${state.titleMode!=='image'?' hidden':''}><input type="checkbox" data-ig-field="titleImageTint"${state.titleImageTint?' checked':''}>图片字标随名字颜色着色</label><small data-ig-title-status></small><div><button type="button" class="text-button" data-ig="title-upload">从图片提取名字</button><button type="button" class="text-button" data-ig="export-title">导出透明字标</button><button type="button" class="text-button" data-ig="title-reset">恢复默认</button></div></div>${titleTypographyControls()}`;
+      const titleControls=`<label class="ig-label">标题后缀<input data-ig-field="subtitle" value="${esc(state.subtitle)}" maxlength="48" placeholder="角色养成一图流"></label><label class="ig-label">角色显示名<input data-ig-field="titleName" aria-label="角色显示名" value="${esc(state.titleName)}" maxlength="48" placeholder="${esc(c.name)}"><span>留空使用角色名；也可输入其他名字。</span></label><div class="ig-title-controls"><b>名字展示方式</b><div class="ig-title-modes" role="group" aria-label="名字展示方式">${[['text','普通文字'],['image','图片字标'],...(model.referenceTitle?[['reference',{薇佩拉:'薇佩拉原图',君士坦丁:'君士坦丁原图'}[c.name]||'参考原图']]:[])].map(([key,label])=>`<button type="button" data-ig-title-mode="${key}" aria-pressed="${state.titleMode===key}"${key==='reference'&&state.titleName&&state.titleName!==c.name?' disabled':''}>${label}</button>`).join('')}</div><label class="ig-label" data-ig-font-controls${state.titleMode!=='text'?' hidden':''}>普通字体<select data-ig-field="titleFont" aria-label="名字普通字体"><option value="serif"${state.titleFont==='serif'?' selected':''}>宋体 · 思源宋体</option><option value="sans"${state.titleFont==='sans'?' selected':''}>黑体 · 简洁清晰</option></select></label><label class="ig-label ig-title-color">角色名字颜色<input type="color" data-ig-field="titleColor" aria-label="角色名字颜色" value="${esc(state.titleColor)}"></label><label class="ig-cutout-check" data-ig-image-controls${state.titleMode!=='image'?' hidden':''}><input type="checkbox" data-ig-field="titleImageTint"${state.titleImageTint?' checked':''}>图片字标随名字颜色着色</label><small data-ig-title-status></small><div><button type="button" class="text-button" data-ig="title-upload">从图片提取名字</button><button type="button" class="text-button" data-ig="export-title">导出透明字标</button><button type="button" class="text-button" data-ig="title-reset">恢复默认</button></div></div>${titleTypographyControls()}`;
       const tree=`<div class="ig-mark-legend"><span>○ 未标记</span><i>→</i><span class="required">● 必点</span><i>→</i><span class="optional">◌ 选点</span><i>→</i><span>○ 未标记</span></div><p class="ig-hint">点击技能循环切换标记。未点亮的分支置灰；初始技能仅作展示，解放也可标记。</p>${configRange('branchWidth','技能树横线粗细',.5,5,.5,' px')}${configRange('branchLength','技能树横线长度',0,100,1,'%')}<div class="ig-liberations"><b>极限解放</b><div>${model.liberations.length?model.liberations.map(s=>`<div class="ig-liberation-node" data-mark="${state.marks[s.id]||''}"><button type="button" class="ig-lib-mark" data-ig-mark="${s.id||0}"${s.id?'':' disabled'} aria-label="${esc(s.name)}，${markLabel[state.marks[s.id]]||'未标记'}，点击切换">${image(s.image)}<span>${esc(s.name)}</span><small>${markLabel[state.marks[s.id]]||'未标记'}</small></button><button type="button" class="ig-lib-info" data-ig-liberation="${s.id||0}" aria-label="查看解放技能${esc(s.name)}">详情</button></div>`).join(''):'<span class="ig-hint">暂无解放技能资料</span>'}</div></div><div class="ig-tree">${model.tiers.map(t=>`<div class="ig-tier" data-rank="${t.rank}" data-branch="${[1,5,9].includes(t.rank)?'short':t.rank===0?'initial':'long'}"><svg class="ig-branches" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><path class="ig-branch-${t.rank===0?'initial':state.marks[t.skills[0]?.id]||'off'}" d="M150 38 H${[1,5,9].includes(t.rank)?84:48}"/><path class="ig-branch-${t.rank===0?'initial':state.marks[t.skills[1]?.id]||'off'}" d="M150 38 H${[1,5,9].includes(t.rank)?216:252}"/></svg>${t.skills.map((s,j)=>{
         const selectable=!!s&&t.rank!==0,mark=selectable?state.marks[s.id]||'':'';
         const content=`${image(s?.image)}<strong>${esc(s?.name||t.names[j]||'未收录')}</strong><small>${t.rank===0?'初始自带':markLabel[mark]||'未标记'}</small>`;
@@ -359,7 +368,7 @@ window.WikiInfographic=(()=>{
     }
     function updateTitleStatus(missing=[]){
       const element=$('[data-ig-title-status]');if(!element)return;
-      element.textContent=missing?.length?'以下字不在内置字库中，已使用后备字形：'+missing.join('、')+'。可从图片提取字标。':state.titleMode==='image'?(state.customTitle?'当前使用图片字标，切换普通文字会保留这张字标。':'尚未导入图片，暂用普通文字。点击「从图片提取名字」开始。'):state.titleMode==='reference'?`保留${{9296:'薇佩拉',9295:'君士坦丁'}[model.character.id]||'角色'}参考原图字标。`:'普通文字 · 无锋刃装饰 · 新名字可离线输入';
+      element.textContent=missing?.length?'以下字不在内置字库中，已使用后备字形：'+missing.join('、')+'。可从图片提取字标。':state.titleMode==='image'?(state.customTitle?'当前使用图片字标，切换普通文字会保留这张字标。':'尚未导入图片，暂用普通文字。点击「从图片提取名字」开始。'):state.titleMode==='reference'?`保留${model.character.name||'角色'}参考原图字标。`:'普通文字 · 无锋刃装饰 · 新名字可离线输入';
       $$('[data-ig-title-mode]').forEach(button=>{button.setAttribute('aria-pressed',String(button.dataset.igTitleMode===state.titleMode));if(button.dataset.igTitleMode==='reference')button.disabled=!!state.titleName&&state.titleName!==model.character.name;});
       $('[data-ig-font-controls]').hidden=state.titleMode!=='text';$('[data-ig-plain-style]').hidden=state.titleMode!=='text';$('[data-ig-image-controls]').hidden=state.titleMode!=='image';
       element.classList.toggle('ig-title-warning',!!missing?.length);
@@ -452,22 +461,35 @@ window.WikiInfographic=(()=>{
     function openPicker(kind,index=0,row=0){
       if(!state)return;
       const current=kind==='character'?state.characterId:kind==='exclusive'?state.exclusive:kind==='skill'?state.loadouts[row].slots[index]:state[kind][index];
-      picker={kind,index,row,current,query:'',compatible:true};
+      // 角色筛选与排序跟角色图鉴完全一致，共用同一份规则。
+      picker={kind,index,row,current,query:'',compatible:true,rarity:'',profession:'',faction:'',sort:'source',descending:false};
       const title={character:'选择角色',exclusive:'选择专武',weapons:'选择推荐武器',accessories:'选择推荐装具',tarot:'选择推荐塔罗',skill:['选择普攻','选择反应','选择技能','选择技能','选择技能'][index]}[kind];
       $('#ig-picker-title').textContent=title;
-      $('#ig-picker-body').innerHTML=`<div class="ig-picker-tools"><input id="ig-picker-search" placeholder="搜索名称、别名或关键词…" aria-label="搜索备选资料" autocomplete="off">${['exclusive','weapons'].includes(kind)&&model.character.weapon?`<label class="ig-compatible"><input type="checkbox" id="ig-compatible" checked>仅显示${esc(model.character.weapon)}</label>`:''}</div><div class="ig-picker-meta"><span id="ig-picker-count"></span>${kind!=='character'?'<button type="button" class="text-button" data-ig="clear-choice">清除此项</button>':'<span>按角色出场顺序</span>'}</div><div id="ig-picker-options"></div>`;
+      $('#ig-picker-body').innerHTML=`<div class="ig-picker-tools"><input id="ig-picker-search" placeholder="搜索名称、别名或关键词…" aria-label="搜索备选资料" autocomplete="off">${['exclusive','weapons'].includes(kind)&&model.character.weapon?`<label class="ig-compatible"><input type="checkbox" id="ig-compatible" checked>仅显示${esc(model.character.weapon)}</label>`:''}${kind==='character'?characterFilterMarkup():''}</div><div class="ig-picker-meta"><span id="ig-picker-count"></span>${kind!=='character'?'<button type="button" class="text-button" data-ig="clear-choice">清除此项</button>':'<button type="button" class="text-button" data-ig="reset-character-filters">重置筛选与排序</button>'}</div><div id="ig-picker-options"></div>`;
       renderOptions();$('.ig-picker').showModal();$('#ig-picker-search').focus();
     }
+    function characterFilterMarkup(){
+      const C=window.WikiCatalog;
+      const row=(key,label,values)=>`<div class="filter-row"><span class="filter-label">${label}</span><div class="filter-chips">${['',...values].map(v=>`<button type="button" class="chip${picker[key]===v?' active':''}" data-ig-filter="${key}" data-value="${esc(v)}" aria-pressed="${picker[key]===v}">${esc(v||'全部')}</button>`).join('')}</div></div>`;
+      return `<div class="ig-picker-filters">${row('rarity','稀有度',characterFacets.rarities)}${row('profession','职业',characterFacets.professions)}${row('faction','阵营',characterFacets.factions)}<div class="ig-picker-sort"><label><span>排序方式</span><select id="ig-picker-sort" aria-label="排序方式">${C.SORT_OPTIONS.map(o=>`<option value="${o.value}">${o.label}</option>`).join('')}</select></label></div></div>`;
+    }
     function options(){
-      let list=picker.kind==='character'?characters:picker.kind==='tarot'?catalog.tarot:picker.kind==='skill'?R.pool(model,picker.index):equipment.filter(e=>(e.weapon==='防具')===(picker.kind==='accessories'));
+      const C=window.WikiCatalog;
+      if(picker.kind==='character')return C.sort(C.filter(characters,
+        {q:picker.query,rarity:picker.rarity,profession:picker.profession,faction:picker.faction},
+        window.WikiSearch?.pinyinHit),picker.sort,picker.descending);
+      let list=picker.kind==='tarot'?catalog.tarot:picker.kind==='skill'?R.pool(model,picker.index):equipment.filter(e=>(e.weapon==='防具')===(picker.kind==='accessories'));
       if(['exclusive','weapons'].includes(picker.kind)&&picker.compatible&&model.character.weapon)list=list.filter(e=>e.weapon===model.character.weapon);
       const normalize=s=>String(s||'').toLocaleLowerCase().replace(/[•・]/g,'·'),q=normalize(picker.query.trim());
-      const filtered=list.filter(p=>!q||normalize([p.name,p.aliases,p.class,p.weapon,plain(p.description||p.summary)].filter(Boolean).join(' ')).includes(q));
-      const score=p=>normalize(p.name)===q?0:normalize(p.name).startsWith(q)?1:normalize(p.name).includes(q)?2:3;
+      const py=window.WikiSearch?.pinyinHit;   // 拼音模糊匹配（sms / samansha）
+      const filtered=list.filter(p=>!q||normalize([p.name,p.aliases,p.class,p.weapon,plain(p.description||p.summary)].filter(Boolean).join(' ')).includes(q)||(py?py(p,picker.query):0));
+      const score=p=>normalize(p.name)===q?0:normalize(p.name).startsWith(q)?1:normalize(p.name).includes(q)?2:(py&&py(p,picker.query))?2.5:3;
       return q?filtered.sort((a,b)=>score(a)-score(b)):filtered;
     }
     function renderOptions(){
       if(!picker)return;const list=options();$('#ig-picker-count').textContent=list.length+' 项备选';
+      $$('#ig-picker-body [data-ig-filter]').forEach(b=>{const on=picker[b.dataset.igFilter]===b.dataset.value;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
+      const sortBox=$('#ig-picker-sort');if(sortBox)sortBox.value=picker.sort;
       $('#ig-picker-options').className='ig-options '+(picker.kind==='skill'?'ig-skill-options':'');
       $('#ig-picker-options').innerHTML=list.length?list.map(p=>`<article class="ig-choice${p.id===picker.current?' selected':''}"><button type="button" data-ig-choice="${esc(p.id)}" aria-pressed="${p.id===picker.current}">${image(picker.kind==='character'?(p.sprite||p.avatar):p.image,picker.kind==='character'?'ig-pixel':'')}<span><b>${esc(p.name)}</b><small>${esc(picker.kind==='skill'?`${p.id===model.initialBasic?'初始普攻':{basic:'普攻',reaction:'反应',skill:'技能'}[p.kind]}${state.marks[p.id]?' · '+markLabel[state.marks[p.id]]:''}`:picker.kind==='character'?p.class||'角色':p.weapon||'塔罗之语')}</small></span><em>${p.id===picker.current?'已选':'选择'}</em></button>${picker.kind==='skill'?`<div class="ig-choice-description rich-text">${p.description||'此技能暂无描述。'}</div>`:picker.kind==='tarot'?`<div class="ig-choice-description rich-text">${p.description}<br><b>特殊词条：</b>${p.special}</div>`:''}</article>`).join(''):'<div class="ig-no-results">没有匹配的资料。可修改关键词或关闭类型筛选。</div>';
     }
@@ -519,6 +541,7 @@ window.WikiInfographic=(()=>{
       if(target.dataset.igRadarRemove!==undefined){if(R.removeRadarChart(state,Number(target.dataset.igRadarRemove)))changed();return;}
       if(target.dataset.igRadarAxisAdd!==undefined){if(R.addRadarAxis(state,Number(target.dataset.igRadarAxisAdd)))changed();return;}
       if(target.dataset.igRadarAxisRemove){const [chart,axis]=target.dataset.igRadarAxisRemove.split(':').map(Number);if(R.removeRadarAxis(state,chart,axis))changed();return;}
+      if(target.dataset.igFilter){picker[target.dataset.igFilter]=target.dataset.value;renderOptions();return;}
       if(target.dataset.igPick){openPicker(target.dataset.igPick,Number(target.dataset.index||0),Number(target.dataset.row||0));return;}
       if(target.dataset.igChoice){await choose(target.dataset.igChoice);return;}
       if(target.dataset.igInfo){skillInfo(Number(target.dataset.igInfo));return;}
@@ -559,6 +582,7 @@ window.WikiInfographic=(()=>{
         case 'background-reset':setBackground({...state.background,x:0,y:0,scale:1},true);break;
         case 'close-picker':$('.ig-picker').close();picker=null;break;
         case 'clear-choice':await choose(null);break;
+        case 'reset-character-filters':Object.assign(picker,{rarity:'',profession:'',faction:'',sort:'source',descending:false});renderOptions();break;
         case 'retry-render':queue(false);break;
         case 'clear-scores':state.scores=R.axes.map(()=>0);state.rated=false;changed();break;
         case 'export':await exportImage();break;
@@ -577,6 +601,8 @@ window.WikiInfographic=(()=>{
       if(el.dataset.igRect){const v=Number(el.value),r=layoutRegions.find(r=>r.key===layoutSelected);if(el.value!==''&&Number.isFinite(v)&&r){pushLayoutHistory(layoutSnapshot(),'rect:'+layoutSelected+':'+el.dataset.igRect);state.layout[layoutSelected]=R.layoutRect({...r,...state.layout[layoutSelected],[el.dataset.igRect]:v},state.canvas);syncLayoutInputs();queue();}return;}
       if(el.id==='ig-nav-search'){navQuery=el.value;renderNav();return;}
       if(el.id==='ig-picker-search'){picker.query=el.value;renderOptions();return;}
+      // 属性排序按图鉴的口径默认从高到低（等同于点单位列表的数值表头）。
+      if(el.id==='ig-picker-sort'){picker.sort=el.value;picker.descending=el.value.startsWith('stat:');renderOptions();return;}
       if(el.id==='ig-compatible'){picker.compatible=el.checked;renderOptions();return;}
       if(!state)return;
       if(el.hasAttribute('data-ig-canvas-reflow')){canvasReflow=el.checked;return;}

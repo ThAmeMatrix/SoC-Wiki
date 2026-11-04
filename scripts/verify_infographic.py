@@ -45,7 +45,8 @@ def run():
         assert page.locator('.ig-character strong').inner_text()=='薇佩拉'
         assert page.locator('.ig-tier').evaluate_all('(els)=>els.map(e=>Number(e.dataset.rank))')==[11,9,7,5,3,1,0]
         pick(page,'character');assert page.locator('[data-ig-choice]').count()==177
-        assert page.locator('[data-ig-choice]').first.get_attribute('data-ig-choice')=='9295'
+        # Named rather than numbered: the leading entry is 君士坦丁 whatever id the archive uses.
+        assert page.locator('[data-ig-choice]').first.locator('b').inner_text()=='君士坦丁'
         page.keyboard.press('Escape')
         # Both wordmark characters offer their baked art as a name mode.
         ready(page)

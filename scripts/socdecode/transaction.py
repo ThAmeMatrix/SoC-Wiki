@@ -25,24 +25,39 @@ def atomic(path,data):
     finally:
         if temporary.exists():temporary.unlink()
 
-def apply(root: Path, files: dict[str,bytes], expected: dict[str,str|None], backups: Path):
+def apply(root: Path, files: dict[str,bytes], expected: dict[str,str|None], backups: Path, progress=None):
+    """``progress(message, done, total)`` is called at most about twice a second."""
+    import time
+    last=[0.0]
+    def say(message,done=None,total=None):
+        if progress is None:return
+        now=time.monotonic()
+        if done is not None and done!=total and now-last[0]<0.5:return
+        last[0]=now;progress(message,done,total)
     changed={}
-    for name,content in files.items():
+    say(f'校验 {len(files)} 个目标文件…')
+    for index,(name,content) in enumerate(files.items(),1):
+        say(f'校验 {index}/{len(files)}',index,len(files))
         path=within(root,name);before=path.read_bytes() if path.exists() else None
         if (sha(before) if before is not None else None)!=expected[name]:
             raise RuntimeError(f'文件在预览后被修改，请重新生成更新：{name}')
         if before!=content:changed[name]=(before,content)
-    if not changed:return None
+    if not changed:
+        say('所有文件已与目标一致，无需写入')
+        return None
     folder=backups/(datetime.now().strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8])
     folder.mkdir(parents=True)
+    say(f'需要写入 {len(changed)} 个文件；先备份到 {folder}')
     manifest={'wiki':str(root.resolve()),'status':'prepared','files':[]}
-    for name,(before,after) in changed.items():
+    for index,(name,(before,after)) in enumerate(changed.items(),1):
+        say(f'备份 {index}/{len(changed)}',index,len(changed))
         if before is not None:atomic(within(folder/'files',name),before)
         manifest['files'].append({'path':name,'before':sha(before) if before is not None else None,'after':sha(after)})
     atomic(folder/'manifest.json',json.dumps(manifest,ensure_ascii=False,indent=2).encode('utf8'))
     written=[]
     try:
-        for name,(before,after) in changed.items():
+        for index,(name,(before,after)) in enumerate(changed.items(),1):
+            say(f'写入 {index}/{len(changed)}：{name}',index,len(changed))
             path=within(root,name)
             if (sha(path.read_bytes()) if path.exists() else None)!=expected[name]:
                 raise RuntimeError(f'检测到并发修改，已停止：{name}')
@@ -58,6 +73,8 @@ def apply(root: Path, files: dict[str,bytes], expected: dict[str,str|None], back
         raise
     manifest['status']='applied'
     atomic(folder/'manifest.json',json.dumps(manifest,ensure_ascii=False,indent=2).encode('utf8'))
+    say(f'已写入 {len(written)} 个文件（data/ {sum(1 for n in written if n.startswith("data/"))} · '
+        f'assets/ {sum(1 for n in written if n.startswith("assets/"))}）')
     return folder
 
 def rollback(folder: Path):
