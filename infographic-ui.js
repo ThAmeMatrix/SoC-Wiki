@@ -460,6 +460,13 @@ window.WikiInfographic=(()=>{
     }
     function openPicker(kind,index=0,row=0){
       if(!state)return;
+      // Character selection uses the shared picker so every tool offers the
+      // same facets, pinyin search, sorting and avatar cards.
+      if(kind==='character'&&window.WikiCharacterPicker){
+        window.WikiCharacterPicker.open({pages:characters,current:state.characterId,title:'选择角色'})
+          .then(page=>{if(page&&alive)selectCharacter(page.id);}).catch(()=>{});
+        return;
+      }
       const current=kind==='character'?state.characterId:kind==='exclusive'?state.exclusive:kind==='skill'?state.loadouts[row].slots[index]:state[kind][index];
       // 角色筛选与排序跟角色图鉴完全一致，共用同一份规则。
       picker={kind,index,row,current,query:'',compatible:true,rarity:'',profession:'',faction:'',sort:'source',descending:false};

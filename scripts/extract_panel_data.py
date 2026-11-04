@@ -10,7 +10,9 @@ The output is a single ``window.WIKI_PANEL_DATA=...;`` script:
 * weapon / off-hand growth, star and rarity tables;
 * tarot (client name: charm) growth, rarity, entry templates and entry types;
 * enchant elements, their per-stat caps and material rarities;
-* the 22 revelation tarot cards used as labels.
+* the 22 revelation tarot cards used as labels;
+* per-rank skill-line branches (left/right), weapon-type whitelist per character,
+  and the two account-wide talent trees (星辰天赋 / 开拓天赋).
 
 The calculator itself lives in ``panel-calc.js``; this script only exports data.
 
@@ -48,7 +50,14 @@ TABLES = (
     'online_charm_rarity', 'online_charm_entry', 'online_charm_entry_attribute_type',
     'online_weapon_enchanting_element', 'online_weapon_enchanting_element_entry',
     'online_weapon_enchanting_material_rarity', 'online_revelation_tarot_collection',
+    'profession', 'online_tech_category', 'online_tech_node', 'online_tech_node_level',
 )
+
+# Account-wide talent trees. system 49 = 星辰天赋 (之座), 122 = 开拓天赋 (之志).
+TALENT_SYSTEMS = (('star', 49, '星辰天赋'), ('pioneer', 122, '开拓天赋'))
+# 41 = CategoryAttributeModify, 51 = AttributeModify: the only node types that
+# touch the five out-of-battle stats.
+TALENT_UPGRADE_TYPES = (41, 51)
 
 
 def norm_name(text: str) -> str:
@@ -95,6 +104,63 @@ def growth_by_level(rows, group_key):
     return out
 
 
+def build_talents(tables):
+    """Aggregate both talent trees into per-profession, per-level stat bonuses.
+
+    ``online_tech_node_level`` carries ``upgrade_param1`` (the amount),
+    ``upgrade_param0`` (an ``attribute_type`` id, possibly a composite such as
+    5 = all five or 43 = both attacks) and ``upgrade_is_permillage``. A level N
+    entry means "this node at level N"; the exported arrays are cumulative so
+    the calculator can look up a talent level in O(1).
+    """
+    attr_map = {}
+    for row in tables['attribute_type']:
+        ids = str(row.get('attribute_type_ids') or '')
+        if ids:
+            targets = [ATTR_TO_STAT[int(x)] for x in ids.split('|') if x.isdigit()
+                       and int(x) in ATTR_TO_STAT]
+        else:
+            targets = [ATTR_TO_STAT[row['id']]] if row['id'] in ATTR_TO_STAT else []
+        attr_map[row['id']] = targets
+
+    levels_by_node = defaultdict(list)
+    for row in tables['online_tech_node_level']:
+        levels_by_node[row['idonline_tech_node']].append(row)
+    nodes_by_cat = defaultdict(list)
+    for row in tables['online_tech_node']:
+        if row['upgrade_type'] in TALENT_UPGRADE_TYPES:
+            nodes_by_cat[row['idonline_tech_category']].append(row)
+
+    out = {}
+    for key, system, name in TALENT_SYSTEMS:
+        by_category, max_level = {}, 0
+        for cat in tables['online_tech_category']:
+            if cat['system'] != system:
+                continue
+            per_level = defaultdict(lambda: {'flat': [0] * len(STATS),
+                                            'perm': [0] * len(STATS)})
+            for node in nodes_by_cat[cat['id']]:
+                for level in levels_by_node[node['id']]:
+                    amount = int(num(level, 'upgrade_param1'))
+                    targets = attr_map.get(int(num(level, 'upgrade_param0')), [])
+                    bucket = 'perm' if level.get('upgrade_is_permillage') else 'flat'
+                    for index in targets:
+                        per_level[int(level['level'])][bucket][index] += amount
+            top = max(per_level, default=0)
+            max_level = max(max_level, top)
+            cumulative = [{'flat': [0] * len(STATS), 'perm': [0] * len(STATS)}]
+            for level in range(1, top + 1):
+                prev, cur = cumulative[-1], per_level[level]
+                cumulative.append({
+                    'flat': [prev['flat'][i] + cur['flat'][i] for i in range(len(STATS))],
+                    'perm': [prev['perm'][i] + cur['perm'][i] for i in range(len(STATS))],
+                })
+            by_category[str(cat['profession_category'])] = cumulative
+        out[key] = {'name': name, 'system': system,
+                    'maxLevel': max_level, 'byCategory': by_category}
+    return out
+
+
 def build(tables, page_names, plain):
     by_id = {name: {row['id']: row for row in rows} for name, rows in tables.items()}
 
@@ -123,10 +189,13 @@ def build(tables, page_names, plain):
         ])
     lines = {k: sorted(v) for k, v in lines.items()}
     line_names = {str(r['id']): r['name'] for r in tables['online_unit_rank_skill_line']}
+    # Ranks that actually carry a skill-line stat bonus, per skill-line id.
+    line_ranks = {k: sorted({row[0] for row in v}) for k, v in lines.items()}
 
     wiki_names = {norm_name(n) for n in page_names}
     role_names = {r['id']: r.get('name') or '' for r in tables['online_role']}
     units = by_id['unit']
+    professions = by_id['profession']
     characters = []
     for row in tables['online_role_unit']:
         unit = units.get(row['idunit'])
@@ -137,6 +206,9 @@ def build(tables, page_names, plain):
             continue
         rank_id = row['online_unit_rank_modify_id']
         config = rank_configs.get(rank_id, {})
+        weapon_ids = [int(x) for x in re.split(r'[|,]', str(unit.get('weapon_type_ids') or ''))
+                      if x.strip().isdigit()]
+        profession = professions.get(unit.get('profession'), {})
         characters.append({
             'name': name, 'key': norm_name(name), 'id': row['id'],
             'rarity': row['rarity'], 'modify': row['online_unit_modify_id'],
@@ -145,6 +217,8 @@ def build(tables, page_names, plain):
             'tier2': config.get('tier2_name') or '技能轴二',
             'speed': int(num(unit, 'speed')),
             'unitId': row['idunit'],
+            'weaponTypes': weapon_ids,
+            'professionCategory': int(num(profession, 'category')),
             'wiki': norm_name(name) in wiki_names,
             'enabled': bool(row.get('enable')),
         })
@@ -221,7 +295,9 @@ def build(tables, page_names, plain):
         'characters': characters,
         'unitGrowth': growth_by_level(tables['online_unit_modify_level'], 'idonline_unit_modify'),
         'rankAdds': rank_adds, 'lines': lines, 'lineNames': line_names,
-        'weapons': weapons,
+        'lineRanks': line_ranks,
+        'talents': build_talents(tables),
+        'weapons': weapons, 'weaponTypeNames': {str(k): v for k, v in weapon_types.items()},
         'weaponGrowth': growth_by_level(tables['online_weapon_modify_level'], 'idonline_weapon_modify'),
         'weaponStars': weapon_stars, 'weaponRarities': weapon_rarities,
         'charms': charms,
@@ -249,12 +325,29 @@ def main():
     from socdecode.client import game_root
     from socdecode.config import game_path
     from socdecode.model import plain
-    game = game_root(Path(args.game) if args.game else game_path())
+    try:
+        game = game_root(Path(args.game) if args.game else game_path())
+    except (ValueError, OSError) as error:
+        output = Path(args.output)
+        print(f'跳过局外面板数值导出：没有找到游戏客户端（{error}）。')
+        if output.is_file():
+            print(f'  {output.name} 以及随资料包附带的数值保持不变。')
+        else:
+            print('  资料包里也没有这份数据；离线 Wiki 仍可阅读，局外面板计算器会提示数据未载入。')
+        print('  如需重新生成，请在「设置」里指定游戏客户端目录后重试。')
+        return
     print(f'读取客户端：{game}')
-    tables = load_tables(game)
+    try:
+        tables = load_tables(game)
+    except Exception as error:              # noqa: BLE001 - a damaged Lua install
+        print(f'跳过局外面板数值导出：读取客户端配置表失败（{type(error).__name__}: {error}）。')
+        print('  已有的 data/panel-data.js 保持不变。')
+        return
     missing = [name for name in TABLES if not tables.get(name)]
     if missing:
-        raise SystemExit(f'缺少必需的配置表：{missing}')
+        print(f'跳过局外面板数值导出：客户端缺少必需的配置表 {missing}。')
+        print('  已有的 data/panel-data.js 保持不变。')
+        return
     data = build(tables, page_names(ROOT), plain)
     print(f"角色 {len(data['characters'])}（其中资料馆角色 "
           f"{sum(1 for c in data['characters'] if c['wiki'])}） · "

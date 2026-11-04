@@ -76,6 +76,38 @@ const caps = C.enchantCaps(P, P.elements[0].id);
 check('enchant caps present', caps.flat[0] > 0 && caps.percent[0] > 0,
   JSON.stringify(caps.flat) + ' / ' + JSON.stringify(caps.percent));
 
+// Per-rank skill-line branches: none / both must move the stats.
+const ranks = P.lineRanks?.[ch.line] || [];
+const withPick = value => {
+  const linePicks = {};
+  for (const rank of ranks) linePicks[rank] = value;
+  return C.calculate(Object.assign({}, cfg, { linePicks }), P);
+};
+const none = withPick('none'), both = withPick('both');
+check('skill-line ranks exported', ranks.length > 0, JSON.stringify(ranks));
+check('per-rank skill-line picks change stats', none.total.some((v, i) => v < both.total[i]),
+  none.total.join('/') + ' -> ' + both.total.join('/'));
+check('per-rank left/right differ from both', withPick('left').total[0] <= both.total[0]);
+
+// Both account-wide talent trees feed the final panel.
+check('talent data exported', !!P.talents?.star && !!P.talents?.pioneer,
+  P.talents && [P.talents.star.maxLevel, P.talents.pioneer.maxLevel].join('/'));
+const talented = C.calculate(Object.assign({}, cfg, {
+  talent: { star: P.talents.star.maxLevel, pioneer: P.talents.pioneer.maxLevel },
+}), P);
+check('talent bonuses raise the panel', talented.total.some((v, i) => v > r.total[i]),
+  r.total.join('/') + ' -> ' + talented.total.join('/'));
+check('talent step recorded', talented.extras.some(e => e.key === 'talent'));
+const adjusted = C.calculate(Object.assign({}, cfg, { talentAdjust: [100, 0, 0, 0, 0] }), P);
+check('talent manual adjust applied', adjusted.total[0] > r.total[0],
+  r.total[0] + ' -> ' + adjusted.total[0]);
+
+// Weapon-type filtering inputs used by the UI.
+const mainType = (ch.weaponTypes || []).find(t => Number(t) !== 2);
+check('character weapon types exported', mainType !== undefined, JSON.stringify(ch.weaponTypes));
+check('weapon filter has matches', P.weapons.some(w => Number(w.typeId) === mainType));
+check('common offhand type retained', P.weapons.some(w => Number(w.typeId) === 2));
+
 // Invalid input is reported instead of throwing NaN.
 try { C.calculate(Object.assign({}, cfg, { character: '__missing__' }), P); check('unknown character rejected', false); }
 catch (e) { check('unknown character rejected', /选择/.test(e.message), e.message); }

@@ -36,26 +36,67 @@
     return total;
   }
 
-  /** Skill-line rows unlocked by (tier, rank), enhanced rows replacing normal ones. */
+  /** Skill-line rows unlocked per rank, with an independent left/right choice.
+   * ``config.linePicks[rank]`` accepts 'none' | 'left' | 'right' | 'both'.
+   * Without it we fall back to the single global ``config.tier`` for compatibility.
+   */
   function skillLinePermillage(data, character, config) {
     const rows = lookup(data.lines, character.line) || [];
     const rank = clamp(int(config.rank, 0), 0, data.maxRank);
-    const tier = clamp(int(config.tier, 1), 1, 2);
     const enhance = !!config.enhance;
+    const picks = config?.linePicks;
+    const fallback = clamp(int(config?.tier, 1), 1, 2);
+    const allowed = r => {
+      if (!picks) return fallback;
+      const v = Array.isArray(picks) ? picks[r] : picks[r] ?? picks[String(r)];
+      if (v === 'none' || v === 0 || v === false) return 0;
+      if (v === 'both' || v === 'all') return 3;
+      if (v === 'left' || v === 1) return 1;
+      if (v === 'right' || v === 2) return 2;
+      return fallback;
+    };
     const chosen = new Map();
     for (const row of rows) {
       const [r, t, isEnhance] = row;
-      if (r > rank || t !== tier) continue;
-      const current = chosen.get(r);
-      if (!current) { chosen.set(r, row); continue; }
-      // Enhanced rows (塔罗技能轴) replace the normal row of the same rank when requested.
-      if (!!current[2] !== enhance && !!isEnhance === enhance) chosen.set(r, row);
+      if (r > rank) continue;
+      const allow = allowed(r);
+      if (!allow || (allow !== 3 && allow !== t)) continue;
+      const key = r + ':' + t;
+      const current = chosen.get(key);
+      if (!current) { chosen.set(key, row); continue; }
+      // Enhanced rows (塔罗技能轴) replace the normal row of the same rank/tier.
+      if (!!current[2] !== enhance && !!isEnhance === enhance) chosen.set(key, row);
     }
     const total = zeroes();
     for (const [, , , permillage] of chosen.values()) {
       for (let i = 0; i < N; i++) total[i] += int(permillage?.[i]);
     }
     return total;
+  }
+
+  /** Cumulative bonuses of both account-wide talent trees for this character. */
+  function talentBonuses(data, character, config) {
+    const flat = zeroes(), permillage = zeroes();
+    const category = String(int(character?.professionCategory, 0));
+    for (const key of ['star', 'pioneer']) {
+      const tree = data.talents?.[key];
+      if (!tree) continue;
+      const level = clamp(int(config?.talent?.[key], 0), 0, tree.maxLevel);
+      const row = (lookup(tree.byCategory, category) || [])[level];
+      if (!row) continue;
+      for (let i = 0; i < N; i++) {
+        flat[i] += int(row.flat?.[i]);
+        permillage[i] += int(row.perm?.[i]);
+      }
+    }
+    return { flat, permillage };
+  }
+
+  /** Lookup helper for the UI: one tree's cumulative row at a given level. */
+  function talentRow(data, treeKey, category, level) {
+    const tree = data.talents?.[treeKey];
+    if (!tree) return null;
+    return (lookup(tree.byCategory, category) || [])[clamp(int(level, 0), 0, tree.maxLevel)] || null;
   }
 
   /** Sum of the fixed rank add-ons for ranks 1..rank. */
@@ -194,6 +235,7 @@
     return {
       character: character?.key || '', star: 5, level: data.maxLevel,
       rank: data.maxRank, tier: 1, enhance: false, friendship: 5,
+      linePicks: null, talent: { star: 0, pioneer: 0 }, talentAdjust: zeroes(),
       weapon: { id: weapon?.id || 0, star: 5, level: data.maxLevel,
                 enchant: { element: data.elements?.[0]?.id || 0, values: zeroes(), percents: zeroes() } },
       offhand: { id: offhand?.id || weapon?.id || 0, star: 5, level: data.maxLevel,
@@ -211,16 +253,23 @@
     const weapon = equipment(data, 'weapon', config.weapon, extras);
     const offhand = equipment(data, 'offhand', config.offhand, extras);
     const charm = tarot(data, config.charm, extras);
+    const talent = talentBonuses(data, character, config);
+    if (talent.flat.some(Boolean) || talent.permillage.some(Boolean)) {
+      extras.push({ key: 'talent', label: '星辰 / 开拓天赋', values: talent.flat.slice(),
+                    permillage: talent.permillage.slice() });
+    }
 
+    const adjust = Array.isArray(config.talentAdjust) ? config.talentAdjust : [];
     const flat = zeroes(), permillage = zeroes(), total = zeroes();
     for (let i = 0; i < N; i++) {
-      flat[i] = base[i] + weapon.flat[i] + offhand.flat[i] + charm.flat[i];
-      permillage[i] = weapon.permillage[i] + offhand.permillage[i] + charm.permillage[i];
+      flat[i] = base[i] + weapon.flat[i] + offhand.flat[i] + charm.flat[i] + talent.flat[i];
+      permillage[i] = weapon.permillage[i] + offhand.permillage[i] + charm.permillage[i]
+                    + talent.permillage[i] + int(adjust[i]);
       total[i] = Math.floor(flat[i] * (1000 + permillage[i]) / 1000);
     }
     return {
       labels: LABELS.slice(), fields: FIELDS.slice(),
-      base, weapon: weapon.flat, offhand: offhand.flat, tarot: charm.flat,
+      base, weapon: weapon.flat, offhand: offhand.flat, tarot: charm.flat, talent,
       flat, permillage, total, extras,
       speed: int(character.speed),
       character,
@@ -229,7 +278,7 @@
 
   const api = { FIELDS, LABELS, calculate, defaults, findCharacter, enchantCaps, entryCap,
                 starPermillage, friendshipPermillage, skillLinePermillage, rankAdditions,
-                clamp, int };
+                talentBonuses, talentRow, clamp, int };
   (typeof window !== 'undefined' ? window : globalThis).WikiPanelCalc = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

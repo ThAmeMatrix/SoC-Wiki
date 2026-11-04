@@ -16,4 +16,8 @@ output/
 dist/
 build/
 *.exe
+# vgmstream is the offline decoder for character voice lines. Its DLLs are
+# already tracked; without the CLI the voice page cannot be rebuilt from a
+# GitHub ZIP, so keep this one bundled executable in the repository.
+!tools/vgmstream/vgmstream-cli.exe
 *.spec

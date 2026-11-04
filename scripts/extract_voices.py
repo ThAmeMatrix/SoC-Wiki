@@ -242,19 +242,43 @@ def main():
     parser.add_argument('--force', action='store_true', help='重新导出已存在的语音')
     args = parser.parse_args()
 
+    # Character voice is an optional extra. A GitHub ZIP (no bundled decoder),
+    # a machine without the client, or one that has not pulled client data yet
+    # should never break the main wiki update: explain and skip cleanly.
+    def skip(reason, *hint):
+        print(f'跳过角色语音提取：{reason}。')
+        for line in hint:
+            print(f'  {line}')
+        print('  这是可选功能，离线 Wiki 的其余内容不受影响。')
+
     if not TOOL.exists():
-        raise SystemExit(f'缺少解码工具：{TOOL}\n请下载 vgmstream-win64.zip 并解到该目录（离线使用）。')
+        skip('缺少 vgmstream 解码器',
+             f'期望位置：{TOOL}',
+             '从 https://github.com/vgmstream/vgmstream/releases 下载 vgmstream-win64.zip，',
+             f'把 vgmstream-cli.exe 与全部 .dll 解压到 {TOOL.parent}（离线使用）。',
+             '新版资料包已随附该工具；也可在「更多选项」里关闭「重新提取角色语音」。')
+        return
 
     from socdecode.client import game_root
     from socdecode.config import game_path
-    root = client_root(game_root(game_path()))
+    try:
+        root = client_root(game_root(game_path()))
+    except (SystemExit, ValueError, OSError) as error:
+        skip('没有找到游戏客户端', str(error), '请在「设置」里指定客户端目录后重试。')
+        return
     audio = root / 'assets' / 'audio'
     if not (audio / 'cn').is_dir():
-        raise SystemExit(f'未找到客户端语音目录：{audio / "cn"}')
+        skip('客户端里没有语音包', f'未找到 {audio / "cn"}。')
+        return
+    snapshot_path = ROOT / 'output' / 'client-data.json'
+    if not snapshot_path.is_file():
+        skip('还没有本地客户端快照', f'未找到 {snapshot_path}。',
+             '先完成一次「开始更新」，或点「更多选项 → 立即读取客户端」，再重试。')
+        return
 
     langs = [x for x in args.lang.split(',') if x in LANG_LABELS]
     bank_data, voice_rows = load_client_voice_data(root)
-    snapshot = json.loads((ROOT / 'output' / 'client-data.json').read_text('utf8'))
+    snapshot = json.loads(snapshot_path.read_text('utf8'))
     plans = build_plans(bank_data, voice_rows, snapshot, page_ids())
     print(f'客户端台词表 {len(voice_rows)} 行；可归属角色 {len(plans)} / {len(snapshot["characters"])}')
     legendary = {c['name'] for c in snapshot['characters'] if c.get('rarity') == '传说'}

@@ -270,7 +270,8 @@
       if(!items.length)return '';
       return `<h4 class="voice-group-title">${label} <span class="heading-count">${items.length}</span></h4><div class="sprite-nav-list">${items.map(a=>`<button type="button" class="sprite-nav-btn" data-sprite-action="${a.action}">${esc(a.label)}<span class="heading-count">${a.frames.length}</span></button>`).join('')}</div>`;
     }).join('');
-    return `<div class="sprite-lab-head"><h2>像素动作</h2><span class="muted small-text">${data.actions.length} 种动作 · ${total} 帧 · 来自客户端战斗小人（share/tex）</span></div><div class="sprite-lab">${`<nav class="sprite-nav" aria-label="动作列表">${nav}</nav>`}<div class="sprite-stage"><div class="sprite-stage-bar"><div class="segmented" role="group" aria-label="朝向">${[['all','全部'],['front','正面'],['back','背面']].map(([v,t],i)=>`<button type="button" data-sprite-facing="${v}" class="${i?'':'active'}" aria-pressed="${i?'false':'true'}">${t}</button>`).join('')}</div><button type="button" class="button secondary small" data-sprite-mirror aria-pressed="false">↔ 镜像</button><div class="segmented" role="group" aria-label="速度">${[['0.6','慢'],['1','常'],['1.8','快']].map(([v,t],i)=>`<button type="button" data-sprite-speed="${v}" class="${i===1?'active':''}">${t}</button>`).join('')}</div><button type="button" class="button small" data-sprite-play aria-pressed="true">暂停</button></div><div class="sprite-stage-view"><img class="sprite-frame" alt="动作帧预览" draggable="false"></div><p class="sprite-stage-hint muted small-text">战斗中左右朝向靠水平镜像，上方「镜像」开关即两侧朝向。</p><div class="sprite-strip" role="listbox" aria-label="帧序列"></div></div></div>`;
+    const colourSeg=`<div class="segmented" role="group" aria-label="配色"><button type="button" data-sprite-colour="color" class="${data.color?'active':''}" aria-pressed="${!!data.color}" ${data.color?'':'disabled'}>全彩</button><button type="button" data-sprite-colour="mask" class="${data.color?'':'active'}" aria-pressed="${!data.color}">原始</button></div>`;
+    return `<div class="sprite-lab-head"><h2>像素动作</h2><span class="muted small-text">${data.actions.length} 种动作 · ${total} 帧 · 来自客户端战斗小人（share/tex）${data.color?' · 已按调色板上色':''}</span></div><div class="sprite-lab">${`<nav class="sprite-nav" aria-label="动作列表">${nav}</nav>`}<div class="sprite-stage"><div class="sprite-stage-bar"><div class="segmented" role="group" aria-label="朝向">${[['all','全部'],['front','正面'],['back','背面']].map(([v,t],i)=>`<button type="button" data-sprite-facing="${v}" class="${i?'':'active'}" aria-pressed="${i?'false':'true'}">${t}</button>`).join('')}</div><button type="button" class="button secondary small" data-sprite-mirror aria-pressed="false">↔ 镜像</button><div class="segmented" role="group" aria-label="速度">${[['0.6','慢'],['1','常'],['1.8','快']].map(([v,t],i)=>`<button type="button" data-sprite-speed="${v}" class="${i===1?'active':''}">${t}</button>`).join('')}</div>${colourSeg}<button type="button" class="button small" data-sprite-play aria-pressed="true">暂停</button></div><div class="sprite-stage-view"><img class="sprite-frame" alt="动作帧预览" draggable="false"></div><p class="sprite-stage-hint muted small-text">战斗中左右朝向靠水平镜像，上方「镜像」开关即两侧朝向。</p><div class="sprite-strip" role="listbox" aria-label="帧序列"></div></div></div>`;
   }
   let spriteTimer=null,spriteState=null;
   function stopSpriteLoop(){if(spriteTimer){clearInterval(spriteTimer);spriteTimer=null;}}
@@ -281,7 +282,9 @@
     const base='assets/sprites/'+data.art+'/';
     const byAction=new Map(data.actions.map(a=>[a.action,a]));
     const frameImg=$('.sprite-frame'),strip=$('.sprite-strip'),playBtn=$('[data-sprite-play]');
-    spriteState={action:data.actions[0].action,facing:'all',mirror:false,speed:1,playing:true,index:0,queue:[]};
+    spriteState={action:data.actions[0].action,facing:'all',mirror:false,speed:1,playing:true,index:0,queue:[],
+                 colour:data.color?'color':'mask'};
+    const srcOf=f=>base+(spriteState.colour==='color'&&data.color?'color/':'')+f;
     const pickFrames=()=>{
       const a=byAction.get(spriteState.action);if(!a)return [];
       const front=a.frames.slice(0,a.front);
@@ -290,12 +293,12 @@
     const render=()=>{
       const a=byAction.get(spriteState.action);
       frameImg.style.transform=spriteState.mirror?'scaleX(-1)':'';
-      frameImg.src=base+(spriteState.queue[spriteState.index]||a.frames[0]);
+      frameImg.src=srcOf(spriteState.queue[spriteState.index]||a.frames[0]);
       for(const el of $$('.sprite-strip img'))el.classList.toggle('active',el.dataset.frame===spriteState.queue[spriteState.index]);
     };
     const buildStrip=()=>{
       const a=byAction.get(spriteState.action);
-      strip.innerHTML=a.frames.map(f=>`<img src="${base}${f}" alt="" loading="lazy" data-frame="${f}" role="option">`).join('');
+      strip.innerHTML=a.frames.map(f=>`<img src="${srcOf(f)}" alt="" loading="lazy" data-frame="${f}" role="option">`).join('');
       for(const img of $$('.sprite-strip img'))img.addEventListener('click',()=>{spriteState.index=Math.max(0,spriteState.queue.indexOf(img.dataset.frame));if(spriteState.index<0)spriteState.index=0;spriteState.playing=false;playBtn.textContent='播放';playBtn.setAttribute('aria-pressed','false');render();});
     };
     const startLoop=()=>{
@@ -328,6 +331,12 @@
       for(const other of $$('.sprite-stage [data-sprite-speed]'))other.classList.toggle('active',other===btn);
       startLoop();
     });
+    for(const btn of $$('.sprite-stage [data-sprite-colour]'))btn.addEventListener('click',()=>{
+      if(btn.disabled)return;
+      spriteState.colour=btn.dataset.spriteColour;
+      for(const other of $$('.sprite-stage [data-sprite-colour]')){const on=other===btn;other.classList.toggle('active',on);other.setAttribute('aria-pressed',String(on));}
+      buildStrip();render();
+    });
     playBtn.addEventListener('click',()=>{
       spriteState.playing=!spriteState.playing;
       playBtn.textContent=spriteState.playing?'暂停':'播放';playBtn.setAttribute('aria-pressed',String(spriteState.playing));
@@ -341,11 +350,15 @@
     const base='assets/expressions/';
     const card=(file,label,badge)=>`<button type="button" class="face-item" data-face="${base}${file}"><img loading="lazy" src="${base}${file}" alt="${esc(label)}">${badge?`<span class="face-badge">${esc(badge)}</span>`:''}<span class="face-label">${esc(label)}</span></button>`;
     const faces=data.faces.map(f=>card(f.file,f.label+(f.skin?'（皮肤）':''),f.skin?'皮肤':f.key==='base'?'':'')).join('');
-    const forms=(data.forms||[]).map(f=>card(f.file,'立绘形态 · '+f.key,'形态')).join('');
+    const forms=(data.forms||[]).map(f=>card(f.file,'立绘形态 · '+(f.label||f.key)+(f.skin?'（' + f.skin + '）':''),'形态')).join('');
     return `<div class="sprite-lab-head"><h2>立绘表情</h2><span class="muted small-text">${data.faces.length} 张表情差分${data.forms?.length?` · ${data.forms.length} 张形态图`:''} · 来自客户端 face 差分与动态立绘</span></div><div class="face-grid">${faces}</div>${forms?`<h3 class="face-forms-title">立绘形态</h3><div class="face-grid">${forms}</div>`:''}<p class="muted small-text">表情差分为客户端对话用半身像（288px）；点击任意一张放大查看。</p>`;
   }
   function faceWire(){
-    for(const item of $$('.face-item'))item.addEventListener('click',()=>openImage(item.dataset.face,$('img',item).alt));
+    for(const item of $$('.face-item')){
+      const img=$('img',item);
+      if(img)img.addEventListener('error',()=>{item.hidden=true;},{once:true});
+      item.addEventListener('click',()=>openImage(item.dataset.face,img?img.alt:''));
+    }
   }
   function characterPanel(p,doc){
     window.WikiCharacter.unmount();
