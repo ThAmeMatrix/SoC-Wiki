@@ -86,6 +86,7 @@ class Store:
         self.versions_dir = self.root / 'versions'
         self.library = self.root / 'library'
         self.thumbs = self.root / 'thumbs'
+        self.last_materialize = {'linked': 0, 'skipped': 0, 'removed': 0, 'target': ''}
 
     # -- blobs -------------------------------------------------------------
     def blob_path(self, digest: str, ext: str) -> Path:
@@ -228,12 +229,20 @@ class Store:
         """Remove resources no remaining version refers to, and caches of older
         extractors; returns (files, bytes)."""
         keep = self.referenced()
+        keep_digests = {name.split('.', 1)[0] for name in keep}
         doomed = []
         if self.objects.is_dir():
             for folder in self.objects.iterdir():
                 if folder.is_dir():
                     for item in os.scandir(folder):
                         if item.name.startswith('.tmp-') or item.name not in keep:
+                            doomed.append((item.path, item.stat().st_size))
+        # Thumbnails are derived caches; drop those whose blob is gone.
+        if self.thumbs.is_dir():
+            for folder in self.thumbs.iterdir():
+                if folder.is_dir():
+                    for item in os.scandir(folder):
+                        if item.name.split('.', 1)[0] not in keep_digests:
                             doomed.append((item.path, item.stat().st_size))
         if self.sources.is_dir():
             for folder in self.sources.iterdir():
@@ -251,14 +260,52 @@ class Store:
                     shutil.rmtree(folder, ignore_errors=True)
         return len(doomed), sum(size for _, size in doomed)
 
+    @staticmethod
+    def _walk_files(root: Path):
+        """DirEntry iterator: stat() is cached on Windows, so one pass is enough."""
+        try:
+            with os.scandir(root) as scan:
+                entries = list(scan)
+        except OSError:
+            return
+        for entry in entries:
+            if entry.is_dir(follow_symlinks=False):
+                yield from Store._walk_files(entry.path)
+            else:
+                yield entry
+
+    def disk_report(self) -> dict:
+        """Real disk usage. Hard links in ``library`` share the blob inode and
+        cost nothing, but a plain copy left by an older ``materialize`` does;
+        thumbnails are real files as well. ``libraryLinks`` is reported only so
+        the GUI can explain why Explorer shows a much larger folder size."""
+        report = {'objects': 0, 'libraryCopies': 0, 'libraryLinks': 0, 'thumbs': 0}
+        for item in self._walk_files(self.objects):
+            try:
+                report['objects'] += item.stat().st_size
+            except OSError:
+                pass
+        for item in self._walk_files(self.library):
+            try:
+                # DirEntry.stat() comes from FindFirstFile and reports st_nlink=1
+                # on Windows even for hard links; os.stat() queries the real inode.
+                info = os.stat(item.path)
+            except OSError:
+                continue
+            if item.name.startswith('.') or info.st_nlink <= 1:
+                report['libraryCopies'] += info.st_size
+            else:
+                report['libraryLinks'] += info.st_size
+        for item in self._walk_files(self.thumbs):
+            try:
+                report['thumbs'] += item.stat().st_size
+            except OSError:
+                pass
+        report['total'] = report['objects'] + report['libraryCopies'] + report['thumbs']
+        return report
+
     def disk_usage(self) -> int:
-        total = 0
-        if self.objects.is_dir():
-            for folder in self.objects.iterdir():
-                if folder.is_dir():
-                    for item in os.scandir(folder):
-                        total += item.stat().st_size
-        return total
+        return self.disk_report()['total']
 
     def materialize(self, vid: str, target: Path | None = None, progress=None) -> tuple[Path, int, int]:
         """Organised folders ``<分类>/<位置>/<文件>`` for one version.
@@ -300,28 +347,43 @@ class Store:
             if folder not in made:
                 os.makedirs(folder, exist_ok=True)
                 made.add(folder)
-            pending.append((_long(objects, f'{blob[:2]}/{blob}'), destination))
+            pending.append((relative, _long(objects, f'{blob[:2]}/{blob}'), destination))
 
-        def link(pair):
-            source, destination = pair
+        def link(item):
+            relative, source, destination = item
             # A hard link shares the blob's read-only attribute, so one call is enough.
-            try:
-                os.link(source, destination)
-            except FileExistsError:
-                _unlink(destination)
-                os.link(source, destination)
-            except OSError:
-                shutil.copyfile(source, destination)
-                _read_only(destination)
+            for attempt in range(2):
+                try:
+                    os.link(source, destination)
+                    return relative, True
+                except FileExistsError:
+                    _unlink(destination)          # also replaces an old plain copy with a link
+                    if attempt:
+                        return relative, False
+                except OSError:
+                    # Never fall back to copyfile: objects/ is the single copy of
+                    # every resource, and the browser reads it directly. A failed
+                    # link only means this folder entry is unavailable.
+                    return relative, False
+            return relative, False
 
         # Creating directory entries is latency-bound (and scanned by antivirus), so overlap them.
+        skipped = set()
+        linked = 0
         with ThreadPoolExecutor(max_workers=16) as pool:
-            for done, _ in enumerate(pool.map(link, pending, chunksize=64), 1):
+            for done, (relative, ok) in enumerate(pool.map(link, pending, chunksize=64), 1):
+                if ok:
+                    linked += 1
+                else:
+                    skipped.add(relative)
                 if progress and done % 2000 == 0:
                     progress(done, len(pending))
-        linked = len(pending)
-        write_json(record, wanted)
+        # Skipped entries stay out of the record, so the next run retries them.
+        recorded = {key: value for key, value in wanted.items() if key not in skipped} if skipped else wanted
+        write_json(record, recorded)
         write_json(target / '.version.json', {'version': vid})
+        self.last_materialize = {'linked': linked, 'skipped': len(skipped), 'removed': removed,
+                                 'target': str(target)}
         return target, linked, removed
 
     def unmaterialize(self, target: Path) -> int:

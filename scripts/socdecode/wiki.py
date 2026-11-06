@@ -17,7 +17,7 @@ from PIL import Image
 from .assets import Assets
 from .model import RANK_NAMES, STAT_BASIS, plain, ids
 from .pedestal import pedestal_image, compose as compose_pedestal, encode as encode_webp
-from . import ranges, rangetiles, pinyin
+from . import ranges, pinyin
 from .richtext import render
 from .transaction import sha
 
@@ -197,8 +197,9 @@ def plan_update(wiki: Path, game: Path, snapshot: dict, names=None, all_existing
     prior_assets=(read_json('data/client-provenance.json') or {}).get('assets') if (wiki/'data/client-provenance.json').exists() else None
     reused=assets.reuse(prior_assets,wiki)
     if reused:say(f'复用已提取资源：{reused} 个')
-    say('读取战斗地块贴图…')
-    tiles=rangetiles.set(game)
+    # Range diagrams are now drawn as a flat blue cast range / red area overlay
+    # (see scripts/rebuild_range_images.py), so the client's battle-grid tile
+    # textures are no longer needed and no bundle has to be decoded for them.
     pedestal_cache={}
     def pedestal_for():
         if 'value' not in pedestal_cache:
@@ -299,10 +300,44 @@ def plan_update(wiki: Path, game: Path, snapshot: dict, names=None, all_existing
             for key,value in weapon.get('stats',{}).items())
         # 装备的五个星级同样做逐星对照：公共效果与每星的变化，和个性页一个看法。
         comparison=char_helpers.star_comparison(fields_weapon,[star+'星技能' for star in star_names])
+        # Structured, character-skill-style cards for each star. Equipment star
+        # skills are real client skills; expose their cost/cooldown/range/area and
+        # icon so the detail page can render them like a skill page.
+        cards=[]
+        for index,star in enumerate(star_names,1):
+            item=stars.get(str(index))
+            if not item:continue
+            # Older client-data.json snapshots predate the structured fields;
+            # fall back to the plain description instead of failing the update.
+            card={'star':index,'name':item.get('name') or '','skillId':item.get('skillId'),
+                'description':render(item.get('rawDescription') or item.get('description') or '',links),
+                'kind':item.get('kind') or '技能',
+                'cost':item.get('cost') or '/','cooldown':item.get('cooldown') or '/',
+                'distance':item.get('distance') or '/','area':item.get('area') or '/',
+                'icon':assets.get(item['icon']) if item.get('icon') else ''}
+            fields=item.get('skillFields') or {}
+            if fields.get('type') is not None:
+                try:
+                    diagram=ranges.plan(fields)
+                except (TypeError,ValueError,KeyError):
+                    diagram=None
+                if diagram:
+                    try:
+                        # No tiles: the flat blue cast range / red area overlay is
+                        # the single diagram style used by every skill page and
+                        # by 抉择 previews (see scripts/rebuild_range_images.py).
+                        content=ranges.render_png(diagram)
+                        relative='assets/updates/range-'+sha(content)[:24]+'.webp'
+                        assets.files[relative]=content
+                        card['rangeImage']=relative
+                        card['rangeLabel']=diagram['label']
+                    except Exception:
+                        pass
+            cards.append(card)
         wd.update(fields=fields_weapon,rawFields=raw_weapon,
             html='<h2>游戏客户端装备资料</h2><p class="source-notice">等级属性取自客户端等级表（等级 '+html.escape(str(weapon['stats'].get('等级','')))+'），未包含星级与突破加成。</p><dl class="fact-grid">'+stat_row+'</dl>'
                 +''.join('<h3>'+star+'技能</h3>'+fields_weapon[star+'星技能'] for star in star_names if fields_weapon.get(star+'星技能')),
-            starComparison=comparison,
+            starComparison=comparison,equipmentSkills=cards,
             clientSource={**source,'table':'online_weapon','rowId':weapon['id']})
         if related_pid is not None:
             wd['related']=sorted(set(wd.get('related',[])+[related_pid]))
@@ -442,7 +477,7 @@ def plan_update(wiki: Path, game: Path, snapshot: dict, names=None, all_existing
         # 范围图仅在客户端字段/描述惯例能确定形状时绘制，否则保留文本。
         diagram=ranges.plan(item)
         if diagram:
-            content=ranges.render_png(diagram,tiles)
+            content=ranges.render_png(diagram)
             # The Wiki only lifts a range figure out of doc.html when the file
             # lives under assets/wiki/ or assets/updates/ and the alt starts
             # with “技能范围 ” (see character-ui.js rangeImage).

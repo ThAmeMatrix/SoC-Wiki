@@ -51,6 +51,9 @@ TABLES = (
     'online_weapon_enchanting_element', 'online_weapon_enchanting_element_entry',
     'online_weapon_enchanting_material_rarity', 'online_revelation_tarot_collection',
     'profession', 'online_tech_category', 'online_tech_node', 'online_tech_node_level',
+    'online_tech_grade', 'online_tech_grade_exp', 'online_tech_node_level_consume',
+    'online_tech_node_unlock_group', 'online_tech_node_group', 'online_tech_upgrade_type',
+    'treasure_type', 'online_tech_material', 'online_afk_material',
 )
 
 # Account-wide talent trees. system 49 = 星辰天赋 (之座), 122 = 开拓天赋 (之志).
@@ -105,16 +108,28 @@ def growth_by_level(rows, group_key):
 
 
 def build_talents(tables):
-    """Aggregate both talent trees into per-profession, per-level stat bonuses.
+    """Export the REAL client talent trees, not an invented "tier" number.
 
-    ``online_tech_node_level`` carries ``upgrade_param1`` (the amount),
-    ``upgrade_param0`` (an ``attribute_type`` id, possibly a composite such as
-    5 = all five or 43 = both attacks) and ``upgrade_is_permillage``. A level N
-    entry means "this node at level N"; the exported arrays are cumulative so
-    the calculator can look up a talent level in O(1).
+    In game the player never picks a global level. They spend experience and
+    materials to light individual nodes:
+
+    * 星辰天赋 (system 49) is organised by seven grades (黑铁…不朽); each grade
+      has a cumulative ``online_tech_grade_exp`` threshold and a player-level
+      gate. Nodes belong to a grade and to a 战术/进攻/生存 lane, and each has
+      its own ``prev_id`` prerequisite and 1–20 levels.
+    * 开拓天赋 (system 122) is organised by 30 unlock groups (图1…图30); nodes
+      are placed on an x/y grid and gated by ``afk_prev_ids`` (all of them).
+
+    Only ``upgrade_type`` 41/51 nodes change the five out-of-battle stats;
+    the rest unlock tactics/passives, but they still appear in the tree so the
+    prerequisite chain matches the game. ``byCategory`` (the old cumulative
+    tier table) is kept for backwards compatibility with saved presets.
     """
+    def rows(name):
+        return tables.get(name) or []
+
     attr_map = {}
-    for row in tables['attribute_type']:
+    for row in rows('attribute_type'):
         ids = str(row.get('attribute_type_ids') or '')
         if ids:
             targets = [ATTR_TO_STAT[int(x)] for x in ids.split('|') if x.isdigit()
@@ -124,41 +139,219 @@ def build_talents(tables):
         attr_map[row['id']] = targets
 
     levels_by_node = defaultdict(list)
-    for row in tables['online_tech_node_level']:
+    for row in rows('online_tech_node_level'):
         levels_by_node[row['idonline_tech_node']].append(row)
-    nodes_by_cat = defaultdict(list)
-    for row in tables['online_tech_node']:
-        if row['upgrade_type'] in TALENT_UPGRADE_TYPES:
-            nodes_by_cat[row['idonline_tech_category']].append(row)
+    # ``online_tech_node_level_consume.type`` is a treasure_type id and
+    # ``param0`` selects the concrete material for types 135/168. Keep both so
+    # the UI can show exactly what one level costs, in the game's own wording.
+    treasure_names = {r['id']: (r.get('name') or r.get('editor_name') or str(r['id']))
+                      for r in rows('treasure_type')}
+    tech_materials = {r['id']: r.get('name') or str(r['id']) for r in rows('online_tech_material')}
+    afk_materials = {r['id']: r.get('name') or str(r['id']) for r in rows('online_afk_material')}
+    material_param_names = {135: tech_materials, 168: afk_materials}
+    materials = {str(tid): {'name': treasure_names.get(tid, str(tid)),
+                            'paramNames': {str(k): v for k, v in names.items()}}
+                 for tid, names in material_param_names.items()}
+    for tid in (103, 134):
+        materials[str(tid)] = {'name': treasure_names.get(tid, str(tid)), 'paramNames': {}}
+    consume_by_level = defaultdict(list)
+    for row in rows('online_tech_node_level_consume'):
+        consume_by_level[row['idonline_tech_node_level']].append(
+            [int(num(row, 'type')), int(num(row, 'param0')), int(num(row, 'param1'))])
+    upgrade_names = {r['id']: r.get('name') or '' for r in rows('online_tech_upgrade_type')}
+    grade_names = {r['id']: r.get('name') or str(r['id']) for r in rows('online_tech_grade')}
+    group_names = {r['id']: r.get('name') or str(r['id']) for r in rows('online_tech_node_group')}
+    unlock_groups = defaultdict(list)
+    for row in rows('online_tech_node_unlock_group'):
+        unlock_groups[row['idonline_tech_category']].append(
+            {'id': row['id'], 'name': row.get('name') or str(row['index']),
+             'index': int(num(row, 'index'))})
+    for group in unlock_groups.values():
+        group.sort(key=lambda x: x['index'])
+    grade_exp = defaultdict(dict)
+    for row in rows('online_tech_grade_exp'):
+        grade_exp[row['idonline_tech_category']][int(num(row, 'grade'))] = int(num(row, 'exp'))
 
-    out = {}
-    for key, system, name in TALENT_SYSTEMS:
-        by_category, max_level = {}, 0
-        for cat in tables['online_tech_category']:
-            if cat['system'] != system:
+    # ``upgrade_type`` 51 = AttributeModify ("全职业属性调整"): its node may
+    # live in any profession's tree but its bonus applies to EVERY profession.
+    # The wiki used to count it only inside its own category, which is why a
+    # fully lit 守望者之座 showed 750 HP / 25% instead of the in-game
+    # 810 HP / 30% (the missing 60 / 50‰ come from 粉碎者之座's two 全体生命
+    # nodes). Export the summed global vector once and let the calculator add
+    # it to every character, while keeping each tree's own nodes as-is.
+    global_by_system = {}
+    for key, system, _name in TALENT_SYSTEMS:
+        g_flat, g_perm = [0] * len(STATS), [0] * len(STATS)
+        seen = set()
+        for node in rows('online_tech_node'):
+            cat = next((c for c in rows('online_tech_category')
+                        if c['id'] == node['idonline_tech_category']), None)
+            if not cat or cat['system'] != system or node['upgrade_type'] != 51:
                 continue
-            per_level = defaultdict(lambda: {'flat': [0] * len(STATS),
-                                            'perm': [0] * len(STATS)})
-            for node in nodes_by_cat[cat['id']]:
-                for level in levels_by_node[node['id']]:
-                    amount = int(num(level, 'upgrade_param1'))
-                    targets = attr_map.get(int(num(level, 'upgrade_param0')), [])
-                    bucket = 'perm' if level.get('upgrade_is_permillage') else 'flat'
-                    for index in targets:
-                        per_level[int(level['level'])][bucket][index] += amount
+            if node['id'] in seen:
+                continue
+            seen.add(node['id'])
+            lv_rows = sorted(levels_by_node[node['id']], key=lambda r: int(num(r, 'level')))
+            if not lv_rows:
+                continue
+            top = lv_rows[-1]
+            amount = int(num(top, 'upgrade_param1'))
+            bucket = g_perm if top.get('upgrade_is_permillage') else g_flat
+            for index in attr_map.get(int(num(top, 'upgrade_param0')), []):
+                bucket[index] += amount
+        global_by_system[key] = {'flat': g_flat, 'perm': g_perm,
+                                 'nodes': len(seen), 'label': '全职业共享加成'}
+    out = {'_materials': materials, '_global': global_by_system}
+    for key, system, name in TALENT_SYSTEMS:
+        by_category, trees, max_level = {}, {}, 0
+        categories = [c for c in rows('online_tech_category') if c['system'] == system]
+        for cat in categories:
+            cid = cat['id']
+            per_level = defaultdict(lambda: {'flat': [0] * len(STATS), 'perm': [0] * len(STATS)})
+            nodes = []
+            for node in [n for n in rows('online_tech_node') if n['idonline_tech_category'] == cid]:
+                lv_rows = sorted(levels_by_node[node['id']], key=lambda r: int(num(r, 'level')))
+                if not lv_rows:
+                    continue
+                is_attr = node['upgrade_type'] in TALENT_UPGRADE_TYPES
+                prev_ids = [int(x) for x in str(node.get('prev_id') or 0).split('|') if x.isdigit() and int(x)]
+                afk = [int(x) for x in str(node.get('afk_prev_ids') or '').split('|') if x.isdigit() and int(x)]
+                if afk:
+                    prev_ids = afk
+                levels = []
+                for r in lv_rows:
+                    flat, perm = [0] * len(STATS), [0] * len(STATS)
+                    if is_attr:
+                        amount = int(num(r, 'upgrade_param1'))
+                        targets = attr_map.get(int(num(r, 'upgrade_param0')), [])
+                        bucket = perm if r.get('upgrade_is_permillage') else flat
+                        bucket_key = 'perm' if r.get('upgrade_is_permillage') else 'flat'
+                        level_no = int(num(r, 'level'))
+                        for index in targets:
+                            bucket[index] += amount
+                            per_level[level_no][bucket_key][index] += amount
+                    levels.append({
+                        'level': int(num(r, 'level')), 'exp': int(num(r, 'exp')),
+                        'reqLevel': int(num(r, 'required_player_level')),
+                        'flat': flat, 'perm': perm,
+                        'cost': consume_by_level.get(r['id'], []),
+                    })
+                max_level = max(max_level, len(levels))
+                nodes.append({
+                    'id': node['id'], 'name': node.get('name') or '',
+                    'icon': node.get('icon') or '', 'grade': int(num(node, 'grade')),
+                    'lane': int(num(node, 'group')), 'col': int(num(node, 'group_col')),
+                    'x': int(num(node, 'x')), 'y': int(num(node, 'y')),
+                    'prev': prev_ids, 'unlockGroup': int(num(node, 'unlock_group_id')),
+                    'kind': upgrade_names.get(node['upgrade_type'], ''),
+                    'attr': is_attr,
+                    # u51 = AttributeModify: applies to all professions, so the
+                    # UI must be able to light it from any character's view.
+                    'global': node['upgrade_type'] == 51,
+                    'levels': levels,
+                })
             top = max(per_level, default=0)
             max_level = max(max_level, top)
+            # ``upgrade_param1`` is the cumulative bonus at a level, so a tier
+            # is the sum of every node's row at min(tier, node's max level) -
+            # never a running sum across levels (that triple-counted bonuses).
             cumulative = [{'flat': [0] * len(STATS), 'perm': [0] * len(STATS)}]
+            node_levels = []
+            for node in [n for n in rows('online_tech_node')
+                         if n['idonline_tech_category'] == cid
+                         and n['upgrade_type'] in TALENT_UPGRADE_TYPES]:
+                lv_rows = sorted(levels_by_node[node['id']], key=lambda r: int(num(r, 'level')))
+                node_levels.append(lv_rows)
             for level in range(1, top + 1):
-                prev, cur = cumulative[-1], per_level[level]
-                cumulative.append({
-                    'flat': [prev['flat'][i] + cur['flat'][i] for i in range(len(STATS))],
-                    'perm': [prev['perm'][i] + cur['perm'][i] for i in range(len(STATS))],
-                })
+                flat, perm = [0] * len(STATS), [0] * len(STATS)
+                for lv_rows in node_levels:
+                    row = lv_rows[min(level, len(lv_rows)) - 1] if lv_rows else None
+                    if not row:
+                        continue
+                    amount = int(num(row, 'upgrade_param1'))
+                    bucket = perm if row.get('upgrade_is_permillage') else flat
+                    for index in attr_map.get(int(num(row, 'upgrade_param0')), []):
+                        bucket[index] += amount
+                cumulative.append({'flat': flat, 'perm': perm})
             by_category[str(cat['profession_category'])] = cumulative
-        out[key] = {'name': name, 'system': system,
-                    'maxLevel': max_level, 'byCategory': by_category}
+            trees[str(cat['profession_category'])] = {
+                'id': cid, 'name': cat.get('name') or '', 'editorName': cat.get('editor_name') or '',
+                'grades': [{'id': g, 'name': grade_names.get(g, str(g)),
+                            'exp': grade_exp.get(cid, {}).get(g, 0)} for g in sorted(grade_names)],
+                'groups': unlock_groups.get(cid, []),
+                'nodes': nodes,
+            }
+        out[key] = {'name': name, 'system': system, 'maxLevel': max_level,
+                    'byCategory': by_category, 'trees': trees, 'materials': materials,
+                    'global': global_by_system[key],
+                    'lanes': [{'id': g['id'], 'name': g['name']} for g in rows('online_tech_node_group')],
+                    'gradeNames': grade_names}
     return out
+
+
+RANK_WORDS = {1: '一', 3: '三', 5: '五', 7: '七', 9: '九', 11: '十一'}
+
+
+def build_line_skills(root: Path, characters):
+    """Per-character, per-rank skill names and images for the panel skill tree.
+
+    The character archive stores ``一阶技能左`` / ``三阶技能右`` … as display
+    names with an owner suffix, e.g. 「舍身（光辉禁军“铁卫”）」. Stripping the
+    suffix resolves them to the skill pages that carry the client/BWIKI icon -
+    exactly the images the infographic skill tree shows.
+    """
+    index = root / 'data' / 'index.js'
+    pages_dir = root / 'data' / 'pages'
+    if not index.is_file() or not pages_dir.is_dir():
+        return {}
+    try:
+        text = index.read_text('utf8')
+        pages = json.JSONDecoder().raw_decode(text[text.index('=') + 1:])[0]['pages']
+    except (OSError, ValueError, KeyError, IndexError):
+        return {}
+    skill_images = {}
+    for page in pages:
+        if page.get('type') != 'skill' or not page.get('image'):
+            continue
+        name = page.get('name') or ''
+        # Prefer client-extracted icons; they match the in-game art.
+        image = str(page['image'])
+        if name not in skill_images or image.startswith('assets/client/'):
+            skill_images[name] = image
+    char_pages = {}
+    for page in pages:
+        if page.get('type') == 'character' and page.get('name'):
+            char_pages.setdefault(norm_name(page['name']), page['id'])
+    result = {}
+    for char in characters:
+        pid = char_pages.get(char['key'])
+        if pid is None:
+            continue
+        path = pages_dir / f'{pid}.js'
+        if not path.is_file():
+            continue
+        try:
+            raw_text = path.read_text('utf8')
+            doc = json.loads(raw_text[raw_text.index('=') + 1:].rstrip().rstrip(';'))
+        except (OSError, ValueError, IndexError):
+            continue
+        raw = doc.get('rawFields') or {}
+        ranks = {}
+        for rank, word in RANK_WORDS.items():
+            sides = []
+            for side in ('左', '右'):
+                value = str(raw.get(f'{word}阶技能{side}') or '').strip()
+                if not value:
+                    sides.append(None)
+                    continue
+                short = re.sub(r'[（(][^）)]*[）)]\s*$', '', value).strip()
+                sides.append({'name': short, 'full': value,
+                              'image': skill_images.get(short) or skill_images.get(value) or ''})
+            if sides[0] or sides[1]:
+                ranks[str(rank)] = sides
+        if ranks:
+            result[char['key']] = ranks
+    return result
 
 
 def build(tables, page_names, plain):
@@ -295,7 +488,7 @@ def build(tables, page_names, plain):
         'characters': characters,
         'unitGrowth': growth_by_level(tables['online_unit_modify_level'], 'idonline_unit_modify'),
         'rankAdds': rank_adds, 'lines': lines, 'lineNames': line_names,
-        'lineRanks': line_ranks,
+        'lineRanks': line_ranks, 'lineSkills': build_line_skills(ROOT, characters),
         'talents': build_talents(tables),
         'weapons': weapons, 'weaponTypeNames': {str(k): v for k, v in weapon_types.items()},
         'weaponGrowth': growth_by_level(tables['online_weapon_modify_level'], 'idonline_weapon_modify'),
@@ -311,7 +504,7 @@ def build(tables, page_names, plain):
 
 def page_names(root: Path):
     text = (root / 'data' / 'index.js').read_text('utf8')
-    payload = json.loads(text[text.index('=') + 1:text.index(';window.WIKI_PAGES')])
+    payload = json.JSONDecoder().raw_decode(text[text.index('=') + 1:])[0]
     return [page['name'] for page in payload['pages'] if page.get('type') == 'character']
 
 

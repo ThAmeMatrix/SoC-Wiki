@@ -30,6 +30,9 @@ from .config import ROOT
 RAW = ROOT / 'data' / 'raw'
 STEPS = (
     ('重建一图流数据（星级文本与素材）', ['scripts/build_infographic.py', '--metadata-only']),
+    ('统一技能范围图为蓝底射程 / 红底作用范围', ['scripts/rebuild_range_images.py']),
+    ('导出战斗地图与自动战斗 AI', ['scripts/extract_world_data.py']),
+    ('导出客户端地形块贴图', ['scripts/extract_terrain.py']),
 )
 
 
@@ -64,7 +67,7 @@ def rebuild_pinyin(log=print):
     if not index.exists():
         return
     text = index.read_text('utf8')
-    pages = json.loads(text[text.index('=') + 1:text.index(';window.WIKI_PAGES')])['pages']
+    pages = json.JSONDecoder().raw_decode(text[text.index('=') + 1:])[0]['pages']
     data = pinyin.build(pages)
     (ROOT / 'data' / 'pinyin.js').write_text(
         'window.WIKI_PINYIN=' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n', 'utf8')
@@ -75,54 +78,99 @@ VOICE_DIR = ROOT / 'assets' / 'voice'
 VOICE_SUFFIXES = ('.mp3', '.ogg', '.wav', '.m4a', '.webm')
 
 
-def rebuild_voices(log=print):
-    """Index voice clips under ``assets/voice/<page id>/`` with their dialogue.
 
-    ``scripts/extract_voices.py`` writes ``meta.json`` next to the clips: each
-    line's title, Chinese dialogue text, category and duration, keyed by file
-    stem. Merging it here keeps the index self-contained, so a rebuild needs no
-    client and manually added audio still works (it simply has no metadata).
+def rebuild_equipment_stars(log=print):
+    """Give every equipment page the same 1→5 star diff as character traits.
+
+    BWIKI-sourced equipment pages are merged in by ``plan_update`` without going
+    through ``record_equipment()``, so they carry the five star-skill fields but
+    no ``starComparison`` and fall back to the whole raw article. Recomputing the
+    diff here (from the already-written page files) needs neither the client nor
+    BWIKI, and leaves client-generated pages untouched.
     """
-    data = {}
-    if VOICE_DIR.is_dir():
-        for folder in sorted(VOICE_DIR.iterdir()):
-            if not folder.is_dir():
+    import importlib.util
+    helper = ROOT / 'scripts' / 'character_data.py'
+    if not helper.is_file():
+        return
+    spec = importlib.util.spec_from_file_location('socwiki_rebuild_equipment', helper)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    pages = ROOT / 'data' / 'pages'
+    if not pages.is_dir():
+        return
+    fixed = 0
+    for path in sorted(pages.glob('*.js')):
+        try:
+            text = path.read_text('utf8')
+        except OSError:
+            continue
+        if '一星技能' not in text or '=' not in text:
+            continue
+        try:
+            doc = json.loads(text[text.index('=') + 1:].rstrip().rstrip(';'))
+        except (ValueError, IndexError):
+            continue
+        fields = doc.get('fields') or {}
+        if not all(key in fields for key in EQUIPMENT_STAR_KEYS):
+            continue
+        current = doc.get('starComparison')
+        if current and any(level.get('html') for level in current.get('levels', [])):
+            continue
+        try:
+            comparison = module.star_comparison(fields, list(EQUIPMENT_STAR_KEYS))
+        except (ValueError, TypeError, AttributeError):
+            comparison = None
+        # Levels may all be empty when every paragraph is a common effect. When
+        # the archive has no star text at all, star_comparison returns None: keep
+        # the same comparison frame with "not recorded" placeholders so every
+        # equipment page presents its star skills the same way.
+        if not comparison or len(comparison.get('levels') or []) != 5:
+            if any(str(fields.get(key) or '').strip() for key in EQUIPMENT_STAR_KEYS):
                 continue
-            meta = {}
-            meta_path = folder / 'meta.json'
-            if meta_path.is_file():
-                try:
-                    meta = json.loads(meta_path.read_text('utf8'))
-                except (ValueError, OSError):
-                    pass
-            clips = []
-            for path in sorted(folder.rglob('*')):
-                if not path.is_file() or path.suffix.lower() not in VOICE_SUFFIXES:
-                    continue
-                stem = path.stem
-                info = meta.get(stem) or {}
-                match = re.match(r'^(中文|日文)\s*', stem)
-                clip = {'name': stem, 'src': str(path.relative_to(ROOT)).replace('\\', '/'),
-                        'lang': match.group(1) if match else '语音',
-                        'title': info.get('title') or '',
-                        'text': info.get('text') or '',
-                        'category': info.get('category') or '其它语音'}
-                if info.get('duration'):
-                    clip['duration'] = info['duration']
-                clips.append(clip)
-            if clips:
-                data[folder.name] = clips
-    (ROOT / 'data' / 'voices.js').write_text(
-        'window.WIKI_VOICES=' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n', 'utf8')
-    if data:
-        with_text = sum(1 for clips in data.values() for clip in clips if clip['text'])
-        log(f'  语音索引已重建：{len(data)} 个角色，共 {sum(len(v) for v in data.values())} 条语音，'
-            f'其中 {with_text} 条带台词文本。')
+            comparison = {'keys': list(EQUIPMENT_STAR_KEYS), 'common': '',
+                          'levels': [{'star': star, 'available': False, 'html': '', 'removed': [],
+                                      'previous': None, 'changed': False} for star in range(1, 6)]}
+        doc['starComparison'] = comparison
+        prefix = text[:text.index('=')]
+        path.write_text(prefix + '=' + json.dumps(doc, ensure_ascii=False, separators=(',', ':')) + ';\n', 'utf8')
+        fixed += 1
+    if fixed:
+        log(f'  装备星级差分已补齐 {fixed} 页（与角色个性同一套五星对照）。')
+
+
+def rebuild_choice_pages(log=print):
+    """Refresh battle rules and give every 抉择 branch a linkable skill page.
+
+    Runs after ``plan_update`` has written the index, so the generated entries
+    survive an update. The extractor keeps existing files when no client or
+    archive is available; this step is idempotent.
+    """
+    for name in ('extract_battle_rules', 'build_choice_pages'):
+        path = ROOT / 'scripts' / f'{name}.py'
+        if not path.is_file():
+            return
+        result = subprocess.run([sys.executable, '-X', 'utf8', str(path)], cwd=str(ROOT),
+                                capture_output=True, text=True, encoding='utf8', errors='replace')
+        for line in (result.stdout or '').splitlines():
+            if line.strip():
+                log('  ' + line.strip())
+        if result.returncode:
+            log(f'  {name} 失败：{(result.stderr or "").strip()[-200:]}')
+            return
+    log('  战斗常量、抉择技能词条与机制规则已重建。')
 
 
 def run(log=print):
     ensure_asset_map(log)
-    rebuild_voices(log)
+    # 语音 / 像素动作 / 立绘表情已从离线包移除，不再重建。
+    try:
+        rebuild_equipment_stars(log)
+    except Exception as error:      # never abort the update over a presentation detail
+        log('  装备星级差分未能补齐：' + str(error))
+    try:
+        rebuild_choice_pages(log)
+    except Exception as error:      # never abort the update over optional skill pages
+        log('  抉择技能词条未能重建：' + str(error))
     try:
         rebuild_pinyin(log)
     except Exception as error:      # never abort the update over an optional index

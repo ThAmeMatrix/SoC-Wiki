@@ -438,8 +438,9 @@ class App(tk.Tk):
              ('versions', '版本库', 'versions'), ('settings', '设置', 'settings'))
     WIKI_STEPS = ('读取客户端', '生成页面', '写入并备份', '重建索引', '衍生资源')
     MEDIA_SCRIPTS = (
-        ('像素动作与立绘表情', 'extract_art.py'),
-        ('局外面板计算器数值', 'extract_panel_data.py'),
+            ('局外面板计算器数值', 'extract_panel_data.py'),
+        ('剧情对话与立绘', 'extract_dialogues.py'),
+        ('战斗常量、抉择技能与机制规则', 'extract_battle_rules.py'),
     )
     MODE_HINTS = {
         'diff': '只补缺失与空白的字段，你手动改过的内容和署名都会保留。日常使用选它即可。',
@@ -468,7 +469,10 @@ class App(tk.Tk):
         self.game = tk.StringVar(value=str(game_path()))
         self.archive = tk.StringVar(value=str(archive_path()))
         self.workers = tk.IntVar(value=int(settings.get('workers') or default_workers()))
-        self.organise = tk.BooleanVar(value=settings.get('organise', True))
+        # The resource browser reads objects/ directly. The organised folder is
+        # only for Explorer, so it is off by default (and no longer implies a
+        # second copy of 150k files).
+        self.organise = tk.BooleanVar(value=settings.get('organise', False))
         chosen = set(settings.get('categories') or KEYS)
         self.categories = {key: tk.BooleanVar(value=key in chosen) for key in KEYS}
         self.mode = tk.StringVar(value=settings.get('wikiMode') if settings.get('wikiMode') in ('diff', 'full') else 'diff')
@@ -998,7 +1002,8 @@ class App(tk.Tk):
         self.label(opts, '并行进程', 10).pack(side='left')
         ttk.Spinbox(opts, from_=1, to=max(2, os.cpu_count() or 4), width=4, textvariable=self.workers).pack(side='left', padx=(S(10), S(6)))
         self.label(opts, f'本机 {os.cpu_count() or "?"} 线程', 9, fg=FAINT).pack(side='left', padx=(0, S(26)))
-        ttk.Checkbutton(opts, text='解析后刷新分类目录（硬链接，不额外占用空间）', variable=self.organise).pack(side='left')
+        ttk.Checkbutton(opts, text='额外生成分类目录供资源管理器浏览（默认关闭，资源浏览器不需要）',
+                        variable=self.organise).pack(side='left')
 
         row = tk.Frame(body, bg=PAPER)
         row.pack(fill='x', padx=S(36), pady=(0, S(18)))
@@ -1007,7 +1012,8 @@ class App(tk.Tk):
         self.actions.append(self.scan_button)
         self.cancel_button = ttk.Button(row, text='取消', style='Secondary.TButton', command=self.cancel_scan, state='disabled')
         self.cancel_button.pack(side='left', padx=(S(10), 0))
-        for text, action in (('打开分类目录', lambda: self.open_folder(Path(self.archive.get()) / 'library' / '当前版本')),
+        for text, action in (('清理分类目录', self.clear_library),
+                             ('打开分类目录', lambda: self.open_folder(Path(self.archive.get()) / 'library' / '当前版本')),
                              ('查看最新差分', self.latest_diff), ('打开资源浏览器', lambda: self.open_viewer(''))):
             ttk.Button(row, text=text, style='Secondary.TButton', command=action).pack(side='right', padx=(S(10), 0))
 
@@ -1082,6 +1088,8 @@ class App(tk.Tk):
                        font=(self.ui, 10), bd=0, relief='flat')
         menu.add_command(label='打开版本报告', command=self.open_report)
         menu.add_command(label='导出所选版本的分类目录', command=self.export_selected)
+        menu.add_separator()
+        menu.add_command(label='清理分类目录…', command=self.clear_library)
         menu.add_separator()
         menu.add_command(label='删除所选版本…', command=self.delete_selected)
         menu.add_command(label='清理未引用的文件', command=self.collect)
@@ -1370,7 +1378,10 @@ class App(tk.Tk):
                 if not stopped:
                     self.archive_log.show()
                 return
-            self.archive_stepper.set_all(['done'] * len(STAGES))
+            states = ['done'] * len(STAGES)
+            if not organise:
+                states[-1] = 'skip'           # organised folder is optional now
+            self.archive_stepper.set_all(states)
             self.bar.configure(value=1000)
             if result['status'] == 'unchanged':
                 self.line1.set(f"与上一版本一致（{result['label']}），没有生成新版本 · 用时 {clock(result['seconds'])}")
@@ -1446,8 +1457,13 @@ class App(tk.Tk):
         root = self.archive.get()
 
         def measure():
-            used = Store(root).disk_usage()
-            self.later(lambda: self.usage.set(f'{len(versions)} 个版本 · 归档占用 {size_text(used)}'))
+            usage = Store(root).disk_report()
+            parts = [f"实际占用 {size_text(usage['total'])}"]
+            if usage['libraryCopies']:
+                parts.append(f"含副本 {size_text(usage['libraryCopies'])}")
+            if usage['libraryLinks']:
+                parts.append(f"另有 {size_text(usage['libraryLinks'])} 硬链接目录项（不额外占空间）")
+            self.later(lambda: self.usage.set(f"{len(versions)} 个版本 · " + ' · '.join(parts)))
         threading.Thread(target=measure, daemon=True).start()
 
     def selected(self):
@@ -1567,6 +1583,37 @@ class App(tk.Tk):
         for meta in chosen:
             store.delete_version(meta['id'])
         self.refresh_versions()
+
+    def clear_library(self):
+        """Remove organised Explorer folders; objects/ (the only real copy) stays."""
+        store = self.store()
+        trees = ([p for p in store.library.iterdir() if p.is_dir() and (p / '.tree.json').is_file()]
+                 if store.library.is_dir() else [])
+        if not trees:
+            messagebox.showinfo('没有分类目录',
+                                '当前没有需要清理的分类目录。\n\n资源本体保存在 objects/，资源浏览器直接读它，'
+                                '没有第二份数据。')
+            return
+        if not messagebox.askyesno('清理分类目录',
+                                   f'删除 {len(trees)} 棵分类目录？\n\n'
+                                   '这些只是给资源管理器人工浏览的目录项，资源本体在 objects/，删除后不影响解析记录、'
+                                   '资源浏览器与差分。以后仍可重新生成。'):
+            return
+
+        def job():
+            removed = 0
+            for tree in trees:
+                try:
+                    removed += store.unmaterialize(tree)
+                except (OSError, ValueError) as error:
+                    print(f'  清理 {tree.name} 失败：{error}')
+            print(f'已移除 {removed:,} 个分类目录项，资源本体未改动。')
+            return removed
+
+        def done(removed):
+            self.refresh_versions()
+            messagebox.showinfo('清理完成', f'已移除 {removed:,} 个目录项。\n资源本体与版本记录保持不变。')
+        self.thread('清理分类目录', job, done)
 
     def collect(self):
         store = self.store()
@@ -1802,7 +1849,7 @@ class App(tk.Tk):
                 try:
                     # --force disables the "bundled resources already complete"
                     # shortcut so a rebuilt client is picked up faithfully.
-                    self.run_script(name, *(('--force',) if force and name == 'extract_art.py' else ()))
+                    self.run_script(name)
                 except Exception as error:      # noqa: BLE001 - keep the update usable
                     print(f'  {label}提取失败（可稍后重试）：{error}')
                     failed.append(label)
@@ -1888,7 +1935,7 @@ class App(tk.Tk):
             failed = []
             if media or voices:
                 mark(4, 'active')
-                self.step('正在提取像素动作、立绘表情与局外面板数值…')
+                self.step('正在提取像素动作、立绘表情、面板数值与剧情对话…')
                 failed = self.refresh_media(media, voices, force)
                 mark(4, 'error' if failed else 'done', f'{len(failed)} 项失败' if failed else None)
             else:

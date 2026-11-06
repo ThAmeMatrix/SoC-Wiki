@@ -225,7 +225,8 @@ class Handler(BaseHTTPRequestHandler):
     def api_info(self, q):
         store = self.archive.store
         return {'root': str(store.root.resolve()), 'categories': [{'key': k, 'label': v} for k, v in CATEGORIES],
-                'tableGroups': TABLE_GROUPS, 'kinds': diff.KIND_LABELS, 'library': str(store.library.resolve())}
+                'tableGroups': TABLE_GROUPS, 'kinds': diff.KIND_LABELS, 'library': str(store.library.resolve()),
+                'usage': store.disk_report()}
 
     def api_versions(self, q):
         return {'versions': self.archive.versions()}

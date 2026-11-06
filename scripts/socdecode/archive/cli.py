@@ -85,7 +85,8 @@ def parser():
     s.add_argument('--game', type=Path, default=None, help='游戏安装或启动器目录')
     s.add_argument('--workers', type=int, default=None, help=f'并行进程数（默认 {default_workers()}）')
     s.add_argument('--only', default='', help='只解析这些分类，逗号分隔：' + ','.join(KEYS))
-    s.add_argument('--no-organise', action='store_true', help='不刷新分类目录')
+    s.add_argument('--organise', action='store_true',
+                   help='额外生成一份供资源管理器人工浏览的分类目录（硬链接；资源浏览器不需要）')
     subs.add_parser('versions', help='列出全部版本')
     d = subs.add_parser('diff', help='比较两个版本')
     d.add_argument('base', nargs='?', help='基准版本（默认：目标的上一版本）')
@@ -135,7 +136,7 @@ def main(argv=None) -> int:
             # Command-line options apply to this run only; the GUI is where folders are remembered.
             cancel = threading.Event()
             try:
-                result = scan(game, root, workers=args.workers, categories=only, organise=not args.no_organise,
+                result = scan(game, root, workers=args.workers, categories=only, organise=args.organise,
                               progress=ConsoleProgress(), log=lambda text: print('\n' + text, flush=True), cancel=cancel)
             except KeyboardInterrupt:
                 cancel.set()
@@ -155,7 +156,10 @@ def main(argv=None) -> int:
                 print(f"{meta['label']:<21}{str(meta.get('game', {}).get('changeNumber') or '-'):<14}"
                       f"{meta['entries']:>10,}{_size(meta['bytes']):>12}  {c.get('added', 0):>7,}{c.get('modified', 0):>7,}"
                       f"{c.get('removed', 0):>7,}{c.get('renamed', 0):>7,}  {meta['durationSeconds']:.0f}s")
-            print(f'\n归档目录：{root}（对象文件 {_size(store.disk_usage())}）')
+            usage = store.disk_report()
+            print(f"\n归档目录：{root}（实际占用 {_size(usage['total'])} = 资源 {_size(usage['objects'])}"
+                  f" + 副本 {_size(usage['libraryCopies'])} + 缩略图 {_size(usage['thumbs'])}；"
+                  f"另有 {_size(usage['libraryLinks'])} 硬链接目录项不额外占空间）")
             return 0
         if args.command == 'diff':
             target = resolve(store, args.target)
@@ -193,7 +197,10 @@ def main(argv=None) -> int:
             meta = resolve(store, args.version)
             folder = args.folder or store.library / meta['id']
             path, linked, removed = store.materialize(meta['id'], folder)
-            print(f'已整理：{path}（链接 {linked:,}，移除 {removed:,}）')
+            skipped = store.last_materialize.get('skipped', 0)
+            print(f'已整理：{path}（链接 {linked:,}，移除 {removed:,}'
+                  + (f'，跳过 {skipped:,} 个无法硬链接的文件' if skipped else '') + '）')
+            print('分类目录仅供资源管理器人工浏览；资源浏览器直接读 objects/，不需要它。')
             return 0
         if args.command == 'unexport':
             print(f'已删除分类目录 {args.folder}（{store.unmaterialize(args.folder):,} 个链接）。')

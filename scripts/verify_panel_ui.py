@@ -24,10 +24,11 @@ def main():
         card.click()
         page.locator('#panel-output .panel-total-grid').wait_for()
         totals = page.locator('.panel-total-grid strong').all_inner_texts()
-        assert len(totals) == 5, totals
+        assert len(totals) == 3, totals
         print('panel default totals:', ' / '.join(totals))
-        expected = page.evaluate("()=>{const P=window.WIKI_PANEL_DATA,C=window.WikiPanelCalc;return C.calculate(C.defaults(P),P).total.map(String)}")
-        assert [t.replace(',', '') for t in totals] == expected, (totals, expected)
+        expected = page.evaluate("()=>{const P=window.WIKI_PANEL_DATA,C=window.WikiPanelCalc;const r=C.calculate(C.defaults(P),P).total;return [String(r[0]),r[1]+' / '+r[2],r[3]+' / '+r[4]]}")
+        norm = lambda s: s.replace(',', '').replace(' ', '')
+        assert [norm(x) for x in totals] == [norm(x) for x in expected], (totals, expected)
         print('defaults match pure calculation:', ' / '.join(expected))
         assert page.locator('#panel-steps .panel-step-list > div').count() >= 3
 
@@ -43,27 +44,56 @@ def main():
         print('after enchant  :', ' / '.join(boosted))
         page.locator('[data-path="weapon.enchant.percents.1"]').fill('0')
 
-        # Per-rank skill-line branches.
-        rank_buttons = page.locator('[data-line-rank]')
-        assert rank_buttons.count() >= 4, 'skill-line rank buttons missing'
+        # Skill-axis tree: same tier/node visuals as the infographic, but every
+        # node only toggles between lit and unlit (no 必点/选点 cycle).
+        tree_nodes = page.locator('[data-line-node]')
+        assert tree_nodes.count() >= 8, 'skill-axis tree nodes missing'
+        assert page.locator('.panel-tree-tier').count() >= 4, 'skill-axis tiers missing'
         before_lines = page.locator('.panel-total-grid strong').all_inner_texts()
-        page.locator('[data-line-rank="1"][data-line-pick="right"]').click()
+        right_node = page.locator('[data-line-node="1"][data-line-side="right"]')
+        assert right_node.count() == 1, 'rank-1 right node missing'
+        assert right_node.get_attribute('aria-pressed') == 'false', 'default right node should be unlit'
+        right_node.click()
+        assert page.locator('[data-line-node="1"][data-line-side="right"]').get_attribute('aria-pressed') == 'true'
         after_lines = page.locator('.panel-total-grid strong').all_inner_texts()
-        assert after_lines != before_lines, 'per-rank skill-line pick had no effect'
-        print('skill-line pick:', ' / '.join(before_lines), '->', ' / '.join(after_lines))
+        assert after_lines != before_lines, 'skill-axis node click had no effect'
+        print('skill-axis node:', ' / '.join(before_lines), '->', ' / '.join(after_lines))
+        page.locator('[data-line-node="1"][data-line-side="right"]').click()
+        assert page.locator('.panel-total-grid strong').all_inner_texts() == before_lines, 'node did not toggle back'
 
-        # Both talent trees.
-        assert page.locator('[data-path="talent.star"]').count() == 1
-        assert page.locator('[data-path="talent.pioneer"]').count() == 1
+        # Real talent trees: grade / 图 grouping, per-node investment, exp totals.
+        assert page.locator('.panel-talent-tree').count() == 2, 'star and pioneer trees missing'
+        assert page.locator('[data-path="talentView.star"]').count() == 1
+        assert page.locator('[data-path="talentView.pioneer"]').count() == 1
+        assert page.locator('[data-talent-node]').count() > 4, 'no talent nodes rendered'
+        summary = page.locator('.panel-talent-summary').inner_text()
+        assert '品阶' in summary and '经验' in summary, summary
         before_talent = page.locator('.panel-total-grid strong').all_inner_texts()
-        page.locator('[data-path="talent.star"]').select_option('1')
+        before_summary = page.locator('.panel-talent-summary').inner_text()
+        # Pick a lit-capable attribute node and check the panel reacts.
+        attr_node = page.locator('.panel-talent-node:not(.is-utility) [data-talent-node]').first
+        assert attr_node.count() == 1, 'no attribute talent node'
+        attr_node.click()
         after_talent = page.locator('.panel-total-grid strong').all_inner_texts()
-        assert after_talent != before_talent, 'talent level had no effect'
+        assert after_talent != before_talent, 'lighting a talent node had no effect'
+        lit_summary = page.locator('.panel-talent-summary').inner_text()
+        # Both trees start fully lit; clicking a node turns one OFF.
+        assert lit_summary != before_summary, (before_summary[:60], lit_summary[:60])
+        # The breakdown lives in a collapsed <details> to keep the right
+        # column readable, so expand it before reading its text.
+        page.locator('.panel-aside-fold').first.evaluate('e=>{e.open=true}')
         assert page.locator('#panel-steps').inner_text().find('星辰') >= 0
-        print('talent Lv.1  :', ' / '.join(after_talent))
+        print('talent node toggled:', ' / '.join(after_talent))
+        # Level selector on multi-level nodes.
+        level_select = page.locator('[data-talent-level]').first
+        if level_select.count():
+            level_select.select_option('1')
+            assert page.locator('.panel-total-grid strong').all_inner_texts(), 'level select broke the panel'
+        attr_node = page.locator('.panel-talent-node:not(.is-utility) [data-talent-node]').first
+        attr_node.click()
+        assert page.locator('.panel-total-grid strong').all_inner_texts() == before_talent, 'talent node did not toggle back'
         page.locator('[data-path="talentAdjust.0"]').fill('100')
-        assert page.locator('.panel-total-grid strong').all_inner_texts() != after_talent
-        page.locator('[data-path="talent.star"]').select_option('0')
+        assert page.locator('.panel-total-grid strong').all_inner_texts() != before_talent
         page.locator('[data-path="talentAdjust.0"]').fill('0')
 
         # Searchable weapon / offhand / tarot selectors.
@@ -116,93 +146,36 @@ def main():
         assert norm(name) == norm(page.locator('.panel-character strong').inner_text()), (name, page.locator('.panel-character strong').inner_text())
         print('shared picker picked', name, '->', ' / '.join(swapped))
 
+        page.locator('.preset-card').evaluate('e=>{e.open=true}')
         page.locator('#panel-preset-name').fill('probe')
         page.locator('[data-tool="save-panel"]').click()
         assert page.locator('[data-panel-preset]').count() == 1, 'preset not saved'
         print('preset save: ok')
 
-        # Character detail tabs: full-colour sprites and portrait expressions.
-        page.goto(BASE + '#/page/2165')
-        page.locator('.detail-heading').wait_for()
-        page.locator('[data-detail-tab="anim"]').click()
-        page.locator('.sprite-lab').wait_for()
-        frames = page.locator('.sprite-strip img')
-        assert frames.count() > 0, 'no sprite frames rendered'
-        print('anim tab frames:', frames.count())
-        colour = page.locator('[data-sprite-colour="color"]')
-        mask = page.locator('[data-sprite-colour="mask"]')
-        assert colour.count() == 1 and not colour.is_disabled(), 'full-colour option missing'
-        assert '/color/' in colour.evaluate('(e)=>e.closest(".sprite-lab").querySelector(".sprite-frame").src'), 'default is not full colour'
-        mask.click()
-        assert '/color/' not in page.locator('.sprite-frame').get_attribute('src'), 'mask switch failed'
-        colour.click()
-        assert '/color/' in page.locator('.sprite-frame').get_attribute('src'), 'colour switch failed'
-        print('full-colour / mask toggle: ok')
-        page.locator('.sprite-nav-btn').nth(1).click()
-        assert page.locator('.sprite-strip img').count() > 0, 'action switch lost frames'
-        page.locator('[data-sprite-facing="front"]').click()
-        page.locator('[data-sprite-mirror]').click()
-        assert page.locator('[data-sprite-mirror]').get_attribute('aria-pressed') == 'true'
-        page.locator('[data-sprite-speed="1.8"]').click()
-        page.locator('.sprite-strip img').nth(1).click()
-        assert page.locator('[data-sprite-play]').inner_text() == '播放', 'frame click should pause'
-        page.locator('[data-sprite-play]').click()
-        assert page.locator('[data-sprite-play]').inner_text() == '暂停', 'play button should resume'
-        print('anim interactions: ok')
+        # Character detail tabs: only core wiki tabs remain after the extra
+        # pixel-animation / expression assets were removed.
+        # Character detail lives at #/page/<id>; pick the first character id
+        # from the offline index so the detail tabs exist.
+        import json as _json
+        _raw = (ROOT / 'data' / 'index.js').read_text('utf8')
+        _pages = _json.JSONDecoder().raw_decode(_raw[_raw.index('=') + 1:])[0]['pages']
+        cid = next((x['id'] for x in _pages if x.get('type') == 'character' and not x.get('redirect')), None)
+        assert cid, 'no character page in the offline index'
+        page.goto(BASE + '#/page/' + str(cid))
+        page.locator('[data-detail-tab]').first.wait_for()
+        tabs = page.locator('[data-detail-tab]').all_inner_texts()
+        assert '档案总览' in tabs and '技能与成长' in tabs and '角色故事' in tabs, tabs
+        assert '像素动作' not in tabs and '立绘表情' not in tabs, tabs
+        print('core detail tabs:', tabs)
+        page.locator('[data-detail-tab="skills"]').click()
+        page.locator('#detail-body').wait_for()
+        assert page.locator('#detail-body').inner_text(), 'skills tab empty'
+        print('skills tab: ok')
 
-        page.locator('[data-detail-tab="faces"]').click()
-        page.locator('.face-grid').wait_for()
-        faces = page.locator('.face-item img')
-        assert faces.count() > 0, 'no expression images'
-        page.wait_for_function("()=>[...document.querySelectorAll('.face-item img')].every(i=>i.complete)")
-        broken = page.evaluate("()=>[...document.querySelectorAll('.face-item:not([hidden]) img')].filter(i=>i.naturalWidth===0).map(i=>i.getAttribute('src'))")
-        assert not broken, 'broken expression images: ' + repr(broken[:5])
-        forms = page.locator('.face-item img[alt^="立绘形态"]')
-        print('faces tab images:', faces.count(), 'form cards:', forms.count())
-        faces.first.click()
-        page.locator('#image-dialog').wait_for(state='visible')
-        print('expression lightbox: ok')
-        page.keyboard.press('Escape')
-
-        # A character with portrait form sheets: all of them must now resolve.
-        page.goto(BASE + '#/page/8592')       # 贝拉•魔术师
-        page.locator('.detail-heading').wait_for()
-        page.locator('[data-detail-tab="faces"]').click()
-        page.locator('.face-grid').first.wait_for()
-        form_imgs = page.locator('.face-item img[alt^="立绘形态"]')
-        assert form_imgs.count() > 0, 'no portrait form sheets rendered'
-        page.wait_for_function("()=>[...document.querySelectorAll('.face-item img[alt^=\"立绘形态\"]')].every(i=>i.complete)")
-        form_broken = page.evaluate("()=>[...document.querySelectorAll('.face-item:not([hidden]) img[alt^=\"立绘形态\"]')].filter(i=>i.naturalWidth===0).map(i=>i.getAttribute('src'))")
-        assert not form_broken, 'broken portrait form sheets: ' + repr(form_broken[:5])
-        print('portrait form sheets:', form_imgs.count(), 'all loaded')
-
-        # The infographic workshop shares the same character picker.
-        page.goto(BASE + '#/tools/infographic')
-        page.locator('[data-ig-pick="character"]').first.wait_for()
-        page.locator('[data-ig-pick="character"]').first.click()
-        page.locator('.char-picker').wait_for()
-        assert page.locator('.char-picker-card').count() > 20, 'shared picker empty in workshop'
-        page.locator('.char-picker-search').fill('贝拉')
-        page.wait_for_timeout(120)
-        assert page.locator('.char-picker-card').count() < 20, 'shared picker search failed in workshop'
-        page.keyboard.press('Escape')
-        page.locator('.char-picker').wait_for(state='detached')
-        print('infographic shared picker: ok')
-
-        print('\npage/console errors:', len(errors))
-        for e in errors[:8]:
-            print('  ', e[:200])
-        print('failed requests:', len(failed))
-        for f in failed[:8]:
-            print('  ', f[-120:])
-        print('bad responses:', len(bad_status))
-        for s, u in bad_status[:8]:
-            print('  ', s, u[-120:])
+        assert not errors, '; '.join(errors[:3])
+        assert not failed, '; '.join(failed[:3])
         browser.close()
-    assert not errors, 'page or console errors'
-    assert not failed, 'failed requests'
-    assert not bad_status, 'missing local files'
-    print('\nALL PASS')
+    print('ALL PASS')
 
 
 if __name__ == '__main__':

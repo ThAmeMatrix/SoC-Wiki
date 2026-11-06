@@ -137,15 +137,33 @@
           if(['none','left','right','both'].includes(v))c.linePicks[r]=v;
         }
         c.talent={star:0,pioneer:0,...(src.talent||{})};
+        // Older saved presets predate the talent-node UI (or were saved while
+        // empty). Default both trees to fully lit unless the player has
+        // explicitly changed them in this build.
+        // A preset written by an older build has no explicit marker; re-seed
+        // it to the all-lit default rather than inheriting a partial/empty set.
+        c.talentNodesExplicit=!!src.talentNodesExplicit;
+        c.talentNodes=c.talentNodesExplicit
+          ?{star:{...(src.talentNodes?.star||{})},pioneer:{...(src.talentNodes?.pioneer||{})}}
+          :C.defaultTalentNodes(P,char);
+        c.talentView={star:0,pioneer:0,...(src.talentView||{})};
         c.talentAdjust=zero().map((_,i)=>C.int(Array.isArray(src.talentAdjust)?src.talentAdjust[i]:0));
+        c.talentAdjustFlat=zero().map((_,i)=>C.int(Array.isArray(src.talentAdjustFlat)?src.talentAdjustFlat[i]:0));
+        c.combat={...C.damageDefaults(window.WIKI_COMBAT_DATA),...(src.combat||{})};
         return c;
       }
+      const NO_ITEM=[[0,'不带（无加成）','不带 无 空']];
       let cfg=normalize(h.read('panel.current',null));
+      // Battle-power formula is not recoverable from the client config; keep
+      // the player's chosen candidate / calibration across result repaints.
+      const battlePowerState={method:'permille-final',scale:1,calibration:0};
       // A restored preset may name a weapon the current character cannot equip.
       function fixEquipment(){
-        const wo=weaponOptions(C.findCharacter(P,cfg.character)),oo=offhandOptions();
-        if(!wo.some(o=>String(o[0])===String(cfg.weapon.id)))cfg.weapon.id=wo[0]?.[0]??0;
-        if(!oo.some(o=>String(o[0])===String(cfg.offhand.id)))cfg.offhand.id=oo[0]?.[0]??0;
+        const wo=weaponOptions(C.findCharacter(P,cfg.character)),oo=offhandOptions(),co=charmOptions();
+        const valid=(id,opts)=>!id||['0','none',''].includes(String(id))||opts.some(o=>String(o[0])===String(id));
+        if(!valid(cfg.weapon.id,wo))cfg.weapon.id=wo[0]?.[0]??0;
+        if(!valid(cfg.offhand.id,oo))cfg.offhand.id=oo[0]?.[0]??0;
+        if(!valid(cfg.charm.id,co))cfg.charm.id=co[0]?.[0]??0;
       }
       fixEquipment();
       let presets=h.read('panel.presets',[]);
@@ -155,17 +173,20 @@
       const sel=(path,label,opts,value)=>`<label class="tool-field"><span>${label}</span><select data-path="${path}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${String(value)===String(v)?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
       const num=(path,label,value,min,max,hint='')=>`<label class="tool-field"><span>${label}</span><input data-path="${path}" type="number" min="${min}" max="${max}" step="1" value="${esc(value)}"><small>${hint}</small></label>`;
       const heading=(n,title,note)=>`<div class="tool-section-heading"><span class="step-dot">${n}</span><h2>${title}</h2><span>${note}</span></div>`;
+      const combat=window.WIKI_COMBAT_DATA||{};
+      const catOptions=(combat.categories||[{id:1,name:'防御者'}]).map(c=>[c.id,c.name]);
+      const dmg=(path,label,value,min,max,hint='')=>num('combat.'+path,label,value,min,max,hint);
 
       function weaponOptions(char){
         const allowed=new Set((char?.weaponTypes||[]).filter(t=>Number(t)!==2));
-        return P.weapons.filter(w=>allowed.has(Number(w.typeId)))
-          .map(w=>[w.id,`${w.name} · ${w.type}`,w.name+' '+w.type]);
+        return [...NO_ITEM,...P.weapons.filter(w=>allowed.has(Number(w.typeId)))
+          .map(w=>[w.id,`${w.name} · ${w.type}`,w.name+' '+w.type])];
       }
       function offhandOptions(){
-        return P.weapons.filter(w=>Number(w.typeId)===2)
-          .map(w=>[w.id,`${w.name} · ${w.type}`,w.name+' '+w.type]);
+        return [...NO_ITEM,...P.weapons.filter(w=>Number(w.typeId)===2)
+          .map(w=>[w.id,`${w.name} · ${w.type}`,w.name+' '+w.type])];
       }
-      const charmOptions=()=>P.charms.map(c=>[c.id,c.name,c.name]);
+      function charmOptions(){return [...NO_ITEM,...P.charms.map(c=>[c.id,c.name,c.name])];}
       function comboOptions(path){
         if(path==='weapon.id')return weaponOptions(C.findCharacter(P,cfg.character));
         if(path==='offhand.id')return offhandOptions();
@@ -173,7 +194,8 @@
         return [];
       }
       const combo=(path,label,opts,value,hint='')=>{
-        const hit=opts.find(o=>String(o[0])===String(value));
+        const empty=!value||['0','none'].includes(String(value));
+        const hit=opts.find(o=>String(o[0])===String(value))||(empty?NO_ITEM[0]:null);
         return `<div class="tool-field panel-combo-field"><span>${label}</span>
           <input type="text" class="panel-combo-input" data-combo="${path}" role="combobox"
                  aria-autocomplete="list" aria-expanded="false" placeholder="输入名称搜索…" autocomplete="off"
@@ -205,55 +227,270 @@
           <em>${char?.wiki?'资料馆角色':'客户端角色'}${type?` · ${esc(P.weaponTypeNames?.[String(type)]||'')}武器`:''}</em></span>
           ${h.icon('chevron',19)}</button>`;
       }
+      function equipmentBaseInner(slot){
+        const info=C.equipmentBase(P,slot,cfg[slot]);
+        if(!info)return '<p class="small-text muted">未装备 · 基础值 0</p>';
+        return `<div class="panel-equip-base"><span>基础数值 <small>${esc(info.label)}</small></span>
+          <div>${labels.map((lb,i)=>`<span><em>${esc(lb)}</em><strong>${fmt(info.values[i])}</strong></span>`).join('')}</div></div>`;
+      }
+      function equipmentBaseLine(slot){
+        return `<div id="panel-equip-base-${slot}">${equipmentBaseInner(slot)}</div>`;
+      }
+      function refreshEquipmentBases(){
+        for(const slot of ['weapon','offhand','charm']){
+          const box=root.querySelector(`#panel-equip-base-${slot}`);
+          if(box)box.innerHTML=equipmentBaseInner(slot);
+        }
+      }
+      function lineOn(rank,side){
+        const v=cfg.linePicks?.[rank]||'left';
+        return v==='both'||v===side;
+      }
       function linePicksBlock(){
         const char=C.findCharacter(P,cfg.character)||P.characters[0];
         const ranks=P.lineRanks?.[char?.line]||[];
         if(!ranks.length)return '<p class="small-text muted">该技能轴没有属性加成节点。</p>';
-        const opts=[['none','未点'],['left',char.tier1||'左'],['right',char.tier2||'右'],['both','左右都点']];
-        return `<div class="panel-lines">${ranks.map(r=>{
-          const v=cfg.linePicks?.[r]||'left';
-          return `<div class="panel-line-row"><span>${r} 阶</span><div class="segmented" role="group" aria-label="${r} 阶技能轴">${opts.map(([k,t])=>`<button type="button" data-line-rank="${r}" data-line-pick="${k}" class="${v===k?'active':''}" aria-pressed="${v===k}">${esc(t)}</button>`).join('')}</div></div>`;
+        // Same tier / node / mark visuals as the infographic skill tree, with
+        // the archived skill icons instead of a generic glyph. Nodes still
+        // have only two states: lit or not (no 必点/选点 cycle).
+        const skills=P.lineSkills?.[char?.key]||{};
+        const covered=Object.values(skills).reduce((n,sides)=>n+sides.filter(s=>s&&s.image).length,0);
+        const tree=[...ranks].sort((a,b)=>b-a).map(r=>{
+          const nodes=['left','right'].map((side,j)=>{
+            const on=lineOn(r,side);
+            const info=skills[String(r)]?.[j];
+            const axis=side==='left'?(char.tier1||'左'):(char.tier2||'右');
+            const label=info?.name||axis;
+            const icon=info?.image
+              ? `<img class="panel-node-icon panel-node-img" src="${esc(info.image)}" alt="" width="54" height="54">`
+              : `<span class="panel-node-icon">${h.icon(on?'check':'spark',26)}</span>`;
+            return `<div class="ig-tree-node panel-tree-node${on?'':' unavailable'}" data-mark="${on?'on':''}">
+              <button type="button" class="ig-node-select panel-node-select" data-line-node="${r}" data-line-side="${side}"
+                      aria-pressed="${on}" aria-label="${r} 阶 ${esc(label)}：${on?'已点':'未点'}，点击切换"
+                      title="${esc(info?.full||label)} · ${esc(axis)}轴">
+                ${icon}
+                <strong>${esc(label)}</strong><small>${on?'● 已点':'○ 未点'}</small></button></div>`;
+          }).join('');
+          return `<div class="ig-tier panel-tree-tier"><span class="ig-rank">${r} 阶</span>${nodes}</div>`;
+        }).join('');
+        return `<div class="ig-mark-legend panel-tree-legend"><span>○ 未点</span><i>→</i><span class="required">● 已点</span><i>→</i><span>○ 未点</span></div>
+          <p class="ig-hint">与一图流技能树相同的节点与图标（取自角色档案的逐阶技能页），但每个节点只有「点 / 不点」两态；左右可同时点亮，属性加成按客户端百分比表逐阶累加。当前角色收录 ${covered} 张技能图。</p>
+          <div class="panel-skill-tree">${tree}</div>`;
+      }
+      function talentViewOptions(tree,key){
+        const list=key==='star'?(tree.grades||[]).map(g=>[g.id,`${g.name} · 累计 ${fmt(g.exp)} 经验`]):
+          (tree.groups||[]).map(g=>[g.id,`第 ${g.name} 图`]);
+        return list.length?list:[[0,'全部节点']];
+      }
+      function talentLevelRows(key,node){
+        return node.levels.map((lv,i)=>{
+          const parts=[];
+          for(let j=0;j<labels.length;j++){
+            if(lv.flat[j])parts.push(`${labels[j]}+${lv.flat[j]}`);
+            if(lv.perm[j])parts.push(`${labels[j]}+${pctText(lv.perm[j])}`);
+          }
+          return `<tr><td>Lv.${i+1}</td><td>${esc(parts.join(' · ')||'—')}</td>
+            <td>${lv.exp?fmt(lv.exp)+' 经验':'—'}</td>
+            <td>${esc(C.talentCostLabel(P,key,lv.cost))}</td>
+            <td>${lv.reqLevel?lv.reqLevel+' 级':'—'}</td></tr>`;
+        }).join('');
+      }
+      function talentTopology(key,nodes,picks){
+        // Mirrors the in-game tech panel: 星辰 uses (lane, col) / grade rows,
+        // 开拓 uses the literal (x, y) grid. One SVG holds both nodes and the
+        // prerequisite arrows so the dependency chain is visible at a glance.
+        // Client y grows upwards (y=1 physical branch at the bottom, y=3
+        // magical branch on top), so the pioneer y axis is flipped for display.
+        const pos=new Map();
+        for(const n of nodes){
+          const x=key==='star'?n.col:n.x;
+          const y=key==='star'?n.lane:(4-(n.y||2));
+          pos.set(String(n.id),{x:Math.max(0,x||0),y:Math.max(0,y),n});
+        }
+        const xs=[...pos.values()].map(p=>p.x), ys=[...pos.values()].map(p=>p.y);
+        const minX=Math.min(0,...xs),maxX=Math.max(1,...xs),minY=Math.min(0,...ys),maxY=Math.max(1,...ys);
+        const CW=132,CH=104,PAD=58;
+        const W=(maxX-minX+1)*CW+PAD*2,H=(maxY-minY+1)*CH+PAD*2+42;
+        const cx=v=>PAD+(v-minX)*CW+CW/2, cy=v=>PAD+(v-minY)*CH+CH/2;
+        const lines=[];
+        for(const n of nodes){
+          const to=pos.get(String(n.id));if(!to)continue;
+          for(const prev of n.prev||[]){
+            const from=pos.get(String(prev));
+            if(from){
+              lines.push(`<path class="panel-topo-link${C.int(picks[prev],0)>0&&C.int(picks[n.id],0)>0?' is-active':''}"
+                d="M${cx(from.x)},${cy(from.y)} C${cx(from.x)},${(cy(from.y)+cy(to.y))/2} ${cx(to.x)},${(cy(from.y)+cy(to.y))/2} ${cx(to.x)},${cy(to.y)}"/>`);
+            }else{
+              // Prerequisite lives in another grade / 图: stub arrow from the edge.
+              lines.push(`<path class="panel-topo-link is-external" d="M${PAD/2},${cy(to.y)} L${cx(to.x)-CW/3},${cy(to.y)}"/>`);
+              lines.push(`<text class="panel-topo-edge" x="${PAD/2}" y="${cy(to.y)-8}">前置 ${esc(prev)}</text>`);
+            }
+          }
+        }
+        // Lane legend: the flipped y makes the physical branch sit at the
+        // bottom; label the three rows so the layout is unambiguous.
+        const laneNames=key==='star'?[]
+          :[[1,'魔法道'],[2,'中间'],[3,'物理道']].map(([row,label])=>
+              `<text class="panel-topo-lane" x="${W-8}" y="${cy(row)+4}" text-anchor="end">${label}</text>`).join('');
+        const circles=nodes.map(n=>{
+          const p=pos.get(String(n.id));if(!p)return '';
+          const lit=C.int(picks[n.id],0)>0, full=C.int(picks[n.id],0)>=n.levels.length;
+          const missing=(n.prev||[]).some(prev=>!C.int(picks[prev],0));
+          return `<g class="panel-topo-node${lit?' is-lit':''}${full?' is-full':''}${n.attr?'':' is-utility'}${missing?' is-blocked':''}"
+              data-topo-node="${n.id}" data-topo-tree="${key}" transform="translate(${cx(p.x)},${cy(p.y)})" role="button" tabindex="0"
+              aria-label="${esc(n.name)}，${lit?'已点亮 Lv.'+C.int(picks[n.id],0):'未点亮'}">
+            <circle class="panel-topo-ring" r="27"></circle>
+            <circle class="panel-topo-core" r="21"></circle>
+            <text class="panel-topo-level" text-anchor="middle" dy="4">${lit?'Lv.'+C.int(picks[n.id],0):'○'}</text>
+            <text class="panel-topo-name" text-anchor="middle" y="46">${esc(n.name.slice(0,7))}</text>
+            <title>${esc(n.name)} · ${esc(n.kind||'')}${n.prev?.length?' · 前置 '+n.prev.join('、'):''}</title></g>`;
+        }).join('');
+        return `<div class="panel-topo-scroll"><svg class="panel-topo" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"
+            role="group" aria-label="${key==='star'?'星辰':'开拓'}天赋拓扑图">${lines.join('')}${laneNames}${circles}</svg></div>`;
+      }
+      function talentNodeMarkup(key,node,picks){
+        const level=C.clamp(C.int(picks?.[node.id],0),0,node.levels.length);
+        const lit=level>0;
+        const missing=(node.prev||[]).filter(prev=>!C.int(picks?.[prev],0));
+        const bonus=node.levels[Math.max(0,level-1)]||{flat:[0,0,0,0,0],perm:[0,0,0,0,0]};
+        const parts=[];
+        for(let i=0;i<labels.length;i++){
+          if(bonus.flat[i])parts.push(`${labels[i]}+${bonus.flat[i]}`);
+          if(bonus.perm[i])parts.push(`${labels[i]}+${pctText(bonus.perm[i])}`);
+        }
+        const prereq=missing.length?`<span class="panel-node-warn" title="前置节点未点亮">需先点亮 ${missing.length} 个前置</span>`:'';
+        const picker=node.levels.length>1
+          ? `<select class="panel-node-level" data-talent-level="${node.id}" data-talent-tree="${key}" aria-label="${esc(node.name)}等级">
+               ${node.levels.map((_,i)=>`<option value="${i}" ${i===level?'selected':''}>${i===0?'未点':'Lv.'+i}</option>`).join('')}</select>`:'';
+        const cost=C.talentCostLabel(P,key,node.levels[Math.max(0,level-1)]?.cost);
+        return `<div class="panel-talent-node${lit?' is-lit':''}${node.attr?'':' is-utility'}" data-talent-card="${node.id}">
+          <button type="button" class="panel-talent-toggle" data-talent-node="${node.id}" data-talent-tree="${key}"
+                  aria-pressed="${lit}" title="${esc(node.kind||'')}${node.prev?.length?' · 前置 '+node.prev.join('、'):''}">
+            <span class="panel-talent-dot">${lit?'●':'○'}</span><strong>${esc(node.name)}</strong>
+            <small>${node.attr?esc(parts.join(' · ')||'属性节点'):esc(node.kind||'技能节点')}${lit?' · 累计':''}</small></button>
+          ${picker}
+          <p class="panel-node-cost"><span>本级消耗</span>${esc(cost)}</p>
+          ${node.levels.length?`<details class="panel-node-levels"><summary>逐级累计加成与材料（${node.levels.length} 级）</summary>
+            <div class="table-scroll"><table class="data-table panel-node-level-table"><thead><tr>
+              <th>等级</th><th>升到该级的累计加成</th><th>本级经验</th><th>本级点亮材料</th><th>角色等级</th></tr></thead>
+              <tbody>${talentLevelRows(key,node)}</tbody></table></div>
+            <p class="small-text muted">「累计加成」是该节点升到此等级后的总效果，不是逐级叠加的增量；合计只取当前等级那一行。经验与材料为每一级分别消耗，点满需累加各级。</p></details>`:''}
+          ${prereq}</div>`;
+      }
+      function talentBonusCells(vec,percent){
+        const cells=labels.map((lb,i)=>{
+          const flat=vec.flat[i],perm=percent?vec.perm[i]:vec.permillage[i];
+          if(!flat&&!perm)return '';
+          return `<span><small>${esc(lb)}</small><strong>+${fmt(flat)}${perm?' / +'+(perm/10).toFixed(1)+'%':''}</strong></span>`;
+        }).join('');
+        return cells||'<span class="muted">未点亮</span>';
+      }
+      function talentBonusSummary(progress,breakdown){
+        const perTree=['star','pioneer'].map(key=>{
+          const b=breakdown[key]||{flat:[0,0,0,0,0],perm:[0,0,0,0,0],lit:0};
+          return `<div class="panel-talent-bonus-row"><h4>${key==='star'?'星辰天赋':'开拓天赋'} <small>${b.lit} 个节点${b.globalLit?' · 含 '+b.globalLit+' 个全职业节点':''}</small></h4>
+            <div class="panel-talent-bonus-grid">${talentBonusCells(b,true)}</div></div>`;
+        }).join('');
+        return `${perTree}<div class="panel-talent-bonus-row is-total"><h4>天赋总加成</h4>
+          <div class="panel-talent-bonus-grid">${talentBonusCells(breakdown.total,true)}</div></div>`;
+      }
+      function talentNodeGroups(key,nodes,picks){
+        if(!nodes.length)return '<p class="small-text muted">该分组暂无节点。</p>';
+        // The client stores each 图 on three lanes. Show them in game order
+        // (魔法道 → 中间 → 物理道, physical last / at the bottom) and inside a
+        // lane sort by x so the prerequisite chain reads left to right.
+        const lanes=key==='star'?null:new Map([[3,'物理道'],[2,'中间'],[1,'魔法道']]);
+        const groups=new Map();
+        for(const n of nodes){
+          const lane=lanes?(4-(n.y||2)):0;
+          if(!groups.has(lane))groups.set(lane,[]);
+          groups.get(lane).push(n);
+        }
+        const ordered=[...groups.entries()].sort((a,b)=>a[0]-b[0]);
+        return `<div class="panel-talent-lanes">${ordered.map(([lane,list])=>{
+          list.sort((a,b)=>(a.x||0)-(b.x||0)||(a.id-b.id));
+          return `<section class="panel-talent-lane" data-lane="${lane}">
+            ${lanes?`<h4>${lanes.get(lane)||'中间'}</h4>`:''}
+            <div class="panel-talent-nodes">${list.map(n=>talentNodeMarkup(key,n,picks)).join('')}</div></section>`;
         }).join('')}</div>`;
       }
       function talentsBlock(){
         const char=C.findCharacter(P,cfg.character)||P.characters[0];
-        const category=String(char?.professionCategory||0);
-        const trees=['star','pioneer'].map(key=>{
-          const tree=P.talents?.[key];
-          if(!tree)return '';
-          const level=C.clamp(C.int(cfg.talent?.[key],0),0,tree.maxLevel);
-          const row=C.talentRow(P,key,category,level);
-          const detail=row?`固定值 ${row.flat.join(' / ')} · 千分比 ${row.perm.join(' / ')}‰`:'该职业类别暂无属性节点';
-          return `<label class="tool-field"><span>${esc(tree.name)}档位</span>
-            <select data-path="talent.${key}">${Array.from({length:tree.maxLevel+1},(_,i)=>`<option value="${i}" ${i===level?'selected':''}>${i===0?'未点亮':'Lv. '+i}</option>`).join('')}</select>
-            <small>${esc(detail)}</small></label>`;
+        const progress=C.talentProgress(P,char,cfg);
+        const starGrade=C.talentGrade(P,char,'star',progress.exp);
+        const blocks=['star','pioneer'].map(key=>{
+          const meta=P.talents?.[key];
+          const tree=C.talentTree(P,key,char);
+          if(!meta||!tree)return '';
+          const options=talentViewOptions(tree,key);
+          const current=cfg.talentView?.[key]??options[0][0];
+          const active=options.some(o=>String(o[0])===String(current))?current:options[0][0];
+          const picks=cfg.talentNodes?.[key]||{};
+          const nodes=tree.nodes.filter(n=>key==='star'?n.grade===Number(active):n.unlockGroup===Number(active));
+          const lit=nodes.filter(n=>C.int(picks[n.id],0)>0).length;
+          const allLit=nodes.every(n=>C.int(picks[n.id],0)>=n.levels.length);
+          return `<section class="panel-talent-tree"><div class="panel-talent-head">
+              <h3>${esc(meta.name)} <small>${esc(tree.name)}</small></h3>
+              <label class="tool-field"><span>${key==='star'?'品阶':'开拓图'}</span>
+                <select data-path="talentView.${key}">${options.map(([v,l])=>`<option value="${v}" ${String(v)===String(active)?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
+              <span class="small-text muted">已点亮 ${lit} / ${nodes.length} 个节点</span>
+              <div class="panel-talent-actions">
+                <button type="button" class="button secondary small" data-talent-fill="${key}" data-talent-group="${active}"
+                  ${allLit?'disabled':''}>${allLit?'本组已全点':'一键全点本组'}</button>
+                <button type="button" class="button secondary small" data-talent-fill-all="${key}">全树全点</button>
+                <button type="button" class="button secondary small" data-talent-clear-group="${key}" data-talent-group="${active}">清空本${key==='star'?'品阶':'图'}</button>
+                <button type="button" class="button secondary small" data-talent-clear="${key}">清空全树</button></div></div>
+            ${talentTopology(key,nodes,picks)}
+            <p class="small-text muted">拓扑图按客户端 ${key==='star'?'品阶 + 战术 / 进攻 / 生存 分道与列坐标':'x / y 网格坐标'}绘制，曲线为 <code>prev_id</code> / <code>afk_prev_ids</code> 前置关系；灰色节点为技能类（不直接加五维），点节点即可点亮 / 取消，左侧箭头表示前置位于其它分组。</p>
+            ${talentNodeGroups(key,nodes,picks)}</section>`;
         }).join('');
-        return `<div class="tool-fields">${trees}</div>
-          <div class="panel-affix-head"><span>天赋微调（千分比 ‰）</span><span>数值</span></div>
-          ${labels.map((lb,i)=>`<div class="panel-affix-row panel-adjust-row"><span>${esc(lb)}</span><input data-path="talentAdjust.${i}" type="number" step="1" value="${esc(cfg.talentAdjust[i]||0)}" aria-label="${esc(lb)}天赋微调"></div>`).join('')}
-          <p class="small-text muted">档位取自客户端天赋节点表：该职业类别下全部属性节点升至该等级的合计，属理论上限；实际投入请按游戏内天赋面板用上面的微调校准。</p>`;
+        const costs=Object.entries(progress.cost).map(([label,amount])=>{
+          const [type,param]=label.split(':');
+          const m=P.talents?.star?.materials?.[type]||P.talents?._materials?.[type]||{};
+          const name=(param&&m.paramNames?.[param])||m.name||('资源 '+type);
+          return `${name} ×${fmt(amount)}`;
+        }).join(' · ');
+        return `<div class="panel-talent-summary"><strong>天赋投入合计</strong>
+            <span>已点亮 ${fmt(progress.nodes)} 个节点</span><span>经验 ${fmt(progress.exp)}</span>
+            <span>需角色等级 ${fmt(progress.reqLevel)}</span>
+            ${starGrade?`<span>对应品阶 ${esc(starGrade.name)}（累计 ${fmt(starGrade.exp)} 经验）</span>`:''}
+            ${costs?`<span class="small-text muted">材料：${esc(costs)}</span>`:''}</div>
+          <div class="panel-talent-bonus"><h3>点亮后的效果加成</h3>
+            ${talentBonusSummary(progress,C.talentBreakdown(P,char,cfg))}
+            <p class="small-text muted">两套天赋分别统计后相加为总加成；<code>upgrade_type=51</code> 的「全职业」节点虽位于其它职业座，加成对所有角色生效，已单独计入。固定值直接加到面板，百分比与装备、刻印、微调一同进入全局乘区。</p></div>
+          ${blocks}
+          <div class="panel-affix-head panel-affix-head-percent"><span>天赋微调</span><span>百分比 %</span><span>固定值</span></div>
+          ${labels.map((lb,i)=>`<div class="panel-affix-row panel-adjust-row"><span>${esc(lb)}</span>
+            <label class="panel-percent-input"><input data-path="talentAdjust.${i}" data-percent="10" type="number" step="0.1" value="${esc((C.int(cfg.talentAdjust[i])/10)||0)}" aria-label="${esc(lb)}天赋微调百分比"><em>%</em></label>
+            <input data-path="talentAdjustFlat.${i}" type="number" step="1" value="${esc(cfg.talentAdjustFlat[i]||0)}" aria-label="${esc(lb)}天赋微调固定值"></div>`).join('')}
+          <p class="small-text muted">微调默认按百分比填写（内部自动转千分比），也可直接填固定值，用于补齐游戏内额外的加成。节点、品阶、经验门槛、等级要求、前置链与材料消耗全部取自客户端 online_tech_* 表；材料名来自 treasure_type / online_tech_material / online_afk_material。</p>`;
       }
       function enchantBlock(slot){
         const ench=cfg[slot].enchant, caps=C.enchantCaps(P,ench.element);
         const elementOptions=P.elements.map(e=>[e.id,e.name]);
         return `<div class="panel-sub"><div class="panel-sub-head">${slot==='weapon'?'武器':'装具'}刻印</div>
           <div class="tool-fields">${sel(`${slot}.enchant.element`,'刻印元素',elementOptions,ench.element)}</div>
-          <div class="panel-affix-head"><span>属性</span><span>固定值</span><span>千分比 ‰</span></div>
+          <div class="panel-affix-head panel-affix-head-percent"><span>属性</span><span>百分比 %</span><span>固定值</span></div>
           ${labels.map((lb,i)=>`<div class="panel-affix-row"><span>${lb}</span>
-            <input data-path="${slot}.enchant.values.${i}" type="number" min="0" max="${caps.flat[i]}" step="1" value="${esc(ench.values[i]||0)}" aria-label="${lb}刻印固定值">
-            <input data-path="${slot}.enchant.percents.${i}" type="number" min="0" max="${caps.percent[i]}" step="1" value="${esc(ench.percents[i]||0)}" aria-label="${lb}刻印千分比"></div>`).join('')}
-          <p class="small-text muted">上限取自客户端刻印属性表（固定值 ${caps.flat.join('/')}、千分比 ${caps.percent.join('/')}）。</p></div>`;
+            <label class="panel-percent-input"><input data-path="${slot}.enchant.percents.${i}" data-percent="10" type="number" min="0" max="${(caps.percent[i]/10).toFixed(1)}" step="0.1" value="${esc((C.int(ench.percents[i])/10)||0)}" aria-label="${lb}刻印百分比"><em>%</em></label>
+            <input data-path="${slot}.enchant.values.${i}" type="number" min="0" max="${caps.flat[i]}" step="1" value="${esc(ench.values[i]||0)}" aria-label="${lb}刻印固定值"></div>`).join('')}
+          <p class="small-text muted">按 % 填写（如 10%），内部换算为客户端定点数参与计算；上限取自客户端刻印属性表（百分比上限 ${caps.percent.map(v=>v/10).join('/')}%、固定值 ${caps.flat.join('/')}）。</p></div>`;
       }
       function entriesBlock(){
         const r=P.charmRarities[cfg.charm.rarity]||['',100,0,60];
         const count=C.clamp(C.int(cfg.charm.entryCount,r[2]),0,r[2]);
         if(!count)return '<p class="small-text muted">该稀有度没有可配置的词条。</p>';
-        const typeOptions=P.entryTypes.map(t=>[t.id,`${t.label}（${t.percent?'‰':'固定'}）`]);
+        const typeOptions=P.entryTypes.map(t=>[t.id,`${t.label}（${t.percent?'百分比':'固定值'}）`]);
         return Array.from({length:count},(_,i)=>{
           const e=cfg.charm.entries[i]||{type:P.entryTypes[0]?.id||1,value:0};
           const t=P.entryTypes.find(x=>String(x.id)===String(e.type))||P.entryTypes[0]||{percent:false,stat:0};
           const cap=C.entryCap(P,cfg.charm.rarity,t);
-          return `<div class="panel-entry-row"><span class="panel-entry-index">${i+1}</span>${sel(`charm.entries.${i}.type`,'词条属性',typeOptions,e.type)}${num(`charm.entries.${i}.value`,'数值',e.value,0,cap.max,`0 ~ ${cap.max}（0 表示未洗出）`)}</div>`;
+          const pct=!!t.percent;
+          const shown=pct?(C.int(e.value)/10):e.value;
+          const shownMax=pct?(cap.max/10):cap.max;
+          return `<div class="panel-entry-row"><span class="panel-entry-index">${i+1}</span>${sel(`charm.entries.${i}.type`,'词条属性',typeOptions,e.type)}
+            ${pct?`<label class="panel-percent-input"><input data-path="charm.entries.${i}.value" data-percent="10" type="number" min="0" max="${shownMax}" step="0.1" value="${esc(shown)}" aria-label="第${i+1}条百分比"><em>%</em></label>`
+                 :num(`charm.entries.${i}.value`,'固定值',e.value,0,cap.max,`0 ~ ${cap.max}（0 表示未洗出）`)}</div>`;
         }).join('');
       }
       function showPresets(){
@@ -261,32 +498,93 @@
         list.innerHTML=presets.length?presets.map((p,i)=>`<div class="preset-row"><button type="button" data-panel-preset="${i}">${esc(p.name)}</button><button type="button" data-panel-delete="${i}" aria-label="删除方案 ${esc(p.name)}">×</button></div>`).join(''):'<p class="small-text muted">保存后可在此一键恢复。仅保存在当前浏览器。</p>';
       }
       function paint(focusPath){
+        // A full innerHTML rebuild resets the page scroll and the horizontal
+        // offset of every topology viewport. Remember both (plus the focused
+        // control) so clicking a talent node keeps the reader in place.
+        const scrollY=window.scrollY||document.documentElement.scrollTop||0;
+        const topoScroll=[...root.querySelectorAll('.panel-topo-scroll')].map((el,i)=>({i,left:el.scrollLeft,top:el.scrollTop}));
+        const active=document.activeElement;
+        const focusKey=active&&root.contains(active)
+          ? (active.dataset?.talentNode!==undefined?'node:'+active.dataset.talentTree+':'+active.dataset.talentNode
+             :active.dataset?.topoNode!==undefined?'topo:'+active.dataset.topoTree+':'+active.dataset.topoNode
+             :active.dataset?.talentFill!==undefined?'fill:'+active.dataset.talentFill
+             :active.dataset?.talentFillAll!==undefined?'fillAll:'+active.dataset.talentFillAll
+             :active.dataset?.talentClear!==undefined?'clear:'+active.dataset.talentClear
+             :active.dataset?.path||null)
+          : null;
         const char=C.findCharacter(P,cfg.character)||P.characters[0];
         const r=P.charmRarities[cfg.charm.rarity]||['',100,0,60];
         root.innerHTML=`${back}${intro('PANEL LAB','面板，算得明明白白。','按角色星级、等级、技能轴、好感度与两套天赋，配合武器装具、刻印与塔罗，逐项算出局外五维面板。数值全部取自本地客户端配置表。')}
-          <div class="damage-layout panel-layout"><form id="panel-form" novalidate>
-            <section class="content-card">${heading('01','角色','成长 · 星级 · 技能轴 · 好感度')}${characterButton()}
+          <div class="damage-layout panel-layout panel-layout-three"><nav class="content-card panel-jump ig-nav" aria-label="局外面板计算器区块导航"><h3>快速跳转</h3><div class="panel-jump-links"><a href="#panel-sec-01" data-panel-jump="01"><span>01</span>角色 · 星级 · 技能轴</a><a href="#panel-sec-02" data-panel-jump="02"><span>02</span>武器 · 刻印</a><a href="#panel-sec-03" data-panel-jump="03"><span>03</span>装具 · 刻印</a><a href="#panel-sec-04" data-panel-jump="04"><span>04</span>塔罗 · 词条</a><a href="#panel-sec-05" data-panel-jump="05"><span>05</span>天赋拓扑图</a><a href="#panel-sec-07" data-panel-jump="07"><span>07</span>局外面板结果</a><a href="#panel-damage-result" data-panel-jump="06"><span>06</span>伤害预估结果</a></div><p class="small-text muted">点节点或选项后页面会保持当前位置；点这里可直接跳到对应区块。</p></nav><form id="panel-form" novalidate>
+            <section class="content-card" id="panel-sec-01" data-panel-section="01">${heading('01','角色','成长 · 星级 · 技能轴 · 好感度')}${characterButton()}
               <div class="tool-fields">${sel('star','星级',starOptions,cfg.star)}${sel('level','等级',levelOptions,cfg.level)}${sel('rank','已解锁阶数',rankOptions,cfg.rank)}${sel('friendship','好感度',friendOptions,cfg.friendship)}
                 <label class="tool-check"><input data-path="enhance" type="checkbox" ${cfg.enhance?'checked':''}><span>极限解放技能轴<small>塔罗角色等拥有强化技能轴时启用</small></span></label></div>
               <div class="panel-lines-head"><h3>技能轴 · 逐阶左右</h3><span class="small-text muted">${esc(char?.tier1||'左')} / ${esc(char?.tier2||'右')}</span></div>
               ${linePicksBlock()}</section>
-            <section class="content-card">${heading('02','武器','按角色武器类型筛选 · 星级 · 等级 · 刻印')}
-              <div class="tool-fields">${combo('weapon.id','武器',weaponOptions(char),cfg.weapon.id,'仅显示该角色可装备的武器类型')}${sel('weapon.star','星级',starOptions,cfg.weapon.star)}${sel('weapon.level','等级',levelOptions,cfg.weapon.level)}</div>${enchantBlock('weapon')}</section>
-            <section class="content-card">${heading('03','装具','通用副武器 · 星级 · 等级 · 刻印')}
-              <div class="tool-fields">${combo('offhand.id','装具',offhandOptions(),cfg.offhand.id,'仅保留通用副武器类型')}${sel('offhand.star','星级',starOptions,cfg.offhand.star)}${sel('offhand.level','等级',levelOptions,cfg.offhand.level)}</div>${enchantBlock('offhand')}</section>
-            <section class="content-card">${heading('04','塔罗','牌面 · 稀有度 · 等级 · 词条')}
+            <section class="content-card" id="panel-sec-02" data-panel-section="02">${heading('02','武器','按角色武器类型筛选 · 星级 · 等级 · 刻印')}
+              <div class="tool-fields">${combo('weapon.id','武器',weaponOptions(char),cfg.weapon.id,'可选「不带」；其余仅显示该角色可装备的武器类型')}${sel('weapon.star','星级',starOptions,cfg.weapon.star)}${sel('weapon.level','等级',levelOptions,cfg.weapon.level)}</div>${equipmentBaseLine('weapon')}${C.int(cfg.weapon.id)?enchantBlock('weapon'):''}</section>
+            <section class="content-card" id="panel-sec-03" data-panel-section="03">${heading('03','装具','通用副武器 · 星级 · 等级 · 刻印')}
+              <div class="tool-fields">${combo('offhand.id','装具',offhandOptions(),cfg.offhand.id,'可选「不带」；其余仅保留通用副武器类型')}${sel('offhand.star','星级',starOptions,cfg.offhand.star)}${sel('offhand.level','等级',levelOptions,cfg.offhand.level)}</div>${equipmentBaseLine('offhand')}${C.int(cfg.offhand.id)?enchantBlock('offhand'):''}</section>
+            <section class="content-card" id="panel-sec-04" data-panel-section="04">${heading('04','塔罗','牌面 · 稀有度 · 等级 · 词条')}
               <div class="tool-fields">${combo('charm.id','塔罗',charmOptions(),cfg.charm.id,'输入牌名可搜索')}${sel('charm.rarity','稀有度',rarityOptions,cfg.charm.rarity)}${sel('charm.level','等级',levelOptions,cfg.charm.level)}${sel('charm.entryCount','词条数',options(0,r[2]),cfg.charm.entryCount)}</div>
-              <div class="panel-entries">${entriesBlock()}</div></section>
-            <section class="content-card">${heading('05','天赋','星辰天赋 · 开拓天赋 · 手动校准')}${talentsBlock()}</section>
-          </form><aside class="damage-aside panel-aside">
+              ${equipmentBaseLine('charm')}${C.int(cfg.charm.id)?`<div class="panel-entries">${entriesBlock()}</div>`:''}</section>
+            <section class="content-card" id="panel-sec-05" data-panel-section="05">${heading('05','天赋','星辰天赋 · 开拓天赋 · 手动校准')}${talentsBlock()}</section>
+            <section class="content-card" id="panel-sec-06" data-panel-section="06">${heading('06','伤害预估','把上方局外面板代入客户端战斗公式')}
+              <p class="small-text muted">克制、暴击、易伤上限与高低差全部取自本地配置表，点「公式与数值来源」查看每一项的出处。</p>
+              <div class="tool-fields">${sel('combat.stat','攻击属性',[['phys','物攻'],['mag','魔攻']],cfg.combat.stat)}
+                ${sel('combat.attackCategory','攻击方职业',catOptions,cfg.combat.attackCategory)}
+                ${sel('combat.defenseCategory','防守方职业',catOptions,cfg.combat.defenseCategory)}
+                ${sel('combat.highGround','高低差',[['flat','平地'],['up','高出 2 格以上'],['down','低于 2 格以上']],cfg.combat.highGround)}
+                ${dmg('defense','目标防御力',cfg.combat.defense,0,1e7)}
+                ${dmg('defenseDown','降防 %',cfg.combat.defenseDown,0,100)}
+                ${dmg('ignoreDefense','无视防御 %',cfg.combat.ignoreDefense,0,100)}
+                ${dmg('skillMult','技能倍率 %',cfg.combat.skillMult,0,100000)}
+                ${dmg('damageBonus','增伤 %',cfg.combat.damageBonus,-100,1000)}
+                ${dmg('vulnerability','易伤 %',cfg.combat.vulnerability,-100,1000)}
+                ${dmg('attackBonusPercent','攻击加成 %',cfg.combat.attackBonusPercent,-100,1000)}
+                ${dmg('attackBonusFlat','攻击固定加成',cfg.combat.attackBonusFlat,-1e7,1e7)}</div>
+            </section>
+          </form><aside class="damage-aside panel-aside" id="panel-sec-07" data-panel-section="07">
             <section class="damage-result" aria-label="局外面板结果"><div class="eyebrow">OUT-OF-BATTLE PANEL</div><h2>局外面板</h2><div id="panel-error" role="alert" hidden></div><div id="panel-output" aria-live="polite"></div><button class="button" type="button" data-tool="export-panel">${h.icon('download',15)}导出计算结果</button></section>
-            <section class="content-card"><h3>计算分解</h3><div id="panel-steps"></div></section>
-            <section class="content-card preset-card"><h3>我的面板方案</h3><label class="tool-field"><span>方案名称</span><input id="panel-preset-name" maxlength="40" placeholder="例如：贝拉 · 满配"></label><button class="button secondary small" type="button" data-tool="save-panel">保存当前方案</button><div id="panel-preset-list"></div><div class="tool-backup-actions"><button class="button secondary small" type="button" data-tool="reset-panel">恢复默认配置</button></div></section>
+            <details class="content-card panel-aside-fold"><summary><h3>计算分解</h3><span class="fold-hint">展开查看逐项</span></summary><div id="panel-steps"></div></details>
+            <section class="content-card" id="panel-damage-result" aria-label="伤害预估结果"><h3>伤害预估</h3><div id="panel-damage" aria-live="polite"></div></section>
+            <details class="content-card preset-card panel-aside-fold"><summary><h3>我的面板方案</h3><span class="fold-hint">展开保存 / 载入</span></summary><label class="tool-field"><span>方案名称</span><input id="panel-preset-name" maxlength="40" placeholder="例如：贝拉 · 满配"></label><button class="button secondary small" type="button" data-tool="save-panel">保存当前方案</button><div id="panel-preset-list"></div><div class="tool-backup-actions"><button class="button secondary small" type="button" data-tool="export-panel-plans">导出方案 JSON</button><button class="button secondary small" type="button" data-tool="import-panel-plans">导入方案 JSON</button><button class="button secondary small" type="button" data-tool="reset-panel">恢复默认配置</button></div><input type="file" id="panel-plan-file" accept="application/json,.json" hidden></details>
           </aside></div>
-          <details class="content-card tool-help"><summary>公式与使用说明</summary><div class="rich-text"><p>角色基础 = ⌊等级成长 × 稀有度调整 × (1000 + 星级‰ + 技能轴‰ + 好感度‰) ÷ 1000 ÷ 100⌋ + 已解锁各阶的固定加成，与客户端 <code>CalculateAttributeByType</code> 的定点数算法一致。</p><p>技能轴按每一阶独立选择左 / 右 / 都点 / 未点；只有该阶存在属性节点时才会影响面板。极限解放会用配置表中的强化行替换同阶普通行。</p><p>星辰天赋与开拓天赋来自客户端 <code>online_tech_node</code> 系列表，按角色职业类别取该档位下的属性加成；档位是该类别全部属性节点升至该等级的理论合计，可用微调校准为游戏内实际数值。</p><p>武器、装具与塔罗按同样的百分位约定计算等级成长；刻印固定值、天赋固定值与塔罗词条固定值直接累加；刻印 / 词条 / 天赋的千分比与微调对累加后的面板统一结算：最终值 = ⌊合计 × (1000 + 千分比) ÷ 1000⌋。</p><p>星级、技能轴、好感度作用于角色成长本身，装备与天赋的千分比作用于最终合计，是两个不同的乘区。敏捷来自客户端单位表，不参与上述计算。结果不含战斗内增益、技能被动与阵营加成；游戏实际结算如有额外取整，以实机为准。</p></div></details>
+          <details class="content-card tool-help"><summary>公式与使用说明</summary><div class="rich-text"><p>角色基础 = ⌊等级成长 × 稀有度调整 × (100% + 星级% + 技能轴% + 好感度%)⌋ + 已解锁各阶的固定加成，与客户端 <code>CalculateAttributeByType</code> 的定点数算法一致。</p><p>技能轴按每一阶独立选择左 / 右 / 都点 / 未点；只有该阶存在属性节点时才会影响面板。极限解放会用配置表中的强化行替换同阶普通行。</p><p>星辰天赋与开拓天赋来自客户端 <code>online_tech_node</code> / <code>online_tech_node_level</code> 系列表。每一行是「升到该等级后的累计加成」（如黑铁攻击强化 Lv.1 +5、Lv.2 +10），因此点满只取最高等级那一行，不会把各级累加成 +15；经验与材料则是每一级分别消耗，点满需累加。合计按各节点当前等级相加，固定值直接进面板、千分比进全局乘区，可用微调校准游戏内的额外加成。</p><p>武器、装具与塔罗按同样的百分位约定计算等级成长；刻印固定值、天赋固定值与塔罗词条固定值直接累加；刻印 / 词条 / 天赋与微调的百分比对合计统一结算：最终值 = ⌊角色白板值 × (100% + 百分比)⌋ + 装备 / 天赋 / 词条的固定值。</p><p>星级、技能轴、好感度作用于角色成长本身，装备与天赋的百分比作用于最终合计，是两个不同的乘区。敏捷来自客户端单位表，不参与上述计算。结果不含战斗内增益、技能被动与阵营加成；游戏实际结算如有额外取整，以实机为准。</p></div></details>
+          <details class="content-card tool-help"><summary>公式与数值来源</summary><div class="rich-text">
+            ${(combat.formulas||[]).map(f=>`<section class="formula-block"><h3>${esc(f.title)}</h3>
+              <p class="formula-expr"><code>${esc(f.expr)}</code></p><p>${esc(f.source)}</p>
+              <ol class="formula-steps">${(f.steps||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+              ${(f.variables||[]).length?`<div class="table-scroll"><table class="data-table formula-vars"><thead><tr><th>符号</th><th>含义</th><th>单位</th><th>来源表</th><th>说明</th></tr></thead><tbody>
+                ${f.variables.map(v=>`<tr><td><strong>${esc(v.symbol)}</strong></td><td>${esc(v.name)}</td><td>${esc(v.unit)}</td><td class="mech-source">${esc(v.source)}</td><td>${esc(v.note||'')}</td></tr>`).join('')}
+              </tbody></table></div>`:''}</section>`).join('')}
+            <h3>战斗常量 · const_param</h3><div class="table-scroll"><table class="data-table"><thead><tr><th>名称</th><th>值</th><th>说明</th><th>来源</th></tr></thead><tbody>
+              ${Object.entries(combat.constants||{}).map(([k,c])=>`<tr><td><strong>${esc(c.label)}</strong><small>${esc(k)}</small></td><td>${esc(c.value)}</td><td>${esc(c.note||'')}</td><td class="mech-source">${esc(c.source)}</td></tr>`).join('')}
+            </tbody></table></div>
+            <h3>职业克制 · profession_restrain</h3><div class="table-scroll"><table class="data-table"><thead><tr><th>攻击方</th><th>防守方</th><th>系数</th><th>来源</th></tr></thead><tbody>
+              ${(combat.restraints||[]).map(r=>`<tr><td>${esc(r.fromName)}</td><td>${esc(r.toName)}</td><td>${esc(r.percent)}%</td><td class="mech-source">${esc(r.source)}</td></tr>`).join('')}
+            </tbody></table></div>
+            <h3>参与计算的配置表</h3><ul>${(combat.references||[]).map(r=>`<li><code>${esc(r.table)}</code> — ${esc(r.provides)}（${esc(r.bundle)}）</li>`).join('')}</ul>
+            <p><a href="#/mechanics">打开机制规则图鉴 ↗</a>，可查阅技能范围、聚拢与击退等配置表规则。</p>
+          </div></details>
           <div class="source-footer"><span>数值取自本地游戏客户端配置表 · 完全离线运行</span><a href="#/archive">查看资料馆信息 →</a></div>`;
         showPresets();update();
+        const topo=[...root.querySelectorAll('.panel-topo-scroll')];
+        for(const saved of topoScroll){const el=topo[saved.i];if(el){el.scrollLeft=saved.left;el.scrollTop=saved.top;}}
+        // The wiki sets html{scroll-behavior:smooth}; an animated restore would
+        // look like a jump back to the top and lands too late. Force instant.
+        window.scrollTo({top:scrollY,left:0,behavior:'instant'});
         if(focusPath){const el=root.querySelector(`[data-path="${focusPath}"]`);el?.focus({preventScroll:true});}
+        else if(focusKey){
+          const [kind,a,b]=focusKey.split(':');
+          const el=kind==='node'?root.querySelector(`[data-talent-node="${b}"][data-talent-tree="${a}"]`)
+            :kind==='topo'?root.querySelector(`[data-topo-node="${b}"][data-topo-tree="${a}"]`)
+            :kind==='fill'?root.querySelector(`[data-talent-fill="${a}"]`)
+            :kind==='fillAll'?root.querySelector(`[data-talent-fill-all="${a}"]`)
+            :kind==='clear'?root.querySelector(`[data-talent-clear="${a}"]`)
+            :root.querySelector(`[data-path="${focusKey}"]`);
+          el?.focus?.({preventScroll:true});
+        }
       }
       function setPath(obj,path,value){
         const keys=path.split('.');let cur=obj;
@@ -301,22 +599,103 @@
         for(const el of form.querySelectorAll('[data-path]')){
           let value;
           if(el.type==='checkbox')value=el.checked;
+          else if(el.dataset.percent)value=Math.round(Number(el.value||0)*Number(el.dataset.percent));
           else if(el.type==='number')value=C.int(el.value);
           else value=el.value;
           setPath(cfg,el.dataset.path,value);
         }
       }
+      const pct=v=>(Number(v||0)/10);
+      const pctText=v=>`${Number.isInteger(pct(v))?pct(v):pct(v).toFixed(1)}%`;
+      const jumpNum=(value,section,label)=>`<button type="button" class="formula-num" data-formula-jump="${section}"
+        title="${esc(label)} · 点击跳转到来源区块">${fmt(value)}</button>`;
+      const formulaMarkup=r=>{
+        const f=r.formula;
+        if(!f)return '';
+        const options=r.labels.map((lb,i)=>`<option value="${i}">${esc(lb)}</option>`).join('');
+        const rows=r.labels.map((lb,i)=>{
+          const fixed=f.terms.map(term=>`<span class="formula-term"><em>${esc(term.label)}</em>${jumpNum(term.values[i],term.section,term.label)}</span>`).join('<b>+</b>');
+          const white=r.whiteboard?.[i]??r.base[i];
+          const addend=r.addends?.[i]??(r.flat[i]-white);
+          const addParts=f.terms.filter(x=>x.key!=='base').map(term=>`<span class="formula-term"><em>${esc(term.label)}</em>${jumpNum(term.values[i],term.section,term.label)}</span>`).join('<b>+</b>');
+          return `<div class="formula-row" data-stat="${i}"${i?' hidden':''}>
+            <code><em>⌊ 白板</em> ${jumpNum(white,'01','角色白板值')} × ( 100% + ${pctText(r.permillage[i])} ) <em>⌋ + (</em> ${addParts||'0'} <em>) =</em> <strong>${fmt(r.total[i])}</strong></code>
+            <div class="formula-per-parts">${f.permParts.map(part=>`<button type="button" class="formula-num" data-formula-jump="${part.section}" title="${esc(part.label)} · 点击跳转">${esc(part.label)} +${pctText(part.values[i])}</button>`).join('')}</div></div>`;
+        }).join('');
+        return `<details class="panel-formula"><summary><h3>面板计算公式 <small>点任意数字跳到产生它的区块</small></h3></summary>
+          <label class="tool-field"><span>查看属性</span><select data-formula-stat>${options}</select></label>
+          ${rows}
+          <p class="small-text muted">百分比只乘在<strong>角色白板值</strong>上（客户端：卸下所有装备、再减去天赋所增加的属性后的值；见塔罗图鉴库 / 附魔图鉴库），装备与天赋的固定值在乘区之外相加。客户端内部按千分比结算，界面统一显示 %；每个数字与来源标签都可点击跳转。</p></details>`;
+      };
       function update(){
         readForm();
+        refreshEquipmentBases();
         const cr=P.charmRarities[cfg.charm.rarity]||['',100,0,60];
         cfg.charm.entryCount=C.clamp(C.int(cfg.charm.entryCount,cr[2]),0,cr[2]);
         const error=root.querySelector('#panel-error'), output=root.querySelector('#panel-output'), steps=root.querySelector('#panel-steps');
         if(!output)return;
         try{
           const r=C.calculate(cfg,P);h.persist('panel.current',cfg);error.hidden=true;
-          output.innerHTML=`<div class="panel-total-grid">${labels.map((lb,i)=>`<div><span>${lb}</span><strong>${fmt(r.total[i])}</strong></div>`).join('')}</div>
-            <dl class="calculation-steps"><div><dt>敏捷</dt><dd>${fmt(r.speed)}</dd></div><div><dt>角色基础</dt><dd>${r.base.map(fmt).join(' / ')}</dd></div><div><dt>武器 + 装具 + 塔罗</dt><dd>${r.weapon.map((v,i)=>fmt(v+r.offhand[i]+r.tarot[i])).join(' / ')}</dd></div><div><dt>天赋（固定）</dt><dd>${r.talent.flat.map(fmt).join(' / ')}</dd></div><div><dt>最终千分比</dt><dd>${r.permillage.map(v=>'+'+fmt(v)+'‰').join(' / ')}</dd></div></dl>`;
-          steps.innerHTML=`<dl class="calculation-steps panel-step-list">${r.extras.map(e=>`<div><dt>${esc(e.label)}</dt><dd>${e.values.map((v,i)=>labels[i]+' '+fmt(v)).join(' · ')}${e.permillage?` · ${e.permillage.map(v=>'+'+fmt(v)+'‰').join(' / ')}`:''}</dd></div>`).join('')}</dl><p class="small-text muted">顺序：${esc(labels.join(' / '))}。角色基础已含星级、技能轴与好感度加成。</p>`;
+          const world=window.WIKI_WORLD_DATA||{};
+          const bp=C.battlePower(r,world,P,{...battlePowerState});
+          output.innerHTML=`<div class="panel-total-grid panel-total-grid-pairs"><div class="panel-total-hp"><span>${labels[0]}</span><strong>${fmt(r.total[0])}</strong></div><div class="panel-total-pair"><span>${labels[1]} / ${labels[2]}</span><strong>${fmt(r.total[1])} / ${fmt(r.total[2])}</strong></div><div class="panel-total-pair"><span>${labels[3]} / ${labels[4]}</span><strong>${fmt(r.total[3])} / ${fmt(r.total[4])}</strong></div></div>
+            <div class="panel-battle-power"><span>战斗力 <small>公式未确证 · 可切换 / 校准</small></span><strong>${fmt(bp.total)}</strong></div>
+            <section class="panel-bp-detail panel-bp-formula"><h3>战斗力计算公式 <small>先列证据与候选，再代入数值</small></h3>
+              <div class="panel-bp-warning">已穷举本地客户端配置表、Lua 片段与 IL2CPP 元数据：
+                <strong>只找到系数，没有找到把系数装配成最终战力的公式</strong>（逻辑在编译后的 <code>GameAssembly.dll</code> 中）。
+                下面列出全部可查证据与 4 种候选，可切换对照，也可填入游戏内实际战力反推倍率。</div>
+              <details class="panel-bp-evidence" open><summary>客户端证据清单（${bp.evidence.length} 条）</summary>
+                <ol>${bp.evidence.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></details>
+              <div class="panel-bp-controls">
+                <label class="tool-field"><span>候选公式</span><select data-bp-method>
+                  ${bp.candidates.map(c=>`<option value="${esc(c.id)}" ${c.id===bp.method?'selected':''}>${esc(c.label)}</option>`).join('')}
+                </select></label>
+                <label class="tool-field"><span>倍率（校准用）</span><input type="number" data-bp-scale step="0.01" min="0.01" value="${bp.scale}"></label>
+                <label class="tool-field"><span>游戏内实际战力（反推倍率）</span><input type="number" data-bp-calibration min="0" step="1" value="${bp.calibration||''}" placeholder="填入后可反推"></label>
+              </div>
+              <p class="panel-bp-expr">${esc(bp.candidates.find(c=>c.id===bp.method)?.expr||bp.formula)}</p>
+              <p class="small-text muted">${esc(bp.candidates.find(c=>c.id===bp.method)?.basis||'')}</p>
+              ${bp.impliedScale?`<p class="panel-bp-implied">按填入的 ${fmt(bp.calibration)} 反推，客户端等效倍率约为 <strong>${bp.impliedScale.toFixed(4)}</strong>（当前公式取 ${bp.scale}）。</p>`:''}
+              <ol class="panel-bp-steps">
+                <li><b>①</b> 取局外面板五维：
+                  ${labels.map((lb,i)=>`<span>${esc(lb)} <strong>${fmt(bp.stats[i])}</strong></span>`).join('')}
+                  <em>来源：局外面板最终结果</em></li>
+                <li><b>②</b> 按 <code>const_param#${esc(bp.constId)} = ${bp.hpWeight}|${bp.otherWeight}</code> 加权：
+                  ${labels.map((lb,i)=>`<span>${esc(lb)} ${fmt(bp.stats[i])} × ${i===0?bp.hpWeight:bp.otherWeight}‰ = <strong>${fmt(Math.round(bp.parts[i]*100)/100)}</strong></span>`).join('')}
+                  <em>120 / 200 是千分比权重，不是除数</em></li>
+                <li><b>③</b> 合计基础得分：
+                  <span>${bp.parts.map(v=>fmt(Math.round(v*100)/100)).join(' + ')} = <strong>${fmt(Math.round(bp.base*100)/100)}</strong></span></li>
+                <li><b>④</b> 乘稀有度修正：
+                  <span>${fmt(Math.round(bp.base*100)/100)} × ${bp.rarity}% = <strong>${fmt(Math.round(bp.base*bp.rarity/100*100)/100)}</strong></span>
+                  <em>${esc(bp.rarityName||'角色稀有度')} · unit_rarity.battle_power_adjust</em></li>
+                <li><b>⑤</b> 乘职业修正并取整：
+                  <span>${fmt(Math.round(bp.base*bp.rarity/100*100)/100)} × ${bp.profession}% → <strong>${fmt(bp.total)}</strong></span>
+                  <em>battle_power_coefficient.percent</em></li>
+              </ol>
+              <dl class="calculation-steps">
+                <div><dt>系数出处</dt><dd>const_param#${esc(bp.constId)} OnlineRoleUnitBattlePowerCoefficient</dd></div>
+                <div><dt>量级校准</dt><dd>${esc(bp.calibration)}</dd></div>
+              </dl>
+              <p class="small-text muted">${esc(bp.source)}。装配公式位于客户端编译代码中，配置表只给出系数与上述参考数值；<strong>本项结果未经游戏内数值验证</strong>，请用上方校准框对照实机。</p></section>
+            <dl class="calculation-steps"><div><dt>敏捷</dt><dd>${fmt(r.speed)}</dd></div><div><dt>最终百分比</dt><dd>${r.permillage.map(v=>'+'+pctText(v)).join(' / ')}</dd></div></dl>
+            ${formulaMarkup(r)}`;
+          steps.innerHTML=`<dl class="calculation-steps panel-step-list">${r.extras.map(e=>`<div><dt>${esc(e.label)}</dt><dd>${e.values.map((v,i)=>labels[i]+' '+fmt(v)).join(' · ')}${e.permillage?` · ${e.permillage.map(v=>'+'+pctText(v)).join(' / ')}`:''}</dd></div>`).join('')}</dl><p class="small-text muted">顺序：${esc(labels.join(' / '))}。角色基础已含星级、技能轴与好感度加成。</p>`;
+          const dmgBox=root.querySelector('#panel-damage');
+          if(dmgBox){
+            const d=C.damage(r,combat,cfg.combat);
+            dmgBox.innerHTML=`<div class="panel-damage-total"><span>普通伤害</span><strong>${fmt(d.damage)}</strong></div>
+              <dl class="calculation-steps"><div><dt>暴击伤害</dt><dd>${fmt(d.criticalDamage)}（基础暴击 ${Math.round(d.criticalChance*100)}%）</dd></div>
+              <div><dt>有效攻击</dt><dd>${fmt(Math.round(d.attack*d.restraint*d.height))}（克制 ${d.restraint.toFixed(2)} × 高低差 ${d.height.toFixed(2)}）</dd></div>
+              <div><dt>有效防御</dt><dd>${fmt(Math.round(d.defense))}</dd></div>
+              <div><dt>差值 × 倍率</dt><dd>${fmt(Math.round(d.base))} × ${d.skill.toFixed(2)} × ${d.bonus.toFixed(2)} × ${d.vulnerability.toFixed(2)}</dd></div></dl>
+              <p class="small-text muted">克制 ${esc(d.sources.restraint)} · 高低差 ${esc(d.sources.highGround)} · 暴击 ${esc(d.sources.critical)}</p>
+              <details class="formula-live"><summary>当前配置的公式变量</summary>
+                <dl class="calculation-steps"><div><dt>② 角色五维（G × P + K）</dt><dd>${r.base.map(fmt).join(' / ')}</dd></div>
+                <div><dt>③ 固定值合计 F</dt><dd>${r.flat.map((v,i)=>fmt(v-r.base[i])).join(' / ')}</dd></div>
+                <div><dt>④ 全局百分比 Q</dt><dd>${r.permillage.map(v=>'+'+pctText(v)).join(' / ')}</dd></div>
+                <div><dt>A 有效攻击</dt><dd>${fmt(Math.round(d.attack*d.restraint*d.height))} = ${fmt(Math.round(d.attack))} × ${d.restraint.toFixed(2)} × ${d.height.toFixed(2)}</dd></div>
+                <div><dt>D 有效防御</dt><dd>${fmt(Math.round(d.defense))}</dd></div></dl></details>`;
+          }
           const btn=root.querySelector('[data-tool="export-panel"]');if(btn)btn.dataset.ready='1';
         }catch(e){error.textContent=e.message;error.hidden=false;output.innerHTML='<p class="result-empty">修正输入后即可继续计算。</p>';steps.innerHTML='';}
       }
@@ -327,13 +706,110 @@
         if(e.target.closest?.('#panel-form'))update();
       });
       on('change',e=>{
+        const bpEl=e.target.closest?.('[data-bp-method],[data-bp-scale],[data-bp-calibration]');
+        if(bpEl){
+          if(bpEl.dataset.bpMethod!==undefined)battlePowerState.method=bpEl.value;
+          if(bpEl.dataset.bpScale!==undefined)battlePowerState.scale=Number(bpEl.value)||1;
+          if(bpEl.dataset.bpCalibration!==undefined)battlePowerState.calibration=Number(bpEl.value)||0;
+          update();return;
+        }
+        if(e.target.id==='panel-plan-file'){
+          const file=e.target.files?.[0];e.target.value='';
+          if(!file)return;
+          if(file.size>2*1024*1024){h.toast('方案文件过大（上限 2 MB）');return;}
+          file.text().then(text=>{
+            let payload;
+            try{payload=JSON.parse(text);}catch(err){h.toast('不是有效的 JSON 文件');return;}
+            if(payload.format&&payload.format!=='socwiki-panel-plans'&&payload.format!=='socwiki-panel'){
+              h.toast('文件格式不符：需要 socwiki-panel-plans');return;
+            }
+            const incoming=Array.isArray(payload.presets)?payload.presets:[];
+            const valid=incoming.filter(x=>x&&typeof x.name==='string'&&x.config&&typeof x.config==='object')
+              .slice(0,20).map(x=>({name:x.name.slice(0,40),config:x.config}));
+            if(!valid.length&&!payload.config&&!payload.current){
+              h.toast('文件里没有可导入的方案');return;
+            }
+            for(const item of valid){
+              const i=presets.findIndex(p=>p.name===item.name);
+              if(i<0&&presets.length>=20)break;
+              if(i<0)presets.push(item);else presets[i]=item;
+            }
+            h.persist('panel.presets',presets);
+            const next=payload.config||payload.current;
+            if(next){
+              cfg=normalize(next);fixEquipment();
+            }
+            showPresets();paint();
+            h.toast(`已导入 ${valid.length} 个方案${next?'并载入当前配置':''}`);
+          }).catch(err=>h.toast('读取失败：'+err.message));
+          return;
+        }
+        if(e.target.closest?.('[data-formula-stat]')){
+          const v=e.target.value;
+          for(const row of root.querySelectorAll('.formula-row'))row.hidden=row.dataset.stat!==v;
+          return;
+        }
         const el=e.target;if(!el.closest||!el.closest('#panel-form'))return;
         const path=el.dataset.path||'';
-        if(path==='charm.rarity'||path==='charm.entryCount'||path.endsWith('.enchant.element')||path.endsWith('.type')||path.startsWith('talent.')){readForm();paint(path);}
+        if(el.dataset.talentLevel!==undefined){
+          cfg.talentNodes=cfg.talentNodes||{};
+          cfg.talentNodes[el.dataset.talentTree]=cfg.talentNodes[el.dataset.talentTree]||{};
+          cfg.talentNodes[el.dataset.talentTree][el.dataset.talentLevel]=C.int(el.value);
+          cfg.talentNodesExplicit=true;
+          paint();return;
+        }
+        if(path==='charm.rarity'||path==='charm.entryCount'||path.endsWith('.enchant.element')||path.endsWith('.type')||path.startsWith('talent.')||path.startsWith('talentView.')){readForm();paint(path);}
         else update();
       });
       on('click',e=>{
         if(!e.target.closest?.('.panel-combo-field'))closeCombos();
+        const formulaStat=e.target.closest?.('[data-formula-stat]');
+        if(formulaStat){return;}
+        const formulaNum=e.target.closest?.('[data-formula-jump]');
+        if(formulaNum){
+          e.preventDefault();
+          const sec=root.querySelector(`#panel-sec-${formulaNum.dataset.formulaJump}`);
+          if(sec){
+            sec.scrollIntoView({behavior:'smooth',block:'start'});
+            sec.classList.remove('panel-sec-flash');void sec.offsetWidth;sec.classList.add('panel-sec-flash');
+            for(const a of root.querySelectorAll('[data-panel-jump]'))
+              a.classList.toggle('active',a.dataset.panelJump===formulaNum.dataset.formulaJump);
+          }
+          return;
+        }
+        const jump=e.target.closest?.('[data-panel-jump]');
+        if(jump){
+          e.preventDefault();
+          const target=jump.dataset.panelJump==='06'
+            ? root.querySelector('#panel-damage-result')
+            : root.querySelector(`#panel-sec-${jump.dataset.panelJump}`);
+          if(target){
+            // 06 lives at the very bottom of the right column: force the page
+            // all the way down so the card is fully in view.
+            if(jump.dataset.panelJump==='06'){
+              window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'});
+              const aside=root.querySelector('.damage-aside');
+              if(aside)aside.scrollTo({top:aside.scrollHeight,behavior:'smooth'});
+              target.classList.remove('panel-sec-flash');void target.offsetWidth;target.classList.add('panel-sec-flash');
+            }else{
+              target.scrollIntoView({behavior:'smooth',block:'start'});
+            }
+            for(const a of root.querySelectorAll('[data-panel-jump]'))a.classList.toggle('active',a===jump);
+          }
+          return;
+        }
+        const topo=e.target.closest?.('[data-topo-node]');
+        if(topo){
+          const key=topo.dataset.topoTree,id=topo.dataset.topoNode;
+          const tree=C.talentTree(P,key,C.findCharacter(P,cfg.character));
+          const node=(tree?.nodes||[]).find(n=>String(n.id)===String(id));
+          cfg.talentNodes=cfg.talentNodes||{};
+          cfg.talentNodes[key]=cfg.talentNodes[key]||{};
+          cfg.talentNodesExplicit=true;
+          const current=C.int(cfg.talentNodes[key][id],0);
+          cfg.talentNodes[key][id]=current>0?0:(node?.levels.length||1);
+          paint();return;
+        }
         const comboInput=e.target.closest?.('[data-combo]');
         if(comboInput){showCombo(comboInput,'');return;}
         const option=e.target.closest?.('[data-combo-value]');
@@ -341,12 +817,60 @@
           const field=option.closest('.panel-combo-field'),hidden=field.querySelector('[data-path]'),input=field.querySelector('[data-combo]');
           hidden.value=option.dataset.comboValue;input.value=option.dataset.comboLabel;
           field.querySelector('.panel-combo-list').hidden=true;input.setAttribute('aria-expanded','false');
-          update();return;
+          // Choosing / clearing an item changes which sub-forms exist, so a
+          // repaint (not just an update) is needed to show or hide 刻印/词条.
+          readForm();
+          paint();return;
         }
         const target=e.target.closest('button');if(!target)return;
         if(target.dataset.lineRank!==undefined){
           cfg.linePicks=cfg.linePicks||{};
           cfg.linePicks[target.dataset.lineRank]=target.dataset.linePick;
+          paint();return;
+        }
+        if(target.dataset.lineNode!==undefined){
+          const rank=target.dataset.lineNode,side=target.dataset.lineSide;
+          cfg.linePicks=cfg.linePicks||{};
+          const left=lineOn(rank,'left'),right=lineOn(rank,'right');
+          const nextLeft=side==='left'?!left:left,nextRight=side==='right'?!right:right;
+          cfg.linePicks[rank]=nextLeft&&nextRight?'both':nextLeft?'left':nextRight?'right':'none';
+          paint();return;
+        }
+        if(target.dataset.talentNode!==undefined){
+          const key=target.dataset.talentTree,id=target.dataset.talentNode;
+          const tree=C.talentTree(P,key,C.findCharacter(P,cfg.character));
+          const node=(tree?.nodes||[]).find(n=>String(n.id)===String(id));
+          cfg.talentNodes=cfg.talentNodes||{};
+          cfg.talentNodes[key]=cfg.talentNodes[key]||{};
+          cfg.talentNodesExplicit=true;
+          const current=C.int(cfg.talentNodes[key][id],0);
+          cfg.talentNodes[key][id]=current>0?0:(node?.levels.length||1);
+          paint();return;
+        }
+        if(target.dataset.talentFill!==undefined||target.dataset.talentFillAll!==undefined||
+           target.dataset.talentClear!==undefined||target.dataset.talentClearGroup!==undefined){
+          const key=target.dataset.talentFill||target.dataset.talentFillAll||target.dataset.talentClear||target.dataset.talentClearGroup;
+          const char=C.findCharacter(P,cfg.character);
+          cfg.talentNodes=cfg.talentNodes||{};
+          cfg.talentNodes[key]=cfg.talentNodes[key]||{};
+          cfg.talentNodesExplicit=true;
+          if(target.dataset.talentClear!==undefined){
+            cfg.talentNodes[key]={};
+            h.toast(key === 'star' ? '已清空星辰天赋全树' : '已清空开拓天赋全树');
+          }else if(target.dataset.talentClearGroup!==undefined){
+            const tree=C.talentTree(P,key,char);
+            const gid=Number(target.dataset.talentGroup);
+            let removed=0;
+            for(const n of tree?.nodes||[]){
+              const inGroup=key==='star'?n.grade===gid:n.unlockGroup===gid;
+              if(inGroup&&cfg.talentNodes[key][n.id]){delete cfg.talentNodes[key][n.id];removed++;}
+            }
+            h.toast(`已清空本${key==='star'?'品阶':'图'}的 ${removed} 个节点`);
+          }else{
+            const group=target.dataset.talentFill===undefined?null:target.dataset.talentGroup;
+            const changed=C.talentFillAll(P,char,cfg,key,group,true);
+            h.toast(changed?`已点亮 ${changed} 个节点`:'这些节点已经全部点亮');
+          }
           paint();return;
         }
         if(target.dataset.tool==='pick-character'){
@@ -359,6 +883,7 @@
               cfg.weapon.id=weaponOptions(char)[0]?.[0]??0;
               cfg.offhand.id=offhandOptions()[0]?.[0]??0;
               cfg.linePicks=defaultPicks(char);
+              if(!cfg.talentNodesExplicit)cfg.talentNodes=C.defaultTalentNodes(P,char);
               paint();
             }).catch(()=>{});
           return;
@@ -374,6 +899,18 @@
           const item={name,config:JSON.parse(JSON.stringify(cfg))};
           if(i<0)presets.push(item);else presets[i]=item;
           h.persist('panel.presets',presets);showPresets();h.toast(i<0?'方案已保存':'同名方案已更新');
+        }
+        if(target.dataset.tool==='export-panel-plans'){
+          const typed=root.querySelector('#panel-preset-name')?.value.trim()||'';
+          const planName=typed||(presets.length===1?presets[0].name:'')||'局外面板方案';
+          const safe=planName.replace(/[\\/:*?"<>|\r\n]/g,'_').slice(0,60).trim()||'局外面板方案';
+          download(`铃兰档案馆-${safe}.json`,JSON.stringify({
+            format:'socwiki-panel-plans',version:1,exportedAt:new Date().toISOString(),
+            planName,current:cfg,presets},null,2));
+          h.toast(`已以「${planName}」导出 ${presets.length} 个方案`);return;
+        }
+        if(target.dataset.tool==='import-panel-plans'){
+          root.querySelector('#panel-plan-file')?.click();return;
         }
         if(target.dataset.tool==='export-panel'){
           try{

@@ -1,0 +1,259 @@
+{
+  "source": "assets/atlas/terrain_atlas.unity3d (client Unity AssetBundle)",
+  "sprites": [
+    "terrain1",
+    "terrain10",
+    "terrain11",
+    "terrain12",
+    "terrain13",
+    "terrain14",
+    "terrain15",
+    "terrain16",
+    "terrain17",
+    "terrain18",
+    "terrain19",
+    "terrain2",
+    "terrain20",
+    "terrain21",
+    "terrain22",
+    "terrain23",
+    "terrain24",
+    "terrain25",
+    "terrain26",
+    "terrain27",
+    "terrain28",
+    "terrain3",
+    "terrain4",
+    "terrain5",
+    "terrain6",
+    "terrain7",
+    "terrain8",
+    "terrain9",
+    "terrain_buff_burn",
+    "terrain_buff_burn2",
+    "terrain_buff_crevasse",
+    "terrain_buff_dust",
+    "terrain_buff_fake1",
+    "terrain_buff_fake2",
+    "terrain_buff_flower",
+    "terrain_buff_frozen",
+    "terrain_buff_magic",
+    "terrain_buff_mud",
+    "terrain_buff_sulfur",
+    "terrain_buff_swamp",
+    "terrain_buff_wine",
+    "terrain_public"
+  ],
+  "fieldTypes": [
+    {
+      "id": 1,
+      "name": "土地",
+      "icon": "terrain1",
+      "material": "dirt",
+      "type": ""
+    },
+    {
+      "id": 2,
+      "name": "草地",
+      "icon": "terrain2",
+      "material": "grass",
+      "type": "Grass"
+    },
+    {
+      "id": 3,
+      "name": "草丛",
+      "icon": "terrain3",
+      "material": "grass",
+      "type": ""
+    },
+    {
+      "id": 4,
+      "name": "沙地",
+      "icon": "terrain4",
+      "material": "dirt",
+      "type": ""
+    },
+    {
+      "id": 5,
+      "name": "岩场",
+      "icon": "terrain5",
+      "material": "rock",
+      "type": ""
+    },
+    {
+      "id": 6,
+      "name": "碎石",
+      "icon": "terrain6",
+      "material": "rock",
+      "type": ""
+    },
+    {
+      "id": 7,
+      "name": "荒地",
+      "icon": "terrain7",
+      "material": "dirt",
+      "type": "Wasteland"
+    },
+    {
+      "id": 8,
+      "name": "湿地",
+      "icon": "terrain8",
+      "material": "dirt",
+      "type": ""
+    },
+    {
+      "id": 9,
+      "name": "道路",
+      "icon": "terrain9",
+      "material": "rock",
+      "type": ""
+    },
+    {
+      "id": 10,
+      "name": "木板",
+      "icon": "terrain10",
+      "material": "wood",
+      "type": ""
+    },
+    {
+      "id": 11,
+      "name": "石板",
+      "icon": "terrain11",
+      "material": "rock",
+      "type": ""
+    },
+    {
+      "id": 12,
+      "name": "石墙",
+      "icon": "terrain12",
+      "material": "rock",
+      "type": ""
+    },
+    {
+      "id": 13,
+      "name": "屋顶",
+      "icon": "terrain10",
+      "material": "rock",
+      "type": ""
+    },
+    {
+      "id": 14,
+      "name": "浅水",
+      "icon": "terrain14",
+      "material": "",
+      "type": "Water"
+    },
+    {
+      "id": 15,
+      "name": "深水",
+      "icon": "terrain15",
+      "material": "",
+      "type": "Water"
+    },
+    {
+      "id": 16,
+      "name": "海",
+      "icon": "terrain16",
+      "material": "",
+      "type": ""
+    },
+    {
+      "id": 17,
+      "name": "流沙",
+      "icon": "terrain17",
+      "material": "dirt",
+      "type": ""
+    },
+    {
+      "id": 18,
+      "name": "毒沼",
+      "icon": "terrain18",
+      "material": "",
+      "type": ""
+    },
+    {
+      "id": 19,
+      "name": "焦油",
+      "icon": "terrain19",
+      "material": "",
+      "type": ""
+    },
+    {
+      "id": 20,
+      "name": "雪原",
+      "icon": "terrain20",
+      "material": "dirt",
+      "type": ""
+    },
+    {
+      "id": 21,
+      "name": "雪道",
+      "icon": "terrain21",
+      "material": "dirt",
+      "type": ""
+    },
+    {
+      "id": 22,
+      "name": "雪木板",
+      "icon": "terrain22",
+      "material": "wood",
+      "type": ""
+    },
+    {
+      "id": 23,
+      "name": "雪石板",
+      "icon": "terrain23",
+      "material": "rock",
+      "type": ""
+    },
+    {
+      "id": 24,
+      "name": "雪石墙",
+      "icon": "terrain24",
+      "material": "rock",
+      "type": ""
+    },
+    {
+      "id": 25,
+      "name": "雪屋顶",
+      "icon": "terrain25",
+      "material": "rock",
+      "type": ""
+    },
+    {
+      "id": 26,
+      "name": "冰面",
+      "icon": "terrain26",
+      "material": "",
+      "type": ""
+    },
+    {
+      "id": 27,
+      "name": "虚空",
+      "icon": "terrain27",
+      "material": "",
+      "type": "Empty"
+    },
+    {
+      "id": 28,
+      "name": "禁行",
+      "icon": "terrain28",
+      "material": "",
+      "type": "Forbidden"
+    },
+    {
+      "id": 29,
+      "name": "禁行(可跳过)",
+      "icon": "terrain28",
+      "material": "",
+      "type": "ForbiddenPassable"
+    },
+    {
+      "id": 30,
+      "name": "禁行(阻挡射线)",
+      "icon": "terrain28",
+      "material": "",
+      "type": "ForbiddenBlock"
+    }
+  ]
+}

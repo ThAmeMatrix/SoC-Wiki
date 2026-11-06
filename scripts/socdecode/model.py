@@ -303,8 +303,24 @@ def build_snapshot(tables,meta,as_of=None):
         for entry in sorted(weapon_stars.get(row['personality_id'],[]),key=lambda r:(r['star'],r['id'])):
             if not 1<=entry['star']<=5 or entry['skill_id'] not in db['skill']:continue
             item=skill(entry['skill_id'])
+            passive=item.get('type')==3 or item.get('class_type') in (2,3,6,7)
+            rmin,rmax=int(item.get('range_min') or 0),int(item.get('range_max') or 0)
+            distance='/' if passive else ('特殊（见说明）' if rmax>=99 else
+                str(rmin) if rmin==rmax else f'{rmin}-{rmax}')
+            clean=plain(item['desc'])
+            area='单体' if '单体' in clean or (item.get('class_type')==1 and '范围' not in clean) else '见技能说明'
+            icon=item.get('icon') or ''
             stars[str(entry['star'])]={'skillId':entry['skill_id'],'name':plain(item['name']),
-                'description':plain(item['desc']),'rawDescription':item['desc']}
+                'description':clean,'rawDescription':item['desc'],
+                # Structured skill facts, so the equipment page can show a star
+                # skill the same way a character skill page does.
+                'cost':'/' if passive else str(item.get('tp') or ''),
+                'cooldown':'/' if passive else str(item.get('cooldown') or ''),
+                'distance':distance,'area':'/' if passive else area,
+                'kind':clean.partition('）')[0].removeprefix('（') if clean.startswith('（') else '技能',
+                'icon':('icon/skill/'+icon) if icon else '',
+                'skillFields':{k:item.get(k) for k in ('type','class_type','range_min','range_max',
+                    'target_width','target_select','hit_method','desc')}}
             # editor_name is written as 「…-[称号|角色名]-…」; both sides of the pipe
             # name whoever the skill belongs to. Taking only the part before the pipe
             # loses the character on entries like 「[圣典枢机卿|卡珊德拉]」, which then

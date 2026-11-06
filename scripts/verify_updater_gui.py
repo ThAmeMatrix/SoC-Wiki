@@ -109,7 +109,9 @@ try:
     check('all five steps done', states == ['done'] * 5, str(states))
     check('step notes filled', app.wiki_stepper.notes[0] == '2 位角色' and app.wiki_stepper.notes[1] == '2 个页面',
           str(app.wiki_stepper.notes))
-    check('media scripts ran in order', calls == ['extract_art.py', 'extract_panel_data.py'], str(calls))
+    check('media scripts ran in order',
+          calls == ['extract_panel_data.py', 'extract_dialogues.py',
+                    'extract_battle_rules.py'], str(calls))
     title = result_title()
     check('result says updated', '资料馆已更新' in title, title[:160])
     check('last-backup recorded', (tmp / 'last-backup.txt').read_text('utf8') == str(backup))

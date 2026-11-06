@@ -126,7 +126,7 @@ def _game_version(root: Path):
         return {'changeNumber': None, 'resourceVersion': None}
 
 
-def scan(game, archive, *, workers=None, categories=None, organise=True, progress=None, log=None,
+def scan(game, archive, *, workers=None, categories=None, organise=False, progress=None, log=None,
          cancel: threading.Event | None = None) -> dict:
     started = time.time()
     reporter = Reporter(progress, log)
@@ -415,4 +415,10 @@ def _organise(store: Store, vid: str, reporter: Reporter):
     reporter.begin('organise')
     folder, linked, removed = store.materialize(
         vid, progress=lambda done, total: reporter.emit(done=done, total=total, detail='链接分类目录'))
+    skipped = store.last_materialize.get('skipped', 0)
     reporter.log(f'分类目录已更新：{folder}（新链接 {linked:,}，移除 {removed:,}）')
+    if skipped:
+        reporter.log(f'  其中 {skipped:,} 个文件无法建立硬链接（跨盘或非 NTFS），已跳过；'
+                     '资源仍在归档里，资源浏览器不受影响。')
+    reporter.log('  资源浏览器直接读取 objects/，此目录仅供在资源管理器里人工浏览；'
+                 '不想要时可在「设置」里清理。')

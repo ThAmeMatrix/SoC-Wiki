@@ -49,6 +49,9 @@ class StarEffects(unittest.TestCase):
             f=fields(p['id']);stars=[f.get(n+'星技能','') for n in '一二三四五'] if p['type']=='equipment' else [f.get('个性描述'+str(n),'') for n in range(1,6)]
             if not any(stars):continue
             self.assertEqual(data['starEffects'][str(p['id'])],combine_stars(stars),p['title']);count+=1
-        self.assertEqual(count,340)
+        # The page count grows as the local client/archive gains equipment and
+        # traits; assert coverage instead of a frozen total.
+        self.assertGreaterEqual(count,340)
+        self.assertGreaterEqual(len(data['starEffects']),count)
 
 if __name__=='__main__':unittest.main(verbosity=2)
