@@ -105,8 +105,16 @@ window.WikiDialogues = (() => {
       <span>${indices.length} 句对白</span></div><div class="dialogue-lines">${lines}</div>`;
   }
 
-  function paint() {
+  function paint(options) {
     if (!root) return;
+    const preserve = options?.preserveScroll !== false;
+    // Rebuilding innerHTML resets every scroll container and the window scroll.
+    // Remember them so selecting a scene keeps the reader where they clicked.
+    const before = preserve ? {
+      y: window.scrollY,
+      scenes: root.querySelector('.dialogue-scenes')?.scrollTop ?? 0,
+      lines: root.querySelector('.dialogue-lines')?.scrollTop ?? 0,
+    } : null;
     const D = data();
     if (!D || !D.lines?.length) {
       root.innerHTML = `<div class="page-intro"><div><div class="eyebrow">STORY ARCHIVE</div><h1>剧情对话</h1>
@@ -115,7 +123,7 @@ window.WikiDialogues = (() => {
       return;
     }
     index(D);
-    const query = root.querySelector('#dialogue-query')?.value ?? state.query;
+    const query = state.query || root.querySelector('#dialogue-query')?.value || '';
     root.innerHTML = `<div class="page-intro"><div><div class="eyebrow">STORY ARCHIVE</div><h1>剧情对话</h1>
         <p>从游戏客户端台词表还原的剧情对白：按剧情线浏览演出，或用角色名、台词全文搜索。</p></div></div>
       <div class="content-card dialogue-toolbar">
@@ -127,24 +135,55 @@ window.WikiDialogues = (() => {
       <div class="dialogue-layout"><aside class="content-card dialogue-side">${sceneList(D)}</aside>
         <section class="content-card dialogue-main">${transcript(D)}</section></div>
       <div class="source-footer"><span>文本与立绘取自本地游戏客户端 · 完全离线</span></div>`;
+    if (before) {
+      const sc = root.querySelector('.dialogue-scenes');
+      const ln = root.querySelector('.dialogue-lines');
+      if (sc) sc.scrollTop = before.scenes;
+      if (ln) ln.scrollTop = before.lines;
+      window.scrollTo({top: before.y, behavior: 'instant'});
+    }
   }
 
   function wire() {
     let timer = null;
+    let composing = false;
+    let pendingValue = '';
+    const runSearch = () => {
+      clearTimeout(timer);
+      const value = pendingValue;
+      state.query = value;
+      state.hits = search(data(), value);
+      state.scene = -1;
+      // Only repaint the transcript / scene list; the search input itself must
+      // stay mounted or an IME composition (Chinese, Japanese) is cancelled.
+      const D = data();
+      if (!D) return;
+      const main = root.querySelector('.dialogue-main');
+      if (main) main.innerHTML = transcript(D);
+      const side = root.querySelector('.dialogue-side');
+      if (side) side.innerHTML = sceneList(D);
+      const scenes = root.querySelector('.dialogue-scenes');
+      if (scenes) scenes.scrollTop = 0;
+    };
     const onChange = e => {
       const field = e.target;
-      if (field.id === 'dialogue-query') {
-        clearTimeout(timer);
-        const value = field.value;
-        timer = setTimeout(() => {
-          state.query = value;
-          state.hits = search(data(), value);
-          state.scene = -1;
-          paint();
-          const input = root.querySelector('#dialogue-query');
-          if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
-        }, 260);
-      }
+      if (field.id !== 'dialogue-query') return;
+      pendingValue = field.value;
+      // input events during composition carry the intermediate pinyin; ignore
+      // them and let compositionend supply the committed Chinese text.
+      if (composing || e.isComposing) return;
+      clearTimeout(timer);
+      timer = setTimeout(runSearch, 220);
+    };
+    const onCompositionStart = e => {
+      if (e.target.id === 'dialogue-query') { composing = true; clearTimeout(timer); }
+    };
+    const onCompositionEnd = e => {
+      if (e.target.id !== 'dialogue-query') return;
+      composing = false;
+      pendingValue = e.target.value;
+      clearTimeout(timer);
+      timer = setTimeout(runSearch, 60);
     };
     const onClick = e => {
       const target = e.target.closest('button, [role="button"]');
@@ -153,6 +192,7 @@ window.WikiDialogues = (() => {
         state.chapter = target.dataset.dlgChapter;
         state.hits = [];
         state.query = '';
+        const q = root.querySelector('#dialogue-query'); if (q) q.value = '';
         paint();
         return;
       }
@@ -160,20 +200,25 @@ window.WikiDialogues = (() => {
         state.scene = Number(target.dataset.dlgScene);
         state.hits = [];
         state.query = '';
+        const q = root.querySelector('#dialogue-query'); if (q) q.value = '';
         history.replaceState(null, '', `#/dialogues?scene=${state.scene}`);
+        // Keep the reader at the clicked item: paint() restores scroll.
         paint();
-        root.querySelector('.dialogue-main')?.scrollIntoView({behavior: 'smooth', block: 'nearest'});
       }
     };
     const onKey = e => {
       if (e.key === 'Enter' && e.target.matches?.('[role="button"]')) e.target.click();
     };
     root.addEventListener('input', onChange);
+    root.addEventListener('compositionstart', onCompositionStart);
+    root.addEventListener('compositionend', onCompositionEnd);
     root.addEventListener('click', onClick);
     root.addEventListener('keydown', onKey);
     cleanup = () => {
       clearTimeout(timer);
       root.removeEventListener('input', onChange);
+      root.removeEventListener('compositionstart', onCompositionStart);
+      root.removeEventListener('compositionend', onCompositionEnd);
       root.removeEventListener('click', onClick);
       root.removeEventListener('keydown', onKey);
     };

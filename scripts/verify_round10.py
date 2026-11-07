@@ -66,7 +66,7 @@ def main():
 
         # ---- 1/2/3. Panel ----
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
         page.locator('.panel-formula').evaluate('e=>{e.open=true}')
         page.wait_for_timeout(180)
         row = page.locator('.formula-row').first.inner_text()

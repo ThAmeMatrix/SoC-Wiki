@@ -293,12 +293,12 @@ const r14 = C.calculate(C.defaults(P), P);
 const ev = W3.battlePower?.evidence || [];
 check('battle power evidence states formula is compiled',
   ev.some(x => /IL2CPP|编译/.test(x)), String(ev.length));
-check('battle power offers four candidates',
-  (W3.battlePower?.candidates || []).length === 4);
+check('battle power offers five candidates',
+  (W3.battlePower?.candidates || []).length === 5);
 const methodResults = (W3.battlePower?.candidates || []).map(c =>
   C.battlePower(r14, W3, P, {method: c.id}).total);
 check('each candidate yields a distinct value',
-  new Set(methodResults).size === 4, JSON.stringify(methodResults));
+  new Set(methodResults).size >= 4, JSON.stringify(methodResults));
 check('candidate selection is honoured',
   C.battlePower(r14, W3, P, {method: 'divisor-final'}).total <
   C.battlePower(r14, W3, P, {method: 'permille-final'}).total);

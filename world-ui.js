@@ -98,11 +98,20 @@
                            '#4e6fa1','#8f8f4a'];
   const terrainColour = id => TERRAIN_COLOURS[Math.abs(Number(id) || 0) % TERRAIN_COLOURS.length];
 
+  const isPitTerrain = id => !!TERRAIN_BY_ID(id)?.pit;
   const terrainImage = id => TERRAIN_BY_ID(id)?.image || '';
+  const terrainFace = (id, face) => TERRAIN_BY_ID(id)?.[face === 'top' ? 'topImage' : 'wallImage'] || '';
   const terrainStyle = id => {
-    const img = terrainImage(id);
-    return img ? `background-image:url('${img}');background-size:cover;background-position:center;`
+    const img = terrainFace(id, 'top') || terrainImage(id);
+    return img ? `background-image:url('${img}');background-size:100% 100%;background-position:center;`
                : `background:${terrainColour(id)};`;
+  };
+  const wallStyle = (id, tone) => {
+    const img = terrainFace(id, 'wall');
+    if (!img) { const c = shadeRgb(terrainColour(id), tone); return `background:linear-gradient(180deg,${c.top},${c.bottom})`; }
+    // Client dirt/stone side rectified into a flat texture; darken by aspect.
+    return `background-image:linear-gradient(180deg,rgba(0,0,0,${(1 - tone).toFixed(2)}),rgba(0,0,0,${(1 - tone * .7).toFixed(2)})),url('${img}');`
+         + 'background-size:100% 100%;background-position:center;';
   };
   const TERRAIN_BY_ID = id => (W()?.mapMeta?.fieldTypes || []).find(x => x.id === Number(id));
   const terrainName = id => TERRAIN_BY_ID(id)?.name || `地形 ${id}`;
@@ -119,57 +128,125 @@
    * sorting handles occlusion, which the old SVG re-projection got wrong.
    * Dragging right decreases yaw; dragging up increases tilt (same feel as
    * the reference tool). */
+  /** Stacked isometric blocks, following the in-game look: every cell is a
+   * solid cube with a client terrain sprite on top and stone-textured side
+   * walls. The cube has a FIXED base thickness plus one layer per height unit,
+   * so low ground still reads as a block and high ground stacks visibly.
+   * Camera is CSS-3D (rotateX tilt / rotateZ yaw) with browser depth sorting. */
+  const _isoCache = new Map();
+  const _isoKey = (map, cellSize, hidden) =>
+    `${map.id}|${cellSize}|${[...hidden].sort().join(',')}`;
   function gridIso(map, cellSize, hiddenTerrains, yaw = 45, tilt = 54, scale = 1) {
+    const key = _isoKey(map, cellSize, hiddenTerrains);
+    const cached = _isoCache.get(key);
+    // Reuse the built markup when only the camera or zoom changed: those are
+    // pure CSS-variable updates and must not rebuild thousands of DOM nodes.
+    if (cached) {
+      return cached;
+    }
     const cells = (map.cells || []).filter(c => !hiddenTerrains.has(c[3]));
     if (!(map.cells || []).length) return gridSvg(map, cellSize, hiddenTerrains);
     const w = Math.max(1, map.width), h = Math.max(1, map.height);
-    const cell = Math.max(8, Math.round(cellSize * scale));
-    const lift = Math.max(2, Math.round(cell * 0.16));
+    const cell = Math.max(8, Math.round(cellSize));
+    const lift = Math.max(5, Math.round(cell * 0.42));
+    const rawZ = c => Math.min(6, Math.round(Number(c[2] || 0) / 3));
+    const cellAt = new Map(cells.map(c => [`${c[0]},${c[1]}`, c]));
+    const heights = new Map(cells.map(c => [`${c[0]},${c[1]}`, rawZ(c)]));
+    // Water / Forbidden cells are pits. Their field2 is pit depth, not a
+    // stackable height, so place the surface BELOW the lowest neighbouring
+    // ground cell and give it no solid side walls.
+    // Pit surfaces must sit BELOW every adjacent ground cell. The previous
+    // default (2, then max(0, n-1)) left isolated water at ground level or
+    // above it (e.g. stage_city-os-ni00501), so use the global ground floor.
+    let groundFloor = Infinity;
+    for (const c of cells) {
+      if (isPitTerrain(c[3])) continue;
+      groundFloor = Math.min(groundFloor, rawZ(c));
+    }
+    if (!Number.isFinite(groundFloor)) groundFloor = 0;
+    const pitInfo = new Map();
+    for (const c of cells) {
+      if (!isPitTerrain(c[3])) continue;
+      let lowest = groundFloor;
+      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const neighbour = cellAt.get(`${c[0]+dx},${c[1]+dy}`);
+        if (!neighbour || isPitTerrain(neighbour[3])) continue;
+        lowest = Math.min(lowest, heights.get(`${c[0]+dx},${c[1]+dy}`) ?? groundFloor);
+      }
+      pitInfo.set(`${c[0]},${c[1]}`, lowest - 1);
+    }
+    const zOf = (x, y, terrain) => {
+      const key = `${x},${y}`;
+      if (pitInfo.has(key)) return pitInfo.get(key);
+      return heights.get(key) || 0;
+    };
     const grid = [];
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       grid.push(`<div class="world-iso-empty" style="grid-column:${x + 1};grid-row:${y + 1}"></div>`);
     }
-    const heights = new Map(cells.map(c => [`${c[0]},${c[1]}`, c[2]]));
     const blocks = cells.map(c => {
       const [x, y, height, terrain] = c;
-      const z = Math.min(8, Math.round(Number(height || 0) / 2));
+      const z = zOf(x, y, terrain);
+      const pit = pitInfo.has(`${x},${y}`);
       const fill = terrainColour(terrain);
-      const walls = [];
-      // Draw a side wall only towards a lower neighbour (mirrors the
-      // reference tool's "same height -> no inner wall" rule).
+      const img = terrainImage(terrain);
+      // Walls are drawn on every exposed edge; the browser's preserve-3d
+      // depth sorting hides the ones behind neighbouring blocks when rotated.
+      // All four walls live in the DOM, but only the two camera-facing ones
+      // are displayed (see [data-quad] CSS). Switching quadrants is a single
+      // attribute change instead of rebuilding thousands of 3D nodes.
       const dirs = [
-        {dx: 0, dy: 1, cls: 'w-front'}, {dx: 1, dy: 0, cls: 'w-right'},
+        {dx: 0, dy: 1, cls: 'w-front', tone: .52},
+        {dx: 1, dy: 0, cls: 'w-right', tone: .36},
+        {dx: 0, dy: -1, cls: 'w-back', tone: .66},
+        {dx: -1, dy: 0, cls: 'w-left', tone: .44},
       ];
-      for (const d of dirs) {
-        const nh = heights.get(`${x + d.dx},${y + d.dy}`);
-        const nz = nh == null ? 0 : Math.min(8, Math.round(Number(nh || 0) / 2));
-        const dh = z - nz;
-        if (dh <= 0 || nh == null) continue;
-        walls.push(`<i class="world-iso-wall ${d.cls}" style="height:${dh * lift}px;
-          background:${shade(fill)}"></i>`);
-      }
-      return `<div class="world-iso-cell ${z ? 'is-raised' : ''} ${terrainImage(terrain) ? 'has-art' : ''}" data-x="${x}" data-y="${y}"
-          data-h="${height}" data-t="${terrain}" data-info="坐标 ${x}, ${y} · ${terrainName(terrain)} · 高度标记 ${height}（约 ${z} 层）${terrainDesc(terrain) ? ' · ' + terrainDesc(terrain) : ''}"
+      const walls = dirs.map(d => {
+        const nCell = cellAt.get(`${x + d.dx},${y + d.dy}`);
+        const nz = nCell ? zOf(nCell[0], nCell[1], nCell[3]) : -1;
+        // A pit shows the exposed INNER wall of its higher neighbours plus a
+        // thin rim of its own, so water reads as a recessed basin, not a hole.
+        const exposed = pit ? Math.max(0, Math.max(0, nz) - z) : z - Math.max(0, nz);
+        const wallH = (pit ? lift * .6 : lift) + Math.max(0, exposed) * lift;
+        if (wallH <= 0) return '';
+        const tone = pit ? d.tone * .82 : d.tone;
+        return `<i class="world-iso-wall ${d.cls}${pit ? ' is-water-wall' : ''}" style="--wall:${wallH}px;
+          ${wallStyle(terrain, tone)}"></i>`;
+      }).join('');
+      return `<div class="world-iso-cell world-iso-block ${pit ? 'is-pit' : ''} ${z ? 'is-raised' : ''} ${img ? 'has-art' : ''}" data-x="${x}" data-y="${y}"
+          data-h="${height}" data-t="${terrain}" data-info="坐标 ${x}, ${y} · ${terrainName(terrain)} · ${pit ? `下沉坑（字段值 ${height} 为坑深）` : `高度标记 ${height}（约 ${z} 层）`}${terrainDesc(terrain) ? ' · ' + terrainDesc(terrain) : ''}"
           style="grid-column:${x + 1};grid-row:${y + 1};--h:${z};--lift:${lift}px;${terrainStyle(terrain)}">
-          ${walls.join('')}</div>`;
+          ${walls}<span class="world-iso-top"></span></div>`;
     }).join('');
-    const Wd = w * cell, Hd = h * cell;
-    return `<div class="world-iso-frame" data-world-iso-view="${map.id}"
-        data-yaw="${yaw}" data-tilt="${tilt}" data-scale="${scale}">
-      <div class="world-iso-stage" style="width:${Wd}px;height:${Hd}px;--cell:${cell}px">
-        <div class="world-iso-canvas view3d" style="--tilt:${tilt}deg;--yaw:${yaw}deg;
+    const quad = Math.floor((((yaw % 360) + 360) % 360) / 90);
+    const markup = `<div class="world-iso-frame" data-world-iso-view="${map.id}"
+        data-yaw="${yaw}" data-tilt="${tilt}" data-scale="${scale}" data-quad="${quad}"
+        style="--zoom:${scale}">
+      <div class="world-iso-stage" style="width:${w * cell}px;height:${h * cell}px;--cell:${cell}px">
+        <div class="world-iso-canvas view3d" style="--tilt:${tilt}deg;--yaw:${yaw}deg;--lift:${lift}px;
             grid-template-columns:repeat(${w},var(--cell));grid-template-rows:repeat(${h},var(--cell))">
+          <div class="world-iso-base" style="--slab:${Math.round(cell * 0.9)}px"></div>
           ${grid.join('')}${blocks}
         </div>
       </div>
-      <div class="world-iso-hint">拖动旋转（左右 = 水平，上下 = 俯仰）· 滚轮缩放 · 高度 ${esc(String(lift))}px/层</div>
+      <div class="world-iso-hint">拖动旋转（左右 / 上下）· 滚轮缩放 · 地形块按客户端高度标记堆叠</div>
       <div class="world-iso-cam"><span>水平 ${Math.round(yaw)}°</span><span>俯仰 ${Math.round(tilt)}°</span><span>${Math.round(scale * 100)}%</span></div>
     </div>`;
+    if (_isoCache.size > 16) _isoCache.delete(_isoCache.keys().next().value);
+    _isoCache.set(key, markup);
+    return markup;
+  }
+  function shadeRgb(hex, tone) {
+    const n = parseInt(String(hex).slice(1), 16);
+    if (Number.isNaN(n)) return {top: '#555', bottom: '#333'};
+    const ch = k => Math.max(0, Math.min(255, Math.round((n >> k & 255) * tone)));
+    const lo = k => Math.max(0, Math.min(255, Math.round((n >> k & 255) * tone * 0.72)));
+    return {top: `rgb(${ch(16)},${ch(8)},${ch(0)})`,
+            bottom: `rgb(${lo(16)},${lo(8)},${lo(0)})`};
   }
   function shade(hex) {
-    const n = parseInt(String(hex).slice(1), 16);
-    if (Number.isNaN(n)) return '#333';
-    return `rgb(${Math.max(0, (n >> 16) - 54)},${Math.max(0, ((n >> 8) & 255) - 54)},${Math.max(0, (n & 255) - 54)})`;
+    const c = shadeRgb(hex, .52);
+    return c.top;
   }
 
   function gridSvg(map, cellSize, hiddenTerrains) {
@@ -193,14 +270,14 @@
     for (let x = 0; x < w; x += 2) labels.push(`<text class="world-axis" x="${pad + x * size + size / 2}" y="${pad - 8}" text-anchor="middle">${x}</text>`);
     for (let y = 0; y < h; y += 2) labels.push(`<text class="world-axis" x="${pad - 8}" y="${pad + y * size + size / 2 + 3}" text-anchor="end">${y}</text>`);
     const patterns = [...new Set(cells.map(c => c[3]))].map(tt => {
-      const img = terrainImage(tt);
+      const img = terrainFace(tt, 'top') || terrainImage(tt);
       return img ? `<pattern id="wt-${map.id}-${tt}" width="1" height="1" patternContentUnits="objectBoundingBox">
           <image href="${img}" x="0" y="0" width="1" height="1" preserveAspectRatio="xMidYMid slice"/></pattern>` : '';
     }).join('');
     const rects = cells.map(c => {
       const [x, y, height, terrain] = c;
       const fill = terrainColour(terrain);
-      const img = terrainImage(terrain);
+      const img = terrainFace(terrain, 'top') || terrainImage(terrain);
       return `<g class="world-cell" data-x="${x}" data-y="${y}" data-h="${height}" data-t="${terrain}"
           data-info="坐标 ${x}, ${y} · ${terrainName(terrain)}（地形 ${terrain}） · 高度标记 ${height}${terrainDesc(terrain) ? ' · ' + terrainDesc(terrain) : ''}">
         <rect x="${pad + x * size}" y="${pad + y * size}" width="${size}" height="${size}" fill="${img ? `url(#wt-${map.id}-${terrain})` : fill}"/>
@@ -249,6 +326,26 @@
     </article>`;
   }
 
+  /* ---------------- Shared code rendering ---------------- */
+  const LUA_KEYWORDS = /\b(local|function|end|if|then|else|elseif|for|in|pairs|ipairs|do|while|return|and|or|not|nil|true|false|repeat|until|break)\b/g;
+  function luaHtml(code) {
+    const safe = esc(code);
+    return safe
+      .replace(/(--[^\n]*)/g, '<span class="lua-comment">$1</span>')
+      .replace(/(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;)/g, '<span class="lua-string">$1</span>')
+      .replace(LUA_KEYWORDS, '<span class="lua-keyword">$1</span>')
+      .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="lua-number">$1</span>')
+      .replace(/\b(owner|map|target|unit|block|param|spell|buff|dmg|hp)\b/g, '<span class="lua-var">$1</span>');
+  }
+  function codeBlock(code, cls = '') {
+    return `<pre class="world-lua ${cls}"><code>${luaHtml(code)}</code></pre>`;
+  }
+  function kindBadge(kind) {
+    const cls = kind === '技能决策' ? 'is-decision' : kind === '目标排序' ? 'is-target'
+      : kind === 'AI 参数' ? 'is-param' : '';
+    return `<span class="world-kind ${cls}">${esc(kind)}</span>`;
+  }
+
   function renderMaps(root, helpers = {}) {
     const data = W();
     if (!data) {
@@ -256,17 +353,12 @@
       return;
     }
     const maps = data.maps || [];
-    let query = '', onlyGrid = true, page = 1, perPage = 12;
+    let query = '', onlyGrid = true, selected = null;
     const meta = data.mapMeta || {};
     const state = {size: 26, hidden: new Set(), view: '3d', yaw: 45, tilt: 54, scale: 1};
-    const list = () => root.querySelector('#world-map-list');
+    const stage = () => root.querySelector('#world-map-stage');
+    const picker = () => root.querySelector('#world-map-picker');
     const stats = () => root.querySelector('#world-map-count');
-    // Chinese explanation search: terrain names/effects, scene labels, stage
-    // names, weather text, and field_status descriptions. A status keyword is
-    // matched to a map only when the status text names one of its terrains, or
-    // (for combustible states like 燃烧) when the map has a flammable terrain.
-    // Only a query that matches a state's NAME (not any word in its long
-    // description) triggers a state association, to avoid matching every map.
     const statusTerms = q => (meta.terrainStatuses || []).filter(st =>
       st.name && st.name.toLowerCase().includes(q));
     const searchText = m => [m.name, m.model, m.weather, m.weatherDesc, m.weatherType,
@@ -287,17 +379,68 @@
       if (!query) return true;
       return searchText(m).includes(query) || matchesStatus(m, query);
     });
-    const paintList = () => {
+    const mapTitle = m => (m.stages || [])[0] || m.name || `地图 ${m.id}`;
+    const paintPicker = () => {
       const hits = filtered();
-      const pages = Math.max(1, Math.ceil(hits.length / perPage));
-      page = Math.min(page, pages);
       stats().textContent = `${fmt(hits.length)} / ${fmt(maps.length)} 张地图`;
-      list().innerHTML = hits.slice((page - 1) * perPage, page * perPage)
-          .map(m => mapCard(m, state)).join('') || '<p class="muted">没有匹配的地图。</p>';
-      updatePager('world-map-pager', page, pages, hits.length, perPage);
+      if (!hits.some(m => String(m.id) === String(selected))) {
+        selected = hits.length ? String(hits[0].id) : null;
+      }
+      // Rebuild the picker only when the result set actually changes; a
+      // selection change just toggles one class.
+      const ids = hits.map(m => String(m.id)).join(',');
+      if (picker().dataset.ids !== ids) {
+        picker().dataset.ids = ids;
+        picker().innerHTML = hits.map(m => `<button type="button"
+            class="world-pick-item ${String(m.id) === String(selected) ? 'is-active' : ''}"
+            data-world-pick="${m.id}" title="${esc(mapTitle(m))}">
+            <span class="world-pick-id">#${m.id}</span>
+            <span class="world-pick-name">${esc(mapTitle(m))}</span>
+            <span class="world-pick-sub">${esc(m.scene || m.model || '')} · ${fmt((m.cells || []).length)} 格</span>
+          </button>`).join('') || '<p class="muted small-text">没有匹配的地图。</p>';
+      }
+      for (const btn of picker().querySelectorAll('.world-pick-item'))
+        btn.classList.toggle('is-active', btn.dataset.worldPick === String(selected));
+      const active = picker().querySelector('.is-active');
+      if (active) active.scrollIntoView({block: 'nearest'});
     };
-    // Only ONE compact toolbar stays sticky; the long intro and data overview
-    // are folded into a popover so the map gets nearly the whole viewport.
+    const fitMaps = frame => {
+      const st = frame?.querySelector('.world-iso-stage');
+      if (!st) return;
+      const w = st.offsetWidth || 1, h = st.offsetHeight || 1;
+      // The 3D projection compresses the grid vertically; leave headroom for
+      // raised blocks and the floating slab.
+      const fit = Math.min(frame.clientWidth / w, frame.clientHeight / h) * 0.82;
+      frame.style.setProperty('--fit', Math.max(0.35, Math.min(3, fit)).toFixed(3));
+    };
+    const fitAll = () => root.querySelectorAll('[data-world-iso-view]').forEach(fitMaps);
+    const paintStage = () => {
+      const m = maps.find(x => String(x.id) === String(selected));
+      stage().innerHTML = m ? mapCard(m, state)
+        : '<p class="result-empty">左侧选择一张地图即可查看。</p>';
+      // Cached markup carries the camera values from when it was built; apply
+      // the current camera to every freshly inserted frame.
+      for (const frame of stage().querySelectorAll('[data-world-iso-view]')) {
+        const canvas = frame.querySelector('.world-iso-canvas');
+        if (canvas) {
+          canvas.style.setProperty('--yaw', state.yaw + 'deg');
+          canvas.style.setProperty('--tilt', state.tilt + 'deg');
+        }
+        frame.dataset.yaw = state.yaw; frame.dataset.tilt = state.tilt;
+        frame.dataset.scale = state.scale;
+        frame.dataset.quad = Math.floor((((state.yaw % 360) + 360) % 360) / 90);
+        frame.style.setProperty('--zoom', state.scale);
+        const spans = frame.querySelector('.world-iso-cam')?.children;
+        if (spans) {
+          if (spans[0]) spans[0].textContent = `水平 ${Math.round(state.yaw)}°`;
+          if (spans[1]) spans[1].textContent = `俯仰 ${Math.round(state.tilt)}°`;
+          if (spans[2]) spans[2].textContent = `${Math.round(state.scale * 100)}%`;
+        }
+      }
+      fitAll();
+    };
+    const paint = () => { paintPicker(); paintStage(); };
+
     root.innerHTML = `<div class="world-sticky-head world-sticky-compact">
         <div class="world-toolbar">
           <input type="search" id="world-map-query" placeholder="搜索关卡 / 场景 / 地形 / 天气 / 模型 / id" aria-label="搜索地图">
@@ -309,74 +452,90 @@
             <div class="world-head-more-body">
               <p>战斗地图取自客户端 <code>map</code> / <code>weather</code> / <code>field_type</code> 表，
                  地形块直接使用客户端 <code>terrain_atlas</code> 贴图；拖动旋转（左右 / 上下）、滚轮缩放，立柱表示高度标记。</p>
+              <p>深水 / 浅水 / 禁行在客户端是「可被推落的坑」，其字段记录坑深而非堆叠高度，因此显示为下沉水面。</p>
               <p>共 ${fmt(maps.length)} 张地图、${fmt((meta.terrainTypes || []).reduce((a, x) => a + x.cells, 0))} 个地块；
                  地形类型 ${fmt((meta.terrainTypes || []).length)} 种，带网格 ${fmt(maps.filter(m => (m.cells || []).length).length)} 张。</p>
               <div class="world-legend">${(meta.terrainTypes || []).slice(0, 12).map(x =>
                 `<span title="${esc(x.desc || '')}"><i style="${terrainStyle(x.id)}"></i>${esc(x.name || '地形 ' + x.id)} · ${fmt(x.cells)} 格</span>`).join('')}</div>
             </div></details>
         </div></div>
-        <div id="world-map-list"></div>
-        <nav class="world-pager" id="world-map-pager" aria-label="翻页"></nav>
+        <div class="world-map-workspace">
+          <nav class="world-picker" id="world-map-picker" aria-label="地图列表"></nav>
+          <div id="world-map-list" class="world-map-stage" role="region" aria-label="当前地图">
+            <div id="world-map-stage"></div>
+          </div>
+        </div>
         <dialog id="world-map-dialog" class="world-dialog"><div class="world-dialog-head">
           <strong id="world-dialog-title">地形大图</strong>
           <button type="button" class="button secondary small" id="world-dialog-close">关闭</button></div>
           <div id="world-dialog-body"></div></dialog>`;
-    paintList();
+    paint();
+    if (window.__wikiMapResize) window.removeEventListener('resize', window.__wikiMapResize);
+    window.__wikiMapResize = () => { if (root && root.isConnected) fitAll(); };
+    window.addEventListener('resize', window.__wikiMapResize);
+    let searchFrame = 0;
     root.querySelector('#world-map-query').addEventListener('input', e => {
-      query = e.target.value.trim().toLowerCase(); page = 1; paintList();
+      query = e.target.value.trim().toLowerCase();
+      if (searchFrame) return;
+      searchFrame = requestAnimationFrame(() => { searchFrame = 0; paint(); });
     });
     root.querySelector('#world-map-grid').addEventListener('change', e => {
-      onlyGrid = e.target.checked; page = 1; paintList();
+      onlyGrid = e.target.checked; paint();
     });
-    bindPager(root, 'world-map-pager', value => {
-      const pages = Math.max(1, Math.ceil(filtered().length / perPage));
-      page = pageAction(value, page, pages);
-      paintList();
-    }, size => { perPage = size; page = 1; paintList(); });
     root.querySelector('#world-map-view-all').addEventListener('click', () => {
-      state.view = state.view === '3d' ? '2d' : '3d'; paintList();
+      state.view = state.view === '3d' ? '2d' : '3d'; paintStage();
     });
     root.querySelector('#world-map-zoom-all').addEventListener('click', () => {
       state.size = state.size >= 30 ? 16 : 30;
-      root.querySelector('#world-map-zoom-all').textContent = state.size >= 30 ? '缩小全部' : '放大全部';
-      paintList();
+      root.querySelector('#world-map-zoom-all').textContent = state.size >= 30 ? '缩小' : '放大';
+      paintStage();
     });
+    picker().addEventListener('click', e => {
+      const btn = e.target.closest('[data-world-pick]');
+      if (!btn) return;
+      selected = btn.dataset.worldPick;
+      for (const item of picker().querySelectorAll('.world-pick-item'))
+        item.classList.toggle('is-active', item.dataset.worldPick === selected);
+      paintStage();
+    });
+    // Delegate the map card controls (zoom / terrain toggles / view / dialog).
+    const list = () => root.querySelector('#world-map-list');
     list().addEventListener('click', e => {
       const zoom = e.target.closest('[data-world-zoom]');
       if (zoom) {
         state.size = Math.max(12, Math.min(48, state.size + Number(zoom.dataset.worldZoom) * 6));
-        paintList(); return;
+        paintStage(); return;
       }
       const tt = e.target.closest('[data-world-terrain]');
       if (tt) {
         const id = Number(tt.dataset.worldTerrain);
         if (state.hidden.has(id)) state.hidden.delete(id); else state.hidden.add(id);
-        paintList(); return;
+        paintStage(); return;
       }
       const reset = e.target.closest('[data-world-reset]');
-      if (reset) {
-        state.yaw = 45; state.tilt = 54; state.scale = 1;
-        paintList(); return;
-      }
+      if (reset) { state.yaw = 45; state.tilt = 54; state.scale = 1; paintStage(); return; }
       const view = e.target.closest('[data-world-view]');
-      if (view) {
-        state.view = state.view === '3d' ? '2d' : '3d';
-        paintList(); return;
-      }
+      if (view) { state.view = state.view === '3d' ? '2d' : '3d'; paintStage(); return; }
       const full = e.target.closest('[data-world-fullscreen]');
       if (full) {
-        const m = maps.find(x => x.id === Number(full.dataset.worldFullscreen));
+        const m = maps.find(x => String(x.id) === String(full.dataset.worldFullscreen));
         if (!m) return;
-        root.querySelector('#world-dialog-title').textContent = `${m.name} · ${m.width}×${m.height}`;
+        root.querySelector('#world-dialog-title').textContent = mapTitle(m);
         root.querySelector('#world-dialog-body').innerHTML = state.view === '3d'
           ? gridIso(m, 34, state.hidden, state.yaw, state.tilt, state.scale) : gridSvg(m, 34, state.hidden);
         root.querySelector('#world-map-dialog').showModal();
+        requestAnimationFrame(() => {
+          const dlg = root.querySelector('#world-map-dialog');
+          for (const f of dlg.querySelectorAll('[data-world-iso-view]')) fitMaps(f);
+        });
       }
     });
-    // CSS-3D orbit, following the reference tool's feel:
-    //   drag right -> yaw DECREASES, drag up -> tilt INCREASES (more top-down).
-    // Only CSS variables change, so nothing is rebuilt mid-drag.
-    let drag = null;
+    root.querySelector('#world-dialog-close').addEventListener('click', () =>
+      root.querySelector('#world-map-dialog').close());
+    // CSS-3D camera. NOTHING is rebuilt while dragging or zooming: we only
+    // mutate CSS custom properties, which the compositor handles directly.
+    // A single rAF coalesces pointermove bursts into one style write per frame.
+    let drag = null, camFrame = 0, pendingCam = null;
     const applyCam = frame => {
       const canvas = frame.querySelector('.world-iso-canvas');
       if (canvas) {
@@ -386,78 +545,72 @@
       frame.dataset.yaw = state.yaw;
       frame.dataset.tilt = state.tilt;
       frame.dataset.scale = state.scale;
+      frame.dataset.quad = Math.floor((((state.yaw % 360) + 360) % 360) / 90);
+      frame.style.setProperty('--zoom', state.scale);
       const cam = frame.querySelector('.world-iso-cam');
-      if (cam) cam.innerHTML = `<span>水平 ${Math.round(state.yaw)}°</span>`
-        + `<span>俯仰 ${Math.round(state.tilt)}°</span><span>${Math.round(state.scale * 100)}%</span>`;
+      if (cam) {
+        const spans = cam.children;
+        if (spans[0]) spans[0].textContent = `水平 ${Math.round(state.yaw)}°`;
+        if (spans[1]) spans[1].textContent = `俯仰 ${Math.round(state.tilt)}°`;
+        if (spans[2]) spans[2].textContent = `${Math.round(state.scale * 100)}%`;
+      }
     };
-    const syncAll = () => root.querySelectorAll('[data-world-iso-view]').forEach(applyCam);
+    const flushCam = () => {
+      camFrame = 0;
+      const frame = pendingCam; pendingCam = null;
+      if (frame && frame.isConnected) applyCam(frame);
+    };
+    const scheduleCam = frame => {
+      pendingCam = frame;
+      if (!camFrame) camFrame = requestAnimationFrame(flushCam);
+    };
     const orbitDown = e => {
       const frame = e.target.closest('[data-world-iso-view]');
       if (!frame || e.target.closest('button')) return;
       drag = {frame, x: e.clientX, y: e.clientY, yaw: state.yaw, tilt: state.tilt};
-      frame.setPointerCapture(e.pointerId);
       frame.classList.add('is-dragging');
     };
     const orbitMove = e => {
       if (!drag) return;
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-      // Same sign convention as SoCxiezhouTool: yaw - dx*0.4, tilt - dy*0.35
       state.yaw = ((drag.yaw - dx * 0.4) % 360 + 360) % 360;
       state.tilt = Math.max(0, Math.min(85, drag.tilt - dy * 0.35));
-      syncAll();
+      scheduleCam(drag.frame);
     };
     const orbitUp = () => {
-      if (drag) { drag.frame.classList.remove('is-dragging'); drag = null; }
+      if (!drag) return;
+      drag.frame.classList.remove('is-dragging');
+      drag = null;
     };
     for (const host of [list(), root.querySelector('#world-dialog-body')]) {
       host.addEventListener('pointerdown', orbitDown);
-      host.addEventListener('pointermove', orbitMove);
-      host.addEventListener('pointerup', orbitUp);
-      host.addEventListener('pointercancel', orbitUp);
     }
+    // Re-rendering replaces the previous window listeners instead of stacking.
+    const prev = window.__wikiMapOrbit;
+    if (prev) {
+      window.removeEventListener('pointermove', prev.move);
+      window.removeEventListener('pointerup', prev.up);
+      window.removeEventListener('pointercancel', prev.up);
+    }
+    window.__wikiMapOrbit = {move: orbitMove, up: orbitUp};
+    window.addEventListener('pointermove', orbitMove);
+    window.addEventListener('pointerup', orbitUp);
+    window.addEventListener('pointercancel', orbitUp);
     const zoomHandler = e => {
       const frame = e.target.closest('[data-world-iso-view]');
       if (!frame) return;
       e.preventDefault();
       state.scale = Math.max(0.4, Math.min(2, state.scale + (e.deltaY < 0 ? 0.1 : -0.1)));
-      const m = maps.find(x => String(x.id) === String(frame.dataset.worldIsoView));
-      if (!m) return;
-      const fresh = document.createElement('div');
-      fresh.innerHTML = gridIso(m, state.size, state.hidden, state.yaw, state.tilt, state.scale);
-      frame.replaceWith(fresh.firstElementChild);
+      scheduleCam(frame);
     };
-    list().addEventListener('wheel', zoomHandler, {passive: false});
-    root.querySelector('#world-dialog-body').addEventListener('wheel', zoomHandler, {passive: false});
-
+    for (const host of [list(), root.querySelector('#world-dialog-body')]) {
+      host.addEventListener('wheel', zoomHandler, {passive: false});
+    }
     list().addEventListener('mouseover', e => {
-      const cell = e.target.closest('.world-cell');
-      if (!cell) return;
-      const card = cell.closest('.world-map-card');
-      const info = card?.querySelector('.world-cell-info');
-      if (info) { info.textContent = cell.dataset.info; info.classList.add('is-active'); }
+      const cell = e.target.closest('[data-info]');
+      const info = root.querySelector('#world-map-list .world-cell-info');
+      if (cell && info) info.textContent = cell.dataset.info;
     });
-    root.querySelector('#world-dialog-close').addEventListener('click', () =>
-      root.querySelector('#world-map-dialog').close());
-  }
-
-  /* ---------------- Shared code rendering ---------------- */
-  const LUA_KEYWORDS = /\b(local|function|end|if|then|else|elseif|for|in|pairs|ipairs|do|while|return|and|or|not|nil|true|false|repeat|until|break)\b/g;
-  function luaHtml(code) {
-    const safe = esc(code);
-    return safe
-      .replace(/(--[^\n]*)/g, '<span class="lua-comment">$1</span>')
-      .replace(/(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;)/g, '<span class="lua-string">$1</span>')
-      .replace(LUA_KEYWORDS, '<span class="lua-keyword">$1</span>')
-      .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="lua-number">$1</span>')
-      .replace(/\b(owner|map|target|unit|block|param|spell|buff|dmg|hp)\b/g, '<span class="lua-var">$1</span>');
-  }
-  function codeBlock(code, cls = '') {
-    return `<pre class="world-lua ${cls}"><code>${luaHtml(code)}</code></pre>`;
-  }
-  function kindBadge(kind) {
-    const cls = kind === '技能决策' ? 'is-decision' : kind === '目标排序' ? 'is-target'
-      : kind === 'AI 参数' ? 'is-param' : '';
-    return `<span class="world-kind ${cls}">${esc(kind)}</span>`;
   }
 
   /* ---------------- AI ---------------- */
@@ -502,6 +655,20 @@
     </article>`;
   }
 
+  function aiGuideHtml(quick, title, intro) {
+    if (!quick || !quick.length) return '';
+    return `<section class="ai-guide"><div class="ai-guide-head"><h3>${esc(title)}</h3>
+        <p>${esc(intro)}</p></div>
+      <div class="ai-guide-flow">${quick.map((q, i) => `<article class="ai-guide-card">
+        <div class="ai-guide-num">${i + 1}</div>
+        <div class="ai-guide-body"><h4>${esc(q.title)}</h4>
+          ${q.summary ? `<p class="ai-guide-summary">${esc(q.summary)}</p>` : ''}
+          ${q.text ? `<p class="ai-guide-summary">${esc(q.text)}</p>` : ''}
+          ${q.steps ? `<ol class="ai-guide-steps">${q.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}
+          <div class="tag-list">${(q.fields || []).map(f => `<code class="mech-tag">${esc(f)}</code>`).join('')}</div>
+        </div></article>`).join('')}</div></section>`;
+  }
+
   function renderAI(root, helpers = {}) {
     const data = W();
     if (!data) {
@@ -534,7 +701,7 @@
     };
     const kinds = Object.keys(meta.kinds || {});
     root.innerHTML = intro('CLIENT AI', '自动战斗 AI',
-        '从客户端 unit_npc / skill 表解析的角色自动战斗行动逻辑：技能选择顺序、BOSS 固定技能序列，以及 ai_order_param / target_order_param 里的 Lua 决策脚本原文。')
+        'AI 每回合做三件事：走到哪、放哪个技能、打谁。下面用三步图讲清规则，再往下查看单位配置与原始 Lua 决策脚本。')
       + `<div class="world-stat-grid">
           <div><strong>${fmt(units.length)}</strong><span>客户端单位</span></div>
           <div><strong>${fmt(meta.bossUnits || 0)}</strong><span>BOSS 固定序列</span></div>
@@ -548,7 +715,9 @@
           <select id="world-ai-kind" class="world-kind-select" hidden>${kinds.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('')}</select>
           <span class="small-text muted" id="world-ai-count"></span>
         </div>
-        <details class="content-card world-priority-card" open><summary><h3>AI 如何选走路路径、技能如何选人</h3></summary>
+        ${aiGuideHtml(meta.pathfinding?.quick, '走路与选目标 · 三步看懂',
+          '自动战斗每回合先决定走到哪，再决定放哪个技能、打谁。三步都只用配置表里的字段与打分脚本。')}
+        <details class="content-card world-priority-card"><summary><h3>技术细节：寻路与选人的全部字段</h3></summary>
           <ol class="world-priority-steps">${(meta.pathfinding?.explanation || []).map(esc).map(x => `<li>${x}</li>`).join('')}</ol>
           <div class="world-pf-grid">
             <div><h4>移动规则 move_type</h4>${(meta.pathfinding?.moveTypes || []).map(x =>
@@ -570,7 +739,9 @@
             ${(meta.pathfinding?.aiMoveClose || []).length} 个技能带站位偏好。
             最短路求解器在客户端编译代码中，配置表只记录输入与打分脚本。</p>
         </details>
-        <details class="content-card world-priority-card" open><summary><h3>AI 优先级机制：掌管所有自动战斗决策的逻辑</h3></summary>
+        ${aiGuideHtml(meta.priority?.quick, '技能优先级 · 三步看懂',
+          '技能不是随便放的：先按静态优先级排队，再用战场状态打分，最后选得分最高的技能与目标。')}
+        <details class="content-card world-priority-card"><summary><h3>技术细节：优先级评分的完整链路</h3></summary>
           <ol class="world-priority-steps">${(meta.priority?.explanation || []).map(esc).map(x => `<li>${x}</li>`).join('')}</ol>
           <div class="world-priority-grid">
             <div><h4>静态优先级 ai_skill_order</h4>
@@ -703,21 +874,30 @@
       return (x.table + ' ' + x.label + ' ' + x.note + ' ' + x.fields.join(' ')
               + ' ' + JSON.stringify(x.sample)).toLowerCase().includes(query);
     });
+    const rangeRows = x => Object.entries(x.ranges || {}).map(([k, v]) =>
+      `<tr><td><code>${esc(k)}</code></td><td class="enh-num">${fmt(v.min)}</td>
+        <td class="enh-num">${fmt(v.max)}</td><td class="enh-num">${fmt(v.distinct)}</td></tr>`).join('');
+    const fieldRows = x => x.fields.map(k =>
+      `<tr><td><code>${esc(k)}</code></td><td>${esc(JSON.stringify(x.sample[k]))}</td></tr>`).join('');
     const tableCard = x => {
-      const ranges = Object.entries(x.ranges || {}).slice(0, 12);
+      const ranges = Object.entries(x.ranges || {});
       return `<article class="content-card enhance-card" data-enhance-table="${esc(x.table)}">
-        <div class="world-ai-head"><h2>${esc(x.label)} <small>${esc(x.table)}</small></h2>
-          <span class="world-kind">${fmt(x.rows)} 行</span></div>
-        <p class="small-text">${esc(x.note)}</p>
-        <div class="tag-list">${x.numericFields.slice(0, 9).map(k =>
+        <header class="enh-head">
+          <div><h2>${esc(x.label)}</h2><p class="enh-note">${esc(x.note)}</p></div>
+          <span class="enh-count"><strong>${fmt(x.rows)}</strong><small>行记录</small></span>
+        </header>
+        <div class="enh-meta"><code>${esc(x.table)}</code>
+          <span>${fmt(x.fields.length)} 个字段</span><span>${fmt(ranges.length)} 个数值字段</span></div>
+        <div class="enh-tags">${x.numericFields.slice(0, 9).map(k =>
           `<span class="mech-tag">${esc(k)}</span>`).join('')}</div>
-        ${ranges.length ? `<details><summary>字段取值范围（${ranges.length} 项）</summary>
-          <div class="enhance-ranges">${ranges.map(([k, v]) =>
-            `<span><em>${esc(k)}</em> ${fmt(v.min)} ~ ${fmt(v.max)} · ${fmt(v.distinct)} 个值</span>`).join('')}</div></details>` : ''}
-        <details><summary>字段与首行样例</summary>
-          <div class="enhance-fields">${x.fields.map(k =>
-            `<div><code>${esc(k)}</code><span>${esc(JSON.stringify(x.sample[k]))}</span></div>`).join('')}</div>
-        </details>
+        ${ranges.length ? `<details class="enh-fold" open><summary>数值取值范围<span>${ranges.length} 项</span></summary>
+          <div class="enh-table-wrap"><table class="enh-table"><thead><tr>
+            <th>字段</th><th>最小</th><th>最大</th><th>取值数</th></tr></thead>
+            <tbody>${rangeRows(x)}</tbody></table></div></details>` : ''}
+        <details class="enh-fold"><summary>字段与首行样例<span>${x.fields.length} 项</span></summary>
+          <div class="enh-table-wrap"><table class="enh-table"><thead><tr>
+            <th>字段</th><th>首行值</th></tr></thead>
+            <tbody>${fieldRows(x)}</tbody></table></div></details>
       </article>`;
     };
     const paint = () => {
@@ -732,17 +912,28 @@
     root.innerHTML = `<div class="world-sticky-head">` + intro('CLIENT RULES', '强化与随机',
         '探查本地客户端配置表中与「装备强化、数值随机」相关的字段与规则：哪些是确定性成长、哪些按区间 / 步长 / 权重抽取，以及配置表里查不到的部分。')
       + `<div class="content-card world-toolbar">
-          <label class="tool-field"><span>搜索字段 / 表名</span><input type="search" id="enhance-query" placeholder="weight / min / max / step / 词条 / 精炼"></label>
+          <label class="tool-field"><span>搜索字段 / 表名</span><input type="search" id="enhance-query" placeholder="例如：weight / 词条 / 精炼 / min"></label>
           <label class="tool-field"><span>表</span><select id="enhance-table"><option value="">全部表</option>
             ${D.tables.map(x => `<option value="${esc(x.table)}">${esc(x.label)}</option>`).join('')}</select></label>
           <span class="small-text muted" id="enhance-count"></span></div>
-        <div class="content-card world-summary"><h3>探查结论</h3>
-          <ol class="world-priority-steps">${D.rules.map(esc).map(x => `<li>${x}</li>`).join('')}</ol>
-          <p class="small-text muted">来源：${esc(D.source)}。仅陈述配置表中可直接读到的字段与数值，未反推编译代码里的伪随机实现。</p></div></div>
+        <section class="content-card enhance-summary">
+          <div class="enh-summary-head"><h2>探查结论</h2>
+            <p>下面 ${fmt(D.rules.length)} 条只依据本地客户端配置表里能直接读到的字段与数值。</p></div>
+          <ol class="enh-rules">${D.rules.map((r, i) => `<li><span class="enh-rule-num">${i + 1}</span>
+            <div>${esc(r).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}</div></li>`).join('')}</ol>
+          <p class="enh-source">来源：${esc(D.source)}。配置表给出区间、步长、权重与上限；伪随机种子、分布与保底规则在编译代码中，未作反推。</p>
+        </section></div>
         <div id="enhance-list"></div>
         <nav class="world-pager" id="enhance-pager" aria-label="翻页"></nav>`;
     paint();
-    root.querySelector('#enhance-query').addEventListener('input', e => {
+    let composing = false;
+    const eq = root.querySelector('#enhance-query');
+    eq.addEventListener('compositionstart', () => { composing = true; });
+    eq.addEventListener('compositionend', e => {
+      composing = false; query = e.target.value.trim().toLowerCase(); page = 1; paint();
+    });
+    eq.addEventListener('input', e => {
+      if (composing || e.isComposing) return;
       query = e.target.value.trim().toLowerCase(); page = 1; paint();
     });
     root.querySelector('#enhance-table').addEventListener('change', e => {

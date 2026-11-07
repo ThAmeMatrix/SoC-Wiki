@@ -172,8 +172,12 @@ window.WikiMechanics = (() => {
     const rows = () => all.filter(([, s]) => {
       if (kind && !(s.details || []).some(d => d.kind === kind)) return false;
       if (!query) return true;
+      // `details[].detail` is a shared explanatory template repeated on every
+      // skill (it mentions 聚拢/击退/范围 all over). Including it made every
+      // common term match all 1,213 rows, so search only discriminating text:
+      // name, description, decoded rules, per-skill summaries and raw config.
       const hay = (s.name + ' ' + (s.desc || '') + ' ' + (s.rules || []).join(' ') + ' '
-                   + (s.details || []).map(d => (d.detail || '') + ' ' + (d.original || '')).join(' ')).toLowerCase();
+                   + (s.details || []).map(d => (d.summary || '') + ' ' + (d.original || '')).join(' ')).toLowerCase();
       return hay.includes(query) || pinyinHit(s, query);
     });
 
@@ -215,7 +219,8 @@ window.WikiMechanics = (() => {
         <p>从客户端配置表反解的技能机制：范围形状、聚拢/传送、击退、状态施加与抉择分支。数值下方标明来源表与行号。</p></div></div>
       <div class="content-card mechanics-toolbar">
         <label class="tool-field"><span>搜索技能 / 规则</span>
-          <input id="mechanics-query" type="search" placeholder="中文、拼音或首字母，例如：聚拢 / jvlong / rwcs" autocomplete="off" aria-label="搜索机制规则"></label>
+          <input id="mechanics-query" type="search" placeholder="技能名 / 机制 / 拼音 / 首字母，例如：击退 / 菱形 / maishachongfeng / mscf" autocomplete="off" aria-label="搜索机制规则"></label>
+          <p class="small-text muted mechanics-hint">可搜技能名、机制词（击退 / 传送 / 燃烧）、客户端字段原文，也支持全拼与拼音首字母；结果按相关度显示。</p>
         <label class="tool-field"><span>机制类型</span><select id="mechanics-kind"><option value="">全部</option>
           ${typeNames.map(n => `<option value="${esc(n)}">${esc(kindLabel[n] || n)}</option>`).join('')}</select></label>
         <p class="small-text muted" id="mechanics-count"></p>

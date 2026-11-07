@@ -156,7 +156,11 @@
       let cfg=normalize(h.read('panel.current',null));
       // Battle-power formula is not recoverable from the client config; keep
       // the player's chosen candidate / calibration across result repaints.
-      const battlePowerState={method:'permille-final',scale:1,calibration:0};
+      // Persist the player's chosen formula / calibration so a reload does not
+      // silently reset the battle-power value they matched against the game.
+      const battlePowerState=Object.assign({method:'permille-final',scale:1,calibration:0},
+        h.read('panel.battlePower',{}));
+      let bpLastBase=0,bpLastRarity=100,bpLastProf=100;
       // A restored preset may name a weapon the current character cannot equip.
       function fixEquipment(){
         const wo=weaponOptions(C.findCharacter(P,cfg.character)),oo=offhandOptions(),co=charmOptions();
@@ -515,7 +519,8 @@
         const char=C.findCharacter(P,cfg.character)||P.characters[0];
         const r=P.charmRarities[cfg.charm.rarity]||['',100,0,60];
         root.innerHTML=`${back}${intro('PANEL LAB','面板，算得明明白白。','按角色星级、等级、技能轴、好感度与两套天赋，配合武器装具、刻印与塔罗，逐项算出局外五维面板。数值全部取自本地客户端配置表。')}
-          <div class="damage-layout panel-layout panel-layout-three"><nav class="content-card panel-jump ig-nav" aria-label="局外面板计算器区块导航"><h3>快速跳转</h3><div class="panel-jump-links"><a href="#panel-sec-01" data-panel-jump="01"><span>01</span>角色 · 星级 · 技能轴</a><a href="#panel-sec-02" data-panel-jump="02"><span>02</span>武器 · 刻印</a><a href="#panel-sec-03" data-panel-jump="03"><span>03</span>装具 · 刻印</a><a href="#panel-sec-04" data-panel-jump="04"><span>04</span>塔罗 · 词条</a><a href="#panel-sec-05" data-panel-jump="05"><span>05</span>天赋拓扑图</a><a href="#panel-sec-07" data-panel-jump="07"><span>07</span>局外面板结果</a><a href="#panel-damage-result" data-panel-jump="06"><span>06</span>伤害预估结果</a></div><p class="small-text muted">点节点或选项后页面会保持当前位置；点这里可直接跳到对应区块。</p></nav><form id="panel-form" novalidate>
+          <div class="damage-layout panel-layout panel-layout-three"><nav class="content-card panel-jump ig-nav" aria-label="局外面板计算器区块导航"><h3>快速跳转</h3><div class="panel-jump-links"><a href="#panel-sec-01" data-panel-jump="01"><span>01</span>角色 · 星级 · 技能轴</a><a href="#panel-sec-02" data-panel-jump="02"><span>02</span>武器 · 刻印</a><a href="#panel-sec-03" data-panel-jump="03"><span>03</span>装具 · 刻印</a><a href="#panel-sec-04" data-panel-jump="04"><span>04</span>塔罗 · 词条</a><a href="#panel-sec-05" data-panel-jump="05"><span>05</span>天赋拓扑图</a><a href="#panel-sec-07" data-panel-jump="07"><span>07</span>局外面板结果</a><a href="#panel-damage-result" data-panel-jump="06"><span>06</span>伤害预估结果</a></div><p class="small-text muted">点节点或选项后页面会保持当前位置；点这里可直接跳到对应区块。</p></nav>
+          <form id="panel-form" novalidate>
             <section class="content-card" id="panel-sec-01" data-panel-section="01">${heading('01','角色','成长 · 星级 · 技能轴 · 好感度')}${characterButton()}
               <div class="tool-fields">${sel('star','星级',starOptions,cfg.star)}${sel('level','等级',levelOptions,cfg.level)}${sel('rank','已解锁阶数',rankOptions,cfg.rank)}${sel('friendship','好感度',friendOptions,cfg.friendship)}
                 <label class="tool-check"><input data-path="enhance" type="checkbox" ${cfg.enhance?'checked':''}><span>极限解放技能轴<small>塔罗角色等拥有强化技能轴时启用</small></span></label></div>
@@ -544,10 +549,11 @@
                 ${dmg('attackBonusPercent','攻击加成 %',cfg.combat.attackBonusPercent,-100,1000)}
                 ${dmg('attackBonusFlat','攻击固定加成',cfg.combat.attackBonusFlat,-1e7,1e7)}</div>
             </section>
-          </form><aside class="damage-aside panel-aside" id="panel-sec-07" data-panel-section="07">
+          </form>
+          <aside class="damage-aside panel-aside" id="panel-sec-07" data-panel-section="07">
             <section class="damage-result" aria-label="局外面板结果"><div class="eyebrow">OUT-OF-BATTLE PANEL</div><h2>局外面板</h2><div id="panel-error" role="alert" hidden></div><div id="panel-output" aria-live="polite"></div><button class="button" type="button" data-tool="export-panel">${h.icon('download',15)}导出计算结果</button></section>
             <details class="content-card panel-aside-fold"><summary><h3>计算分解</h3><span class="fold-hint">展开查看逐项</span></summary><div id="panel-steps"></div></details>
-            <section class="content-card" id="panel-damage-result" aria-label="伤害预估结果"><h3>伤害预估</h3><div id="panel-damage" aria-live="polite"></div></section>
+            <details class="content-card" id="panel-damage-result" aria-label="伤害预估结果"><summary><h3>伤害预估</h3></summary><div id="panel-damage" aria-live="polite"></div></details>
             <details class="content-card preset-card panel-aside-fold"><summary><h3>我的面板方案</h3><span class="fold-hint">展开保存 / 载入</span></summary><label class="tool-field"><span>方案名称</span><input id="panel-preset-name" maxlength="40" placeholder="例如：贝拉 · 满配"></label><button class="button secondary small" type="button" data-tool="save-panel">保存当前方案</button><div id="panel-preset-list"></div><div class="tool-backup-actions"><button class="button secondary small" type="button" data-tool="export-panel-plans">导出方案 JSON</button><button class="button secondary small" type="button" data-tool="import-panel-plans">导入方案 JSON</button><button class="button secondary small" type="button" data-tool="reset-panel">恢复默认配置</button></div><input type="file" id="panel-plan-file" accept="application/json,.json" hidden></details>
           </aside></div>
           <details class="content-card tool-help"><summary>公式与使用说明</summary><div class="rich-text"><p>角色基础 = ⌊等级成长 × 稀有度调整 × (100% + 星级% + 技能轴% + 好感度%)⌋ + 已解锁各阶的固定加成，与客户端 <code>CalculateAttributeByType</code> 的定点数算法一致。</p><p>技能轴按每一阶独立选择左 / 右 / 都点 / 未点；只有该阶存在属性节点时才会影响面板。极限解放会用配置表中的强化行替换同阶普通行。</p><p>星辰天赋与开拓天赋来自客户端 <code>online_tech_node</code> / <code>online_tech_node_level</code> 系列表。每一行是「升到该等级后的累计加成」（如黑铁攻击强化 Lv.1 +5、Lv.2 +10），因此点满只取最高等级那一行，不会把各级累加成 +15；经验与材料则是每一级分别消耗，点满需累加。合计按各节点当前等级相加，固定值直接进面板、千分比进全局乘区，可用微调校准游戏内的额外加成。</p><p>武器、装具与塔罗按同样的百分位约定计算等级成长；刻印固定值、天赋固定值与塔罗词条固定值直接累加；刻印 / 词条 / 天赋与微调的百分比对合计统一结算：最终值 = ⌊角色白板值 × (100% + 百分比)⌋ + 装备 / 天赋 / 词条的固定值。</p><p>星级、技能轴、好感度作用于角色成长本身，装备与天赋的百分比作用于最终合计，是两个不同的乘区。敏捷来自客户端单位表，不参与上述计算。结果不含战斗内增益、技能被动与阵营加成；游戏实际结算如有额外取整，以实机为准。</p></div></details>
@@ -638,12 +644,28 @@
           const r=C.calculate(cfg,P);h.persist('panel.current',cfg);error.hidden=true;
           const world=window.WIKI_WORLD_DATA||{};
           const bp=C.battlePower(r,world,P,{...battlePowerState});
-          output.innerHTML=`<div class="panel-total-grid panel-total-grid-pairs"><div class="panel-total-hp"><span>${labels[0]}</span><strong>${fmt(r.total[0])}</strong></div><div class="panel-total-pair"><span>${labels[1]} / ${labels[2]}</span><strong>${fmt(r.total[1])} / ${fmt(r.total[2])}</strong></div><div class="panel-total-pair"><span>${labels[3]} / ${labels[4]}</span><strong>${fmt(r.total[3])} / ${fmt(r.total[4])}</strong></div></div>
+          bpLastBase=bp.base;bpLastRarity=bp.rarity;bpLastProf=bp.profession;
+          const S=window.WikiStatBars;
+          // Same six stats, same order as the infographic workshop:
+          // 物攻/魔攻 → 物防/魔防 → 生命/速度.
+          const vals={physicAttack:r.total[1],spellAttack:r.total[2],
+            physicDefence:r.total[3],spellDefence:r.total[4],
+            hp:r.total[0],agility:r.speed};
+          const maxima={physicAttack:r.whiteboard[1]*2,spellAttack:r.whiteboard[2]*2,
+            physicDefence:r.whiteboard[3]*2,spellDefence:r.whiteboard[4]*2,
+            hp:r.whiteboard[0]*2,agility:r.speed*2||null};
+          const statBars=S?S.render(vals,{maxima,compact:true,variant:'panel',
+            heading:'局外面板',subtitle:'物攻 / 魔攻 · 物防 / 魔防 · 生命 / 速度',
+            note:'顺序与一图流「基础属性」一致；数值为局外面板最终结果，速度不参与百分比计算。',
+            icons:(window.WIKI_INFOGRAPHIC_CATALOG||{}).statIcons}):'';
+          output.innerHTML=`${statBars}
             <div class="panel-battle-power"><span>战斗力 <small>公式未确证 · 可切换 / 校准</small></span><strong>${fmt(bp.total)}</strong></div>
-            <section class="panel-bp-detail panel-bp-formula"><h3>战斗力计算公式 <small>先列证据与候选，再代入数值</small></h3>
+            ${bp.reference?`<div class="panel-bp-quick"><button type="button" class="button secondary small" data-bp-anchor="${Number(bp.reference.power)}">按实机 ${fmt(bp.reference.power)} 定标当前方案（会保存）</button><span class="small-text muted">仅校准当前配置；换方案需重新定标</span></div>`:''}
+            <details class="panel-bp-detail panel-bp-formula"><summary><h3>战斗力计算公式 <small>展开查看证据、候选与代入过程</small></h3></summary>
               <div class="panel-bp-warning">已穷举本地客户端配置表、Lua 片段与 IL2CPP 元数据：
                 <strong>只找到系数，没有找到把系数装配成最终战力的公式</strong>（逻辑在编译后的 <code>GameAssembly.dll</code> 中）。
-                下面列出全部可查证据与 4 种候选，可切换对照，也可填入游戏内实际战力反推倍率。</div>
+                下面列出全部可查证据与候选公式，可切换对照，也可填入游戏内实际战力反推倍率。</div>
+              ${bp.coefficientMeaning?`<p class="panel-bp-meaning"><strong>系数字段含义（本轮新证据）</strong><br>${esc(bp.coefficientMeaning)}</p>`:''}
               <details class="panel-bp-evidence" open><summary>客户端证据清单（${bp.evidence.length} 条）</summary>
                 <ol>${bp.evidence.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></details>
               <div class="panel-bp-controls">
@@ -655,6 +677,7 @@
               </div>
               <p class="panel-bp-expr">${esc(bp.candidates.find(c=>c.id===bp.method)?.expr||bp.formula)}</p>
               <p class="small-text muted">${esc(bp.candidates.find(c=>c.id===bp.method)?.basis||'')}</p>
+              ${bp.reference?`<p class="panel-bp-anchor">实机参考：<strong>${esc(bp.reference.character)}</strong>（守望者）某套方案显示战力 <strong>${fmt(bp.reference.power)}</strong>。${esc(bp.reference.note)}。不同方案 / 角色面板不同，此值仅用于对照，不会自动套用到当前结果。</p>`:''}
               ${bp.impliedScale?`<p class="panel-bp-implied">按填入的 ${fmt(bp.calibration)} 反推，客户端等效倍率约为 <strong>${bp.impliedScale.toFixed(4)}</strong>（当前公式取 ${bp.scale}）。</p>`:''}
               <ol class="panel-bp-steps">
                 <li><b>①</b> 取局外面板五维：
@@ -668,15 +691,15 @@
                 <li><b>④</b> 乘稀有度修正：
                   <span>${fmt(Math.round(bp.base*100)/100)} × ${bp.rarity}% = <strong>${fmt(Math.round(bp.base*bp.rarity/100*100)/100)}</strong></span>
                   <em>${esc(bp.rarityName||'角色稀有度')} · unit_rarity.battle_power_adjust</em></li>
-                <li><b>⑤</b> 乘职业修正并取整：
-                  <span>${fmt(Math.round(bp.base*bp.rarity/100*100)/100)} × ${bp.profession}% → <strong>${fmt(bp.total)}</strong></span>
-                  <em>battle_power_coefficient.percent</em></li>
+                <li><b>⑤</b> 乘职业修正与定标倍率并取整：
+                  <span>${fmt(Math.round(bp.base*bp.rarity/100*100)/100)} × ${bp.profession}% × ${bp.scale.toFixed(4)} → <strong>${fmt(bp.total)}</strong></span>
+                  <em>battle_power_coefficient.percent · 定标倍率来自实机锚点 ${fmt(bp.reference?.power||0)}，非客户端公式</em></li>
               </ol>
               <dl class="calculation-steps">
                 <div><dt>系数出处</dt><dd>const_param#${esc(bp.constId)} OnlineRoleUnitBattlePowerCoefficient</dd></div>
                 <div><dt>量级校准</dt><dd>${esc(bp.calibration)}</dd></div>
               </dl>
-              <p class="small-text muted">${esc(bp.source)}。装配公式位于客户端编译代码中，配置表只给出系数与上述参考数值；<strong>本项结果未经游戏内数值验证</strong>，请用上方校准框对照实机。</p></section>
+              <p class="small-text muted">${esc(bp.source)}。装配公式位于客户端编译代码中，配置表只给出系数与上述参考数值；<strong>本项结果未经游戏内数值验证</strong>，请用上方校准框对照实机。</p></details>
             <dl class="calculation-steps"><div><dt>敏捷</dt><dd>${fmt(r.speed)}</dd></div><div><dt>最终百分比</dt><dd>${r.permillage.map(v=>'+'+pctText(v)).join(' / ')}</dd></div></dl>
             ${formulaMarkup(r)}`;
           steps.innerHTML=`<dl class="calculation-steps panel-step-list">${r.extras.map(e=>`<div><dt>${esc(e.label)}</dt><dd>${e.values.map((v,i)=>labels[i]+' '+fmt(v)).join(' · ')}${e.permillage?` · ${e.permillage.map(v=>'+'+pctText(v)).join(' / ')}`:''}</dd></div>`).join('')}</dl><p class="small-text muted">顺序：${esc(labels.join(' / '))}。角色基础已含星级、技能轴与好感度加成。</p>`;
@@ -711,6 +734,7 @@
           if(bpEl.dataset.bpMethod!==undefined)battlePowerState.method=bpEl.value;
           if(bpEl.dataset.bpScale!==undefined)battlePowerState.scale=Number(bpEl.value)||1;
           if(bpEl.dataset.bpCalibration!==undefined)battlePowerState.calibration=Number(bpEl.value)||0;
+          h.persist('panel.battlePower',battlePowerState);
           update();return;
         }
         if(e.target.id==='panel-plan-file'){
@@ -762,6 +786,17 @@
         else update();
       });
       on('click',e=>{
+        const anchorBtn=e.target.closest?.('[data-bp-anchor]');
+        if(anchorBtn){
+          const input=root.querySelector('#panel-output [data-bp-calibration]');
+          const target=Number(String(anchorBtn.dataset.bpAnchor||'').replace(/[^0-9.]/g,''))||0;
+          if(target){battlePowerState.calibration=target;
+            const implied=target/((bpLastBase||1)*(bpLastRarity||100)/100*(bpLastProf||100)/100);
+            battlePowerState.scale=Number(implied.toFixed(4))||1;
+            battlePowerState.method='permille-final';
+            h.persist('panel.battlePower',battlePowerState);update();}
+          return;
+        }
         if(!e.target.closest?.('.panel-combo-field'))closeCombos();
         const formulaStat=e.target.closest?.('[data-formula-stat]');
         if(formulaStat){return;}
@@ -784,12 +819,10 @@
             ? root.querySelector('#panel-damage-result')
             : root.querySelector(`#panel-sec-${jump.dataset.panelJump}`);
           if(target){
-            // 06 lives at the very bottom of the right column: force the page
-            // all the way down so the card is fully in view.
+            // 06 now sits in the full-width result area above the form.
             if(jump.dataset.panelJump==='06'){
-              window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'});
-              const aside=root.querySelector('.damage-aside');
-              if(aside)aside.scrollTo({top:aside.scrollHeight,behavior:'smooth'});
+              if(target.tagName==='DETAILS')target.open=true;
+              target.scrollIntoView({behavior:'smooth',block:'center'});
               target.classList.remove('panel-sec-flash');void target.offsetWidth;target.classList.add('panel-sec-flash');
             }else{
               target.scrollIntoView({behavior:'smooth',block:'start'});

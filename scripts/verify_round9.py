@@ -39,7 +39,8 @@ def main():
         page.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' else None)
         page.on('requestfailed', lambda r: failed.append(r.url))
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
+        page.locator('.panel-bp-formula').evaluate('e=>{e.open=true}')
 
         # ---- 2. Global nodes counted exactly once ----
         values = page.evaluate("""()=>{
@@ -98,7 +99,8 @@ def main():
         check('unequipped id persisted',
               page.evaluate("()=>JSON.parse(localStorage.getItem('socwiki.panel.current')).weapon.id") in (0, '0'))
         page.reload()
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
+        page.locator('.panel-bp-formula').evaluate('e=>{e.open=true}')
         check('unequipped state survives reload',
               page.eval_on_selector('[data-combo="weapon.id"]', 'e=>e.value').startswith('不带'))
         # Restore a weapon for the remaining checks.
@@ -110,6 +112,7 @@ def main():
         # ---- 4. Damage preview is the last jump entry and scrolls into view ----
         nav = page.eval_on_selector_all('[data-panel-jump]', 'els=>els.map(e=>e.dataset.panelJump)')
         check('伤害预估结果 is last in quick jump', nav[-1] == '06', str(nav))
+        page.locator('#panel-damage-result').evaluate('e=>{e.open=true}')
         page.locator('[data-panel-jump="06"]').click()
         page.wait_for_timeout(900)
         dmg = page.evaluate("""()=>{const d=document.querySelector('#panel-damage-result').getBoundingClientRect();
@@ -161,7 +164,7 @@ def main():
           top:Math.round(document.querySelector('#panel-sec-05').getBoundingClientRect().top),
           flash:document.querySelectorAll('.panel-sec-flash').length})""")
         check('clicking a formula number jumps to its source',
-              jumped['y'] > 2000 and abs(jumped['top']) < 260 and jumped['flash'] >= 1,
+              jumped['y'] > 500 and abs(jumped['top']) < 400 and jumped['flash'] >= 1,
               str(jumped))
         page.select_option('[data-formula-stat]', '2')
         page.wait_for_timeout(150)

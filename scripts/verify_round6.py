@@ -108,7 +108,7 @@ def main():
 
         # Panel: skill-axis images.
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
         imgs = page.locator('.panel-node-img')
         check('skill axis renders real icons', imgs.count() >= 8, str(imgs.count()))
         page.wait_for_function("()=>[...document.querySelectorAll('.panel-node-img')].every(i=>i.complete)")

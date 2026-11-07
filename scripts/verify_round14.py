@@ -35,7 +35,7 @@ def main():
           len(bp['evidence']) == 5 and any('const_param#132' in x for x in bp['evidence']))
     check('explicitly states formula is not in config data',
           any('IL2CPP' in x or '编译' in x for x in bp['evidence']))
-    check('four candidate formulas offered', len(bp['candidates']) == 4,
+    check('five candidate formulas offered', len(bp['candidates']) == 5,
           str([c['id'] for c in bp['candidates']]))
     check('reference power curve exported', len(bp['questPowerCurve']) >= 60)
 
@@ -71,13 +71,14 @@ def main():
 
         # ---- 1. Battle power UI ----
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
+        page.locator('.panel-bp-formula').evaluate('e=>{e.open=true}')
         check('formula uncertainty disclosed', '未确证' in
               page.locator('.panel-battle-power').inner_text())
         check('evidence list shown', page.locator('.panel-bp-evidence li').count() == 5)
         check('candidate selector shown', page.locator('[data-bp-method]').count() == 1)
-        check('four candidates selectable',
-              page.locator('[data-bp-method] option').count() == 4)
+        check('five candidates selectable',
+              page.locator('[data-bp-method] option').count() == 5)
         before = page.locator('.panel-battle-power strong').inner_text()
         page.locator('[data-bp-method]').select_option('permille-white')
         page.wait_for_timeout(220)
@@ -85,6 +86,7 @@ def main():
         check('switching candidate changes result', before != after, f'{before} -> {after}')
         check('candidate selection survives repaint',
               page.locator('[data-bp-method]').input_value() == 'permille-white')
+        page.locator('.panel-bp-formula').evaluate('e=>{e.open=true}')
         page.locator('[data-bp-calibration]').fill('3000')
         page.locator('[data-bp-calibration]').dispatch_event('change')
         page.wait_for_timeout(220)
@@ -111,7 +113,9 @@ def main():
         check('CSS-3D frames render', frames.count() > 0, str(frames.count()))
         f = frames.first
         box0 = f.bounding_box()
-        check('display frame has fixed height', 300 <= box0['height'] <= 380, str(box0['height']))
+        # Round 20: frame is a square sized from the viewport.
+        check('display frame is square', abs(box0['width'] - box0['height']) < 3,
+              f"{round(box0['width'])}x{round(box0['height'])}")
         check('canvas uses rotateX/rotateZ',
               'rotateX' in f.locator('.world-iso-canvas').evaluate('e=>e.style.cssText')
               or f.locator('.world-iso-canvas').evaluate('e=>getComputedStyle(e).transform').startswith('matrix3d'))
@@ -120,42 +124,53 @@ def main():
               f.evaluate('e=>getComputedStyle(e).perspective'))
         check('3D cells render', f.locator('.world-iso-cell').count() > 50)
         check('reset camera button present', page.locator('[data-world-reset]').count() > 0)
+        # Camera drags are dispatched as pointer events (same events a browser
+        # sends) rather than a burst of CDP mouse calls: the rAF-coalesced
+        # camera means back-to-back real mouse downs can race the compositor.
+        def orbit(dx, dy):
+            return page.evaluate("""([dx,dy])=>{
+                const f=document.querySelector('[data-world-iso-view]');
+                const r=f.getBoundingClientRect();
+                const x=r.left+r.width/2, y=r.top+r.height/2;
+                f.dispatchEvent(new PointerEvent('pointerdown',
+                    {clientX:x,clientY:y,pointerId:1,bubbles:true}));
+                for(let i=1;i<=6;i++) window.dispatchEvent(new PointerEvent('pointermove',
+                    {clientX:x+dx*i/6,clientY:y+dy*i/6,pointerId:1,bubbles:true}));
+                window.dispatchEvent(new PointerEvent('pointerup',
+                    {clientX:x+dx,clientY:y+dy,pointerId:1,bubbles:true}));
+                return true;}""", [dx, dy])
         yaw0 = float(f.get_attribute('data-yaw'))
         tilt0 = float(f.get_attribute('data-tilt'))
-        cx, cy = box0['x'] + box0['width'] / 2, box0['y'] + box0['height'] / 2
-        page.mouse.move(cx, cy); page.mouse.down()
-        page.mouse.move(cx + 100, cy, steps=6); page.mouse.up()
-        page.wait_for_timeout(200)
+        orbit(100, 0)
+        page.wait_for_timeout(120)
         yaw1 = float(page.locator('[data-world-iso-view]').first.get_attribute('data-yaw'))
         check('drag right decreases yaw (direction fixed)', yaw1 < yaw0, f'{yaw0} -> {yaw1}')
-        page.mouse.move(cx, cy); page.mouse.down()
-        page.mouse.move(cx, cy - 60, steps=6); page.mouse.up()
-        page.wait_for_timeout(200)
+        orbit(0, -60)
+        page.wait_for_timeout(120)
         tilt1 = float(page.locator('[data-world-iso-view]').first.get_attribute('data-tilt'))
         check('drag up increases tilt (vertical rotation)', tilt1 > tilt0, f'{tilt0} -> {tilt1}')
-        page.mouse.wheel(0, -240)
-        page.wait_for_timeout(200)
+        page.evaluate("""()=>{const f=document.querySelector('[data-world-iso-view]');
+            f.dispatchEvent(new WheelEvent('wheel',{deltaY:-240,bubbles:true,cancelable:true}));}""")
+        page.wait_for_timeout(120)
         scale1 = float(page.locator('[data-world-iso-view]').first.get_attribute('data-scale'))
         check('wheel zoom works', scale1 > 1, str(scale1))
         box1 = page.locator('[data-world-iso-view]').first.bounding_box()
-        check('frame stays fixed after rotate + zoom',
+        check('frame stays unchanged after rotate + zoom',
               abs(box1['height'] - box0['height']) < 2 and abs(box1['width'] - box0['width']) < 2,
               f"{box0['width']}x{box0['height']} -> {box1['width']}x{box1['height']}")
         page.locator('[data-world-reset]').first.click()
-        page.wait_for_timeout(200)
+        page.wait_for_timeout(120)
         fr = page.locator('[data-world-iso-view]').first
         check('reset restores camera',
               float(fr.get_attribute('data-yaw')) == 45 and float(fr.get_attribute('data-tilt')) == 54
               and float(fr.get_attribute('data-scale')) == 1)
-        # To 135° and back: rendering must stay correct at arbitrary angles.
-        bb = fr.bounding_box()
-        cx, cy = bb['x'] + bb['width'] / 2, bb['y'] + bb['height'] / 2
-        page.mouse.move(cx, cy); page.mouse.down()
-        page.mouse.move(cx - 225, cy + 70, steps=8); page.mouse.up()
-        page.wait_for_timeout(200)
+        # Arbitrary angle: cell count must stay identical.
+        cells0 = f.locator('.world-iso-cell').count()
+        orbit(-225, 70)
+        page.wait_for_timeout(120)
         fa = page.locator('[data-world-iso-view]').first
         check('arbitrary yaw/tilt keeps all cells',
-              fa.locator('.world-iso-cell').count() == f.locator('.world-iso-cell').count(),
+              fa.locator('.world-iso-cell').count() == cells0,
               f"{fa.get_attribute('data-yaw')}° / {fa.get_attribute('data-tilt')}°")
 
         # ---- 4. AI pathfinding card ----
@@ -163,8 +178,8 @@ def main():
         page.locator('#world-ai-list').wait_for()
         cards = page.locator('.world-priority-card')
         check('two analysis cards (priority + pathfinding)', cards.count() == 2, str(cards.count()))
-        check('pathfinding card heading', '选走路路径' in
-              cards.first.locator('h3').inner_text())
+        check('pathfinding card heading', '走路与选目标' in
+              page.locator('.ai-guide-head h3').first.inner_text())
         check('pathfinding grid has six sections',
               page.locator('.world-pf-grid>div').count() == 6)
         check('pathfinding explains six layers',

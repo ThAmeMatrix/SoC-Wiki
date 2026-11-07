@@ -45,6 +45,34 @@ def client_path():
         return None
 
 
+def rectify_face(image, face):
+    """Inverse-project one face of the client's isometric cube sprite.
+
+    A 64x51 sprite has a diamond top with corners (W/2,0), (W,H*0.34),
+    (W/2,H*0.68), (0,H*0.34) and two side walls below it. We map the four
+    source corners to a square/rectangle so CSS can stretch it over the whole
+    face (background-size:100% 100%) without distortion.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+    w, h = image.size
+    cx, mid, low, end = w / 2.0, h * 0.34, h * 0.68, h
+    if face == 'top':
+        # ul, ll, lr, ur in SOURCE coordinates
+        quad = (cx, 0, 0, mid, cx, low, w, mid)
+        size = (64, 64)
+    else:
+        # left wall: parallelogram -> rectangle
+        quad = (0, mid, 0, low, cx, end, cx, low)
+        size = (64, 32)
+    src = image.convert('RGBA')
+    out = src.transform(size, Image.Transform.QUAD, quad,
+                        resample=Image.Resampling.BICUBIC)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--dry-run', action='store_true')
@@ -82,15 +110,29 @@ def main():
     if args.dry_run:
         return
     OUT.mkdir(parents=True, exist_ok=True)
+    top_dir, wall_dir = OUT / 'top', OUT / 'wall'
+    top_dir.mkdir(exist_ok=True)
+    wall_dir.mkdir(exist_ok=True)
     for name, image in sprites.items():
         image.save(OUT / (name + '.png'))
+        # The client sprite is a full isometric CUBE: a diamond top plus two
+        # trapezoidal side walls. Rectify each face into a flat texture so the
+        # CSS-3D cube can map the top diamond onto its square top face and the
+        # stone/dirt sides onto its rectangular walls, covering each face fully.
+        for face, target in (('top', top_dir), ('wall', wall_dir)):
+            rect = rectify_face(image, face)
+            if rect is not None:
+                rect.save(target / (name + '.png'))
     # Manifest for the UI and for regenerating without the client installed.
     field_types = [{'id': r['id'], 'name': r.get('name') or '', 'icon': r.get('icon') or '',
                     'material': r.get('material_name') or '', 'type': r.get('type') or ''}
                    for r in table('field_type')]
     (OUT / 'manifest.json').write_text(json.dumps({
         'source': 'assets/atlas/terrain_atlas.unity3d (client Unity AssetBundle)',
-        'sprites': sorted(sprites), 'fieldTypes': field_types,
+        'sprites': sorted(sprites),
+        'faces': {n: {'top': f'assets/terrain/top/{n}.png',
+                      'wall': f'assets/terrain/wall/{n}.png'} for n in sprites},
+        'fieldTypes': field_types,
     }, ensure_ascii=False, indent=2) + '\n', 'utf8')
     print('已写入', OUT.relative_to(ROOT), f'({len(sprites)} 个 PNG + manifest.json)')
 

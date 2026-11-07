@@ -44,6 +44,176 @@
     "terrain_buff_wine",
     "terrain_public"
   ],
+  "faces": {
+    "terrain11": {
+      "top": "assets/terrain/top/terrain11.png",
+      "wall": "assets/terrain/wall/terrain11.png"
+    },
+    "terrain5": {
+      "top": "assets/terrain/top/terrain5.png",
+      "wall": "assets/terrain/wall/terrain5.png"
+    },
+    "terrain6": {
+      "top": "assets/terrain/top/terrain6.png",
+      "wall": "assets/terrain/wall/terrain6.png"
+    },
+    "terrain10": {
+      "top": "assets/terrain/top/terrain10.png",
+      "wall": "assets/terrain/wall/terrain10.png"
+    },
+    "terrain24": {
+      "top": "assets/terrain/top/terrain24.png",
+      "wall": "assets/terrain/wall/terrain24.png"
+    },
+    "terrain_buff_flower": {
+      "top": "assets/terrain/top/terrain_buff_flower.png",
+      "wall": "assets/terrain/wall/terrain_buff_flower.png"
+    },
+    "terrain27": {
+      "top": "assets/terrain/top/terrain27.png",
+      "wall": "assets/terrain/wall/terrain27.png"
+    },
+    "terrain17": {
+      "top": "assets/terrain/top/terrain17.png",
+      "wall": "assets/terrain/wall/terrain17.png"
+    },
+    "terrain_buff_magic": {
+      "top": "assets/terrain/top/terrain_buff_magic.png",
+      "wall": "assets/terrain/wall/terrain_buff_magic.png"
+    },
+    "terrain25": {
+      "top": "assets/terrain/top/terrain25.png",
+      "wall": "assets/terrain/wall/terrain25.png"
+    },
+    "terrain28": {
+      "top": "assets/terrain/top/terrain28.png",
+      "wall": "assets/terrain/wall/terrain28.png"
+    },
+    "terrain20": {
+      "top": "assets/terrain/top/terrain20.png",
+      "wall": "assets/terrain/wall/terrain20.png"
+    },
+    "terrain4": {
+      "top": "assets/terrain/top/terrain4.png",
+      "wall": "assets/terrain/wall/terrain4.png"
+    },
+    "terrain12": {
+      "top": "assets/terrain/top/terrain12.png",
+      "wall": "assets/terrain/wall/terrain12.png"
+    },
+    "terrain3": {
+      "top": "assets/terrain/top/terrain3.png",
+      "wall": "assets/terrain/wall/terrain3.png"
+    },
+    "terrain_buff_fake1": {
+      "top": "assets/terrain/top/terrain_buff_fake1.png",
+      "wall": "assets/terrain/wall/terrain_buff_fake1.png"
+    },
+    "terrain23": {
+      "top": "assets/terrain/top/terrain23.png",
+      "wall": "assets/terrain/wall/terrain23.png"
+    },
+    "terrain_buff_wine": {
+      "top": "assets/terrain/top/terrain_buff_wine.png",
+      "wall": "assets/terrain/wall/terrain_buff_wine.png"
+    },
+    "terrain19": {
+      "top": "assets/terrain/top/terrain19.png",
+      "wall": "assets/terrain/wall/terrain19.png"
+    },
+    "terrain_buff_dust": {
+      "top": "assets/terrain/top/terrain_buff_dust.png",
+      "wall": "assets/terrain/wall/terrain_buff_dust.png"
+    },
+    "terrain_buff_fake2": {
+      "top": "assets/terrain/top/terrain_buff_fake2.png",
+      "wall": "assets/terrain/wall/terrain_buff_fake2.png"
+    },
+    "terrain9": {
+      "top": "assets/terrain/top/terrain9.png",
+      "wall": "assets/terrain/wall/terrain9.png"
+    },
+    "terrain1": {
+      "top": "assets/terrain/top/terrain1.png",
+      "wall": "assets/terrain/wall/terrain1.png"
+    },
+    "terrain_buff_swamp": {
+      "top": "assets/terrain/top/terrain_buff_swamp.png",
+      "wall": "assets/terrain/wall/terrain_buff_swamp.png"
+    },
+    "terrain_buff_sulfur": {
+      "top": "assets/terrain/top/terrain_buff_sulfur.png",
+      "wall": "assets/terrain/wall/terrain_buff_sulfur.png"
+    },
+    "terrain_buff_burn": {
+      "top": "assets/terrain/top/terrain_buff_burn.png",
+      "wall": "assets/terrain/wall/terrain_buff_burn.png"
+    },
+    "terrain16": {
+      "top": "assets/terrain/top/terrain16.png",
+      "wall": "assets/terrain/wall/terrain16.png"
+    },
+    "terrain18": {
+      "top": "assets/terrain/top/terrain18.png",
+      "wall": "assets/terrain/wall/terrain18.png"
+    },
+    "terrain22": {
+      "top": "assets/terrain/top/terrain22.png",
+      "wall": "assets/terrain/wall/terrain22.png"
+    },
+    "terrain15": {
+      "top": "assets/terrain/top/terrain15.png",
+      "wall": "assets/terrain/wall/terrain15.png"
+    },
+    "terrain_buff_frozen": {
+      "top": "assets/terrain/top/terrain_buff_frozen.png",
+      "wall": "assets/terrain/wall/terrain_buff_frozen.png"
+    },
+    "terrain_buff_mud": {
+      "top": "assets/terrain/top/terrain_buff_mud.png",
+      "wall": "assets/terrain/wall/terrain_buff_mud.png"
+    },
+    "terrain21": {
+      "top": "assets/terrain/top/terrain21.png",
+      "wall": "assets/terrain/wall/terrain21.png"
+    },
+    "terrain8": {
+      "top": "assets/terrain/top/terrain8.png",
+      "wall": "assets/terrain/wall/terrain8.png"
+    },
+    "terrain13": {
+      "top": "assets/terrain/top/terrain13.png",
+      "wall": "assets/terrain/wall/terrain13.png"
+    },
+    "terrain_buff_crevasse": {
+      "top": "assets/terrain/top/terrain_buff_crevasse.png",
+      "wall": "assets/terrain/wall/terrain_buff_crevasse.png"
+    },
+    "terrain2": {
+      "top": "assets/terrain/top/terrain2.png",
+      "wall": "assets/terrain/wall/terrain2.png"
+    },
+    "terrain_buff_burn2": {
+      "top": "assets/terrain/top/terrain_buff_burn2.png",
+      "wall": "assets/terrain/wall/terrain_buff_burn2.png"
+    },
+    "terrain7": {
+      "top": "assets/terrain/top/terrain7.png",
+      "wall": "assets/terrain/wall/terrain7.png"
+    },
+    "terrain_public": {
+      "top": "assets/terrain/top/terrain_public.png",
+      "wall": "assets/terrain/wall/terrain_public.png"
+    },
+    "terrain14": {
+      "top": "assets/terrain/top/terrain14.png",
+      "wall": "assets/terrain/wall/terrain14.png"
+    },
+    "terrain26": {
+      "top": "assets/terrain/top/terrain26.png",
+      "wall": "assets/terrain/wall/terrain26.png"
+    }
+  },
   "fieldTypes": [
     {
       "id": 1,

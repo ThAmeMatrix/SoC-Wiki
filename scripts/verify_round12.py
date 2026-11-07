@@ -87,7 +87,7 @@ def main():
         check('3D blocks rendered', iso.locator('.world-iso-cell').count() > 50,
               str(iso.locator('.world-iso-cell').count()))
         fb = iso.bounding_box()
-        check('3D frame has a fixed height', 300 <= fb['height'] <= 380, str(fb['height']))
+        check('3D frame is square', abs(fb['width'] - fb['height']) < 3, str(fb))
         check('terrain legend uses Chinese names',
               any(any(c in x for c in '土地草地石板禁行深水') for x in
                   page.locator('[data-world-terrain]').all_inner_texts()[:6]),
@@ -99,8 +99,7 @@ def main():
         check('2D/3D toggle works', page.locator('svg.world-grid:not(.world-grid-iso)').count() > 0)
 
         # ---- 3. Pagination on all three pages ----
-        for route, pager, list_sel in (('#/maps', 'world-map-pager', '.world-map-card'),
-                                       ('#/code', 'world-code-pager', '.world-code-card'),
+        for route, pager, list_sel in (('#/code', 'world-code-pager', '.world-code-card'),
                                        ('#/ai', 'world-ai-pager', '.world-ai-card')):
             page.goto(BASE + route)
             page.locator('#world-' + route.split('/')[-1] + '-list').wait_for() \
@@ -136,7 +135,7 @@ def main():
 
         # ---- 4. Battle power UI ----
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
         power = page.locator('.panel-battle-power strong').inner_text()
         check('battle power displayed', power.isdigit() or ',' in power, power)
         page.locator('.panel-bp-detail').evaluate('e=>{e.open=true}')

@@ -43,7 +43,8 @@ def main():
         page.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' else None)
         page.on('requestfailed', lambda r: failed.append(r.url))
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
+        page.locator('.panel-bp-formula').evaluate('e=>{e.open=true}')
 
         # ---- 3. Watcher star tree = 810 / 30% ----
         watcher = page.evaluate("""()=>{
@@ -77,12 +78,15 @@ def main():
               page.evaluate("()=>document.querySelector('.panel-layout').firstElementChild.classList.contains('panel-jump')"))
         check('nav is sticky', page.evaluate("()=>getComputedStyle(document.querySelector('.panel-jump')).position") == 'sticky')
         cols = page.evaluate("()=>getComputedStyle(document.querySelector('.panel-layout')).gridTemplateColumns")
+        # Round 18 restored the compact right result column.
         check('three-column layout with nav first', len(cols.split()) == 3, cols)
         page.evaluate("()=>document.querySelector('[data-panel-jump=\"06\"]').click()")
         page.wait_for_timeout(650)
         nav = page.evaluate("""()=>{const r=document.querySelector('.panel-jump').getBoundingClientRect();
           return {top:Math.round(r.top),visible:r.top<innerHeight&&r.bottom>0,y:Math.round(scrollY)}}""")
-        check('nav stays visible at 伤害预估', nav['visible'] and nav['top'] < 200 and nav['y'] > 3000,
+        # Round 17: results moved above the form, so the jump no longer
+        # scrolls thousands of pixels; the nav must simply stay visible.
+        check('nav stays visible at 伤害预估', nav['visible'] and nav['top'] < 200,
               str(nav))
         page.evaluate("()=>window.scrollTo({top:document.body.scrollHeight,behavior:'instant'})")
         page.wait_for_timeout(250)
@@ -91,12 +95,17 @@ def main():
                 return r.top<innerHeight&&r.bottom>0}"""))
 
         # ---- 6. Paired result rows ----
-        pairs = page.locator('.panel-total-pair')
-        check('two paired result rows', pairs.count() == 2, str(pairs.count()))
-        check('attack pair on one row',
-              '物攻 / 魔攻' in pairs.nth(0).inner_text(), pairs.nth(0).inner_text()[:40])
-        check('defence pair on one row',
-              '物防 / 魔防' in pairs.nth(1).inner_text(), pairs.nth(1).inner_text()[:40])
+        # Round 16: results now reuse the infographic stat-bar component with
+        # one card per stat instead of two paired rows.
+        # Round 19: six stats in the infographic workshop's paired order.
+        cards = page.locator('#panel-output .ig-stat-card')
+        check('six stat cards', cards.count() == 6, str(cards.count()))
+        check('attack stats present',
+              '物攻' in cards.nth(0).inner_text() and '魔攻' in cards.nth(1).inner_text(),
+              cards.nth(0).inner_text()[:40])
+        check('defence stats present',
+              '物防' in cards.nth(2).inner_text() and '魔防' in cards.nth(3).inner_text(),
+              cards.nth(2).inner_text()[:40])
 
         # ---- 5. Percent-first inputs (internally per-mille) ----
         pct = page.locator('[data-percent="10"]')

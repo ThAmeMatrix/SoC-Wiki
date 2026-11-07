@@ -151,8 +151,15 @@ def build_maps():
     field_types = {r['id']: {
         'id': r['id'], 'name': r.get('name') or '', 'desc': plain(r.get('desc')),
         'mobility': r.get('mobility'), 'type': r.get('type') or '',
+        'pit': (r.get('type') or '') in ('Water', 'Forbidden'),
         'icon': r.get('icon') or '',
+        # Water / Forbidden cells are pits ("可被推落" / "不可进入"): their
+        # field2 stores pit depth, NOT a stackable height. The 3D renderer must
+        # sink them below surrounding ground instead of drawing solid columns.
+        'pit': (r.get('type') or '') in ('Water', 'Forbidden'),
         'image': f"assets/terrain/{r.get('icon') or ''}.png" if r.get('icon') else '',
+        'topImage': f"assets/terrain/top/{r.get('icon') or ''}.png" if r.get('icon') else '',
+        'wallImage': f"assets/terrain/wall/{r.get('icon') or ''}.png" if r.get('icon') else '',
     } for r in table('field_type')}
     # Map id -> Chinese stage/area names from the client's own tables.
     stage_names = defaultdict(list)
@@ -299,13 +306,23 @@ def build_battle_power():
         'hpWeight': hp_weight, 'otherWeight': other_weight,
         'constId': const.get('id'), 'constName': const.get('type'),
         'coefficients': coefficients, 'rarity': rarity,
-        'formula': '战斗力 = ⌊ ( 生命 × 120‰ + (物攻 + 魔攻 + 物防 + 魔防) × 200‰ ) '
+        'formula': '战斗力 = ⌊ ( (物攻 + 魔攻) × 120‰ + (物防 + 魔防) × 200‰ ) '
                    '× 稀有度修正 × 职业修正 ⌋',
+        'coefficientMeaning': 'const_param#132 的中文名（db_template1.bytes 内嵌说明）为'
+                              '「网游角色战力系数 (攻击|防御)」，即 120 = 攻击系数、200 = 防御系数；'
+                              '此前误读成「生命 / 其它四维」，已更正。',
         'calibration': 'online_quest_level.enemy_fight_power：1 级 100 → 60 级约 2,670 → 80 级 8,552；'
                        'online_guild_challenge_normal_quest.battle_power 500 / 1,000 / 1,500 / 2,000，BOSS 10,000',
         'questPowerCurve': [{'level': i + 1, 'power': v} for i, v in enumerate(quest_power[:80])],
+        'reference': {
+            'character': '伊南娜·铃兰之剑', 'profession': 5, 'power': 4167,
+            'note': '游戏内实测：守望者「小王女」方案的战力显示值，由用户提供，用于定标',
+        },
+        'empiricalScale': None,
         'evidence': [
-            'const_param#132 OnlineRoleUnitBattlePowerCoefficient = "120|200"（iparam=0）；这是配置表里唯一的战力系数字段。',
+            'const_param#132 OnlineRoleUnitBattlePowerCoefficient = "120|200"（iparam=0）；'
+            '客户端 db_template1.bytes 里的中文字段说明是「网游角色战力系数(攻击|防御)」，'
+            '因此 120 对应攻击、200 对应防御，而不是生命。这是配置表里唯一的战力系数字段。',
             'battle_power_coefficient：按 profession_category / weapon_type 给 95 / 100 / 105 / 110 的 percent。',
             'unit_rarity.battle_power_adjust：普通 95 / 精英 100 / 史诗 105 / 传说 110。',
             'online_quest_level.enemy_fight_power 与 online_guild_challenge_*_quest.battle_power 是关卡侧的参考战力，'
@@ -314,7 +331,11 @@ def build_battle_power():
             'IL2CPP 编译后的方法名与实现均不可读，因此本地数据不足以唯一确定公式。',
         ],
         'candidates': [
-            {'id': 'permille-final', 'label': '千分比权重 × 最终面板',
+            {'id': 'attack-defence', 'label': '攻击 120‰ / 防御 200‰（按客户端字段说明）',
+             'expr': '⌊((物攻+魔攻)×120‰ + (物防+魔防)×200‰) × 稀有度% × 职业%⌋',
+             'basis': '依据 db_template1.bytes 的中文说明「网游角色战力系数(攻击|防御)」；'
+                      '不含生命。装配公式仍在编译代码中，此式仅按字段语义还原'},
+            {'id': 'permille-final', 'label': '千分比权重 × 最终面板（旧解读）',
              'expr': '⌊(生命×120‰ + 其余四维×200‰) × 稀有度% × 职业%⌋',
              'basis': '把 120|200 读作千分比权重；结果与 60 级敌方战力约 2,670 同量级'},
             {'id': 'permille-white', 'label': '千分比权重 × 角色白板',
@@ -350,6 +371,20 @@ def build_ai_priority(skills, npcs, scripts):
         for value in re.findall(r'return\s+(-?\d+)', s.get('lua') or ''):
             weights[int(value)] += 1
     return {
+        'quick': [
+            {'title': '怎么选技能', 'steps': ['ai_skill_order：整数基准分，越大越优先',
+                'ai_order_param：Lua 按战场状态加减权重', '大负数（−10000）直接否决该技能'],
+             'fields': ['ai_skill_order', 'ai_order_param'],
+             'summary': '所有可用技能先拿基准分，再由 Lua 打分，取最高分执行。'},
+            {'title': '怎么选目标', 'steps': ['target_method 限定敌 / 我 / 地面',
+                'range_select + 射程划出可选格', 'target_order_param 给每个候选打分'],
+             'fields': ['target_method', 'range_select', 'target_order_param'],
+             'summary': '同一技能对多个候选目标逐个打分，取权重最高者。'},
+            {'title': '什么时候不评分', 'steps': ['ai_skill_sorted：按技能表顺序取用',
+                'ai_skill_by_order：严格按序', 'boss_skill_mode：循环固定技能序列'],
+             'fields': ['unit_npc.ai_skill_sorted', 'unit_npc.ai_skill_by_order', 'boss_skill_sequence'],
+             'summary': '单位上的顺序标志或 BOSS 固定序列会绕过上面的评分，直接按预设执行。'},
+        ],
         'baseOrder': [{'order': k, 'skills': v} for k, v in order_values.most_common(16)],
         'luaWeights': [{'weight': k, 'times': v} for k, v in weights.most_common(16)],
         'vetoValues': [k for k in weights if k <= -10000],
@@ -358,6 +393,20 @@ def build_ai_priority(skills, npcs, scripts):
         'sortedUnits': sum(1 for n in npcs if n.get('sorted')),
         'byOrderUnits': sum(1 for n in npcs if n.get('byOrder')),
         'bossSequenceUnits': sum(1 for n in npcs if n.get('bossMode')),
+        'quick': [
+            {'title': '怎么选技能', 'steps': ['静态优先级 ai_skill_order（数值大者优先）',
+                'Lua 动态打分 ai_order_param（大负数=否决）', 'BOSS 固定序列直接跳过评分'],
+             'fields': ['ai_skill_order', 'ai_order_param', 'boss_skill_sequence'],
+             'summary': '每个可用技能先拿基准分，再由战场状态加减权重，取得分最高的一个。'},
+            {'title': '怎么选目标', 'steps': ['target_method 限定敌 / 我 / 地面',
+                'range_select 与射程限定可选格', 'target_param 过滤 + target_order_param 排序打分'],
+             'fields': ['target_method', 'range_select', 'target_param', 'target_order_param'],
+             'summary': '先划出能打到的格子，再对这些格子上的单位逐个打分，取最高分。'},
+            {'title': '怎么走路', 'steps': ['mobility 决定能走几格',
+                'field_type.mobility 决定每格代价', 'move_type / jump 决定能否跨越高低差'],
+             'fields': ['unit.mobility', 'field_type.mobility', 'unit.move_type'],
+             'summary': '在带权地形网格上求可达格；最短路算法本身在编译代码中，配置表只提供代价与规则。'},
+        ],
         'explanation': [
             '① 静态优先级：skill.ai_skill_order 是整数基准分，数值越大越先被考虑；未配置（0）走默认顺序。',
             '② 动态打分：skill.ai_order_param 与 target_order_param 是客户端 Lua 片段，运行时以 owner / target / map 为上下文返回一个权重，叠加到基准分上；return -10000 / -11111 之类的大负数表示「此技能本次不可用」，正数（500 / 1000 / 2000）则显著抬高优先级。',
@@ -481,6 +530,14 @@ def build_ai_pathfinding():
         'aiMoveClose': [{'value': str(r.get('ai_move_close')), 'skill': r['id']}
                         for r in skills if r.get('ai_move_close')],
         'luaApis': [{'api': k, 'times': v} for k, v in lua_apis.most_common(20)],
+        'quick': [
+            {'title': '① 先看能走多远', 'fields': ['mobility', 'move_type', 'jump_up', 'jump_down'],
+             'text': '移动力多数为 3 格；钝步 / 轻步 / 飞行 / 瞬移 / 不可移动决定能否跨越高低差与障碍。'},
+            {'title': '② 再看每格代价', 'fields': ['field_type.mobility', 'rain_mobility', 'field_status'],
+             'text': '普通地面 10、流沙 / 毒沼 20、禁行 0、虚空 1000；燃烧 / 冰冻等状态还会额外消耗 0.5–1 移动力。'},
+            {'title': '③ 最后挑落点与技能', 'fields': ['ai_move_close', 'findChargeBlock', 'target_order_param'],
+             'text': '技能给出贴近 / 原地偏好，再由目标打分选人；冲锋与影步会校验落点是否合法。'},
+        ],
         'explanation': [
             '① 移动能力：`unit.mobility` 是本回合可走的格数（多数单位 3 格），`unit.jump_up / jump_down` 是可跨越的高度差，'
             '`unit.move_type` 决定移动规则：钝步 / 轻步（可跳 1 格宽障碍）/ 飞行（无视高低差）/ 瞬移 / 不可移动。',

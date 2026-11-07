@@ -142,7 +142,7 @@ def main():
               page.locator('.mechanics-list').inner_text()[:80].replace('\n', ' '))
         # ---- 3/4. Tree-based skill axis and real talent trees. ----
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
         check('skill axis uses tree nodes', page.locator('[data-line-node]').count() >= 8
               and page.locator('.panel-tree-tier').count() >= 4)
         check('old segmented skill-axis control is gone', page.locator('[data-line-rank]').count() == 0)

@@ -54,7 +54,7 @@ def main():
         page.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' else None)
         page.on('requestfailed', lambda r: failed.append(r.url))
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
 
         proof = page.evaluate("""()=>{
           const P=window.WIKI_PANEL_DATA,C=window.WikiPanelCalc;

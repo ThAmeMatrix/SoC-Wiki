@@ -75,7 +75,8 @@ def main():
         page.on('requestfailed', lambda r: failed.append(r.url))
 
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
+        page.locator('#panel-damage-result').evaluate('e=>{e.open=true}')
         check('damage preview rendered', page.locator('.panel-damage-total strong').count() == 1,
               page.locator('.panel-damage-total strong').inner_text())
         before = int(page.locator('.panel-damage-total strong').inner_text().replace(',', ''))

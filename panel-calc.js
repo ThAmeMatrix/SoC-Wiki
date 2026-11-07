@@ -602,16 +602,30 @@
     const char = panel?.character || {};
     const rarity = bp.rarity?.[String(char.rarity)]?.percent ?? 100;
     const prof = int(char.professionCategory, 0);
-    const weaponType = (char.weaponTypes || []).find(x => Number(x) !== 2);
-    const coef = (bp.coefficients || []).find(c => Number(c.profession) === prof
-                    && Number(c.weaponType) === Number(weaponType || 0))
-      || (bp.coefficients || []).find(c => Number(c.profession) === prof);
-    const profession = coef ? int(coef.percent, 100) : 100;
+    // battle_power_coefficient rows are keyed by (profession, weapon_type).
+    // Only rows whose weapon_type actually matches the character apply; the
+    // generic weapon_type=0 row is the fallback for that profession.
+    const weaponTypes = (char.weaponTypes || []).map(Number);
+    const rows = (bp.coefficients || []).filter(c => Number(c.profession) === prof);
+    const matched = rows.find(c => weaponTypes.includes(Number(c.weaponType)))
+                 || rows.find(c => Number(c.weaponType) === 0)
+                 || rows[0];
+    const profession = matched ? int(matched.percent, 100) : 100;
     const method = options.method || 'permille-final';
+    // The 4167 readout is a REFERENCE for one Watcher setup, not a factor to
+    // force onto every character. Keep one stable formula; the player can
+    // calibrate their own setup explicitly via options.scale.
+    const empirical = Number(bp.empiricalScale) || 0;
     const scale = Number(options.scale ?? 1) || 1;
 
     let base, parts;
-    if (method === 'permille-white' || method === 'divisor-final' || method === 'sum-percent') {
+    if (method === 'attack-defence') {
+      // const_param#132 "120|200": the client's own Chinese field description
+      // says 攻击|防御 (attack|defence), so only the four combat stats count.
+      const atkW = hpWeight / 1000, defW = otherWeight / 1000;
+      parts = [0, stats[1] * atkW, stats[2] * atkW, stats[3] * defW, stats[4] * defW];
+      base = parts.reduce((a, v) => a + v, 0);
+    } else if (method === 'permille-white' || method === 'divisor-final' || method === 'sum-percent') {
       const src = method === 'permille-white' ? whiteboard : stats;
       if (method === 'sum-percent') {
         parts = src.map(v => int(v) / 10);
@@ -638,6 +652,8 @@
       stats: stats.slice(), whiteboard: whiteboard.slice(),
       impliedScale, calibration,
       candidates: bp.candidates || [], evidence: bp.evidence || [],
+      coefficientMeaning: bp.coefficientMeaning || '',
+      reference: bp.reference || null, empiricalScale: empirical,
       questPowerCurve: bp.questPowerCurve || [],
       rarityName: bp.rarity?.[String(char.rarity)]?.name || '',
       formula: bp.formula || '', calibrationText: bp.calibration || '',

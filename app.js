@@ -202,7 +202,7 @@
     const rawName=f['显示名称']||p.name;
     const englishName=rawName.replace(p.name,'').trim();
     const stats=['生命','物攻','物防','魔攻','魔防','敏捷'];
-    const profile=`<section class="character-profile"><div class="profile-art profile-gallery">${window.WikiCharacter.galleryMarkup(p,portraitChoices.get(p.id))}</div><div class="profile-info"><div class="rarity-line">◆ ${esc(p.rarity||'角色档案')} · ${p.rarity==='传说'?'LEGENDARY':'COMPANION'}</div><h2>${esc(p.name)}</h2><div class="profile-name-en">${esc(englishName||'SWORD OF CONVALLARIA')}</div><div class="badges"><span class="badge gold">${p.professionIcon?`<img class="badge-icon" src="${esc(p.professionIcon)}" alt="">`:icon(classIcon(p.class),12)} ${esc(p.class||'其他角色')}</span>${p.faction.split(/[，,、]/).filter(Boolean).map(x=>{const tag=x.trim();const tagIcon=(p.factionIcons||{})[tag];return `<span class="badge">${tagIcon?`<img class="badge-icon" src="${esc(tagIcon)}" alt="">`:''}${esc(tag)}</span>`;}).join('')}</div><div class="profile-stats-heading"><span>角色基础属性</span><div class="segmented"><button data-level="base" class="${statLevel==='base'?'active':''}">初始</button><button data-level="max" class="${statLevel==='max'?'active':''}">满级满星</button></div></div><div class="profile-stats">${stats.map(s=>`<div class="profile-stat"><div class="stat-name">${s==='敏捷'?'速度':s}</div><div class="stat-number">${esc(f[(statLevel==='max'?'满级满星':'初始')+s]||'—')}</div></div>`).join('')}</div><div class="profile-meta"><span>移动 <b>${esc(f['移动']||'—')}</b></span><span>跳跃 <b>${esc(f['跳跃高度']||'—')}</b></span><span>武器 <b>${esc(p.weapon||'—')}</b></span><span>特职 <b>${esc(f['特职']||'—')}</b></span></div></div></section>`;
+    const profile=`<section class="character-profile"><div class="profile-art profile-gallery">${window.WikiCharacter.galleryMarkup(p,portraitChoices.get(p.id))}</div><div class="profile-info"><div class="rarity-line">◆ ${esc(p.rarity||'角色档案')} · ${p.rarity==='传说'?'LEGENDARY':'COMPANION'}</div><h2>${esc(p.name)}</h2><div class="profile-name-en">${esc(englishName||'SWORD OF CONVALLARIA')}</div><div class="badges"><span class="badge gold">${p.professionIcon?`<img class="badge-icon" src="${esc(p.professionIcon)}" alt="">`:icon(classIcon(p.class),12)} ${esc(p.class||'其他角色')}</span>${p.faction.split(/[，,、]/).filter(Boolean).map(x=>{const tag=x.trim();const tagIcon=(p.factionIcons||{})[tag];return `<span class="badge">${tagIcon?`<img class="badge-icon" src="${esc(tagIcon)}" alt="">`:''}${esc(tag)}</span>`;}).join('')}</div><div class="profile-stats-heading"><span>角色基础属性</span><div class="segmented"><button data-level="base" class="${statLevel==='base'?'active':''}">初始</button><button data-level="max" class="${statLevel==='max'?'active':''}">满级满星</button></div></div><div class="profile-stats profile-stats-bars">${characterStatBars(p,f,statLevel)}</div><div class="profile-meta"><span>移动 <b>${esc(f['移动']||'—')}</b></span><span>跳跃 <b>${esc(f['跳跃高度']||'—')}</b></span><span>武器 <b>${esc(p.weapon||'—')}</b></span><span>特职 <b>${esc(f['特职']||'—')}</b></span></div></div></section>`;
     $('#main').innerHTML=`${detailHeading(p)}${profile}${doc.clientStatBasis?`<p class="source-notice">满级属性口径：${esc(doc.clientStatBasis)}</p>`:''}<nav class="detail-tabs" aria-label="角色详情">${[['overview','档案总览'],['skills','技能与成长'],['voice','语音'],['story','角色故事'],['source','完整原文']].map(([id,t])=>`<button data-detail-tab="${id}" class="${detailTab===id?'active':''}" aria-pressed="${detailTab===id}">${t}</button>`).join('')}</nav><div id="detail-body"></div>${sourceFooter(doc)}`;
     characterPanel(p,doc);
   }
@@ -283,6 +283,32 @@
       for(const cat of $$('.voice-cat'))cat.hidden=!$$('.voice-line',cat).some(line=>!line.hidden);
     });
     for(const type of ('play pause ended'.split(' ')))player.addEventListener(type,mark);
+  }
+  // 角色基础属性: same six stats / order as the infographic workshop, but
+  // rendered in the archive's own quiet theme (no bevelled dark cards).
+  function characterStatBars(p,f,level){
+    const S=window.WikiStatBars;
+    if(!S)return '';
+    const prefix=level==='max'?'满级满星':'初始';
+    const vals={physicAttack:f[prefix+'物攻'],spellAttack:f[prefix+'魔攻'],
+      physicDefence:f[prefix+'物防'],spellDefence:f[prefix+'魔防'],
+      hp:f[prefix+'生命'],agility:f[prefix+'敏捷']};
+    // Mirrors the infographic workshop's exclusion: summons have inflated or
+    // "继承" stats and must not define the "全角色最高" reference.
+    const isSummon=q=>(q.categories||[]).includes('召唤物')||/召唤物/.test(q.faction||'');
+    const maxima={};
+    for(const [key,cn] of [['physicAttack','物攻'],['spellAttack','魔攻'],
+                           ['physicDefence','物防'],['spellDefence','魔防'],
+                           ['hp','生命'],['agility','敏捷']]){
+      let max=0;
+      for(const q of pages){if(q.type!=='character'||q.redirect||!q.stats||isSummon(q))continue;
+        const v=Number((q.stats||{})[cn]);if(Number.isFinite(v)&&v>max)max=v;}
+      maxima[key]=max||null;
+    }
+    return S.render(vals,{maxima,heading:'',variant:'archive',compact:true,
+      subtitle:prefix+' / 可上场角色最高 · 占比',
+      icons:(window.WIKI_INFOGRAPHIC_CATALOG||{}).statIcons,
+      note:'数值取自客户端角色资料，不含装备与天赋；占比以可上场角色同项最高值为 100%，不含召唤物。'});
   }
   function characterPanel(p,doc){
     window.WikiCharacter.unmount();

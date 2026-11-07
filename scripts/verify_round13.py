@@ -75,7 +75,8 @@ def main():
 
         # ---- 1. Battle power UI: formula first, then result ----
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
+        page.locator('.panel-bp-formula').evaluate('e=>{e.open=true}')
         power = page.locator('.panel-battle-power strong').inner_text()
         value = int(power.replace(',', ''))
         check('battle power in client reference magnitude', 1500 < value < 6000, power)
@@ -93,9 +94,19 @@ def main():
         check('parts are stat x weight / 1000',
               abs(calc['parts'][0] - calc['stats'][0] * 120 / 1000) < 1e-9)
 
+        # ---- 1b. Single map workspace (Round 18) ----
+        page.goto(BASE + '#/maps')
+        page.locator('#world-map-picker').wait_for()
+        check('maps use a single-card picker',
+              page.locator('.world-pick-item').count() > 100
+              and page.locator('.world-map-card').count() == 1)
+        page.goto(BASE + '#/tools/panel')
+        page.locator('#panel-output [data-stat-bars]').wait_for()
+
         # ---- 2. Pagination on four pages ----
-        for route, pid, list_sel in (('#/maps', 'world-map-pager', '.world-map-card'),
-                                     ('#/ai', 'world-ai-pager', '.world-ai-card'),
+        # Round 18: #/maps is now a single-map view with a scrollable picker,
+        # so it no longer has a pager; verify that separately below.
+        for route, pid, list_sel in (('#/ai', 'world-ai-pager', '.world-ai-card'),
                                      ('#/code', 'world-code-pager', '.world-code-card'),
                                      ('#/enhance', 'enhance-pager', '.enhance-card')):
             page.goto(BASE + route)
@@ -156,7 +167,7 @@ def main():
         page.goto(BASE + '#/enhance')
         page.locator('#enhance-list').wait_for()
         check('enhancement cards render', page.locator('.enhance-card').count() > 0)
-        check('探查 conclusions shown', page.locator('.world-priority-steps li').count() == 7)
+        check('探查 conclusions shown', page.locator('.enh-rules>li').count() == 7)
         check('table filter present', page.locator('#enhance-table').count() == 1)
         page.locator('#enhance-table').select_option('online_charm_entry')
         page.wait_for_timeout(180)

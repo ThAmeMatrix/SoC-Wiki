@@ -57,7 +57,7 @@ def main():
 
         # ---- 1. Base value before enchant, live on star/level ----
         page.goto(BASE + '#/tools/panel')
-        page.locator('#panel-output .panel-total-grid').wait_for()
+        page.locator('#panel-output [data-stat-bars]').wait_for()
         order = page.locator('#panel-sec-02').evaluate(
             "e=>[...e.children].map(x=>x.id||x.className)")
         check('weapon base shown before enchant',

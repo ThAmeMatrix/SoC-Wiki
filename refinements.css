@@ -267,10 +267,10 @@ body.dark{--effect-gold:#f3c156;--effect-orange:#f29a73;--effect-red:#ff8d89;--e
 .panel-entry-index{font:12px Georgia,serif;color:var(--green);border:1px solid var(--line);background:var(--green-soft);border-radius:50%;height:26px;width:26px;display:grid;place-items:center;margin-top:24px}
 .panel-entry-row .tool-field>small{min-height:0}
 .panel-total-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 14px}
-.panel-total-grid>div{background:#ffffff12;border:1px solid #ffffff22;border-radius:6px;padding:10px 12px}
+.panel-total-grid>div{background:var(--surface-alt);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
 .panel-total-grid>div:last-child{grid-column:1/-1}
-.panel-total-grid span{display:block;font-size:10px;color:#c9d5c3}
-.panel-total-grid strong{font:26px/1.35 Georgia,serif;color:#f3f3e5;overflow-wrap:anywhere}
+.panel-total-grid span{display:block;font-size:10px;color:var(--muted)}
+.panel-total-grid strong{font:600 26px/1.35 var(--serif);color:var(--ink);overflow-wrap:anywhere}
 .panel-step-list>div{display:block;border-bottom:1px solid var(--line);padding:9px 0}
 .panel-step-list dt{font-weight:600;color:var(--ink);font-size:11px}
 .panel-step-list dd{margin:4px 0 0;text-align:left;font-size:11px;color:var(--muted);overflow-wrap:anywhere}
@@ -552,8 +552,8 @@ body.dark{--effect-gold:#f3c156;--effect-orange:#f29a73;--effect-red:#ff8d89;--e
 .panel-layout .panel-jump p{padding:0 12px 12px;margin:0}
 .panel-jump-links a span{font:600 10px var(--mono,monospace);color:var(--green);min-width:22px}
 .panel-total-grid-pairs{display:grid;grid-template-columns:1fr;gap:8px}
-.panel-total-grid-pairs>div{background:#ffffff12;border:1px solid #ffffff22;border-radius:6px;padding:10px 12px}
-.panel-total-grid-pairs span{display:block;font-size:10px;color:#c9d5c3}
+.panel-total-grid-pairs>div{background:var(--surface-alt);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.panel-total-grid-pairs span{display:block;font-size:10px;color:var(--muted)}
 .panel-total-grid-pairs strong{font:600 20px var(--serif);color:var(--ink)}
 .panel-total-pair{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .panel-total-pair span{flex:1}
@@ -774,22 +774,47 @@ body.dark{--effect-gold:#f3c156;--effect-orange:#f29a73;--effect-red:#ff8d89;--e
 .world-pf-grid span{font-size:10px;background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:2px 6px}
 @media(max-width:900px){.world-pf-grid{grid-template-columns:1fr}}
 /* Round 14: CSS-3D map camera (ported from SoCxiezhouTool/app/js/map.js) */
-.world-iso-frame{position:relative;height:360px;margin-top:10px;border:1px solid var(--line);border-radius:8px;
-  overflow:hidden;background:radial-gradient(circle at 50% 0%,#24342b,#16231d 70%);
-  perspective:1600px;perspective-origin:50% 30%;display:grid;place-items:center;cursor:grab;touch-action:none}
+.world-iso-frame{position:relative;height:420px;margin-top:10px;border:1px solid var(--line);border-radius:8px;
+  overflow:hidden;background:radial-gradient(circle at 50% 0%,#24342b,#101a16 72%);
+  perspective:1600px;perspective-origin:50% 32%;display:grid;place-items:center;cursor:grab;touch-action:none}
 .world-iso-frame.is-dragging{cursor:grabbing}
 .world-iso-stage{position:relative;transform-style:preserve-3d;flex:none}
+.world-iso-base{position:absolute;inset:0;grid-column:1/-1;grid-row:1/-1;
+  transform:translateZ(calc(-1 * var(--slab,18px)));
+  transform-style:preserve-3d;background:linear-gradient(160deg,#1a2622,#0c1411);
+  border:0;box-shadow:0 18px 34px #0008,inset 0 0 0 1px #ffffff0a}
+.world-iso-base::before{content:"";position:absolute;left:0;right:0;top:100%;height:var(--slab,18px);
+  transform-origin:top center;transform:rotateX(-90deg);
+  background:linear-gradient(180deg,#26332e,#0d1512);border:1px solid #0006}
+.world-iso-base::after{content:"";position:absolute;top:0;bottom:0;left:100%;width:var(--slab,18px);
+  transform-origin:left center;transform:rotateY(90deg);
+  background:linear-gradient(90deg,#1e2a26,#0b1210);border:1px solid #0006}
 .world-iso-canvas{display:grid;position:absolute;inset:0;transform-style:preserve-3d;
   transform:rotateX(var(--tilt,54deg)) rotateZ(var(--yaw,45deg))}
-.world-iso-empty{border:1px solid #ffffff0c;background:#ffffff06;transform-style:preserve-3d}
-.world-iso-cell{position:relative;border:1px solid #ffffff22;transform-style:preserve-3d;
-  transform:translateZ(calc(var(--h,0) * var(--lift,4px)));cursor:crosshair;backface-visibility:visible}
-.world-iso-cell:hover{outline:2px solid #fff;z-index:5}
-.world-iso-cell.is-raised{box-shadow:inset 0 0 0 1px #ffffff44}
-.world-iso-wall{position:absolute;display:block;pointer-events:none;transform-style:preserve-3d;backface-visibility:visible;
-  transform-origin:top center;border:1px solid #0003}
-.world-iso-wall.w-front{left:0;right:0;top:100%;transform:rotateX(-90deg)}
-.world-iso-wall.w-right{top:0;bottom:0;left:100%;width:var(--lift,4px);height:auto!important;transform:rotateY(90deg);transform-origin:left center}
+.world-iso-empty{transform-style:preserve-3d}
+/* Each cell is a solid cube: top face carries the client terrain sprite, four
+   side walls are stone-toned gradients with a subtle masonry seam. */
+.world-iso-cell{position:relative;border:0;transform-style:preserve-3d;
+  transform:translateZ(calc(var(--h,0) * var(--lift,8px)));cursor:crosshair;
+  backface-visibility:visible;background-color:#1d2822}
+.world-iso-block.has-art{background-repeat:no-repeat;background-size:100% 100%;background-position:center}
+.world-iso-top{position:absolute;inset:0;pointer-events:none;transform-style:preserve-3d;
+  box-shadow:inset 0 0 0 1px #ffffff30,inset 0 0 12px #00000035;
+  background:linear-gradient(145deg,#ffffff18,transparent 55%)}
+.world-iso-block:hover .world-iso-top{box-shadow:inset 0 0 0 2px #fff,inset 0 0 12px #00000035}
+.world-iso-wall{position:absolute;display:block;pointer-events:none;transform-style:preserve-3d;
+  backface-visibility:visible;border:1px solid #00000038;
+  box-shadow:inset 0 1px 0 #ffffff18,inset 0 -2px 5px #00000040}
+.world-iso-wall::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 10px,#0000000f 10px 11px)}
+.world-iso-wall.w-front{left:0;right:0;top:100%;height:var(--wall,8px);
+  transform-origin:top center;transform:rotateX(-90deg)}
+.world-iso-wall.w-back{left:0;right:0;bottom:100%;height:var(--wall,8px);
+  transform-origin:bottom center;transform:rotateX(90deg)}
+.world-iso-wall.w-right{top:0;bottom:0;left:100%;width:var(--wall,8px);
+  transform-origin:left center;transform:rotateY(90deg)}
+.world-iso-wall.w-left{top:0;bottom:0;right:100%;width:var(--wall,8px);
+  transform-origin:right center;transform:rotateY(-90deg)}
 .world-iso-hint{position:absolute;left:10px;bottom:8px;font-size:9px;color:#dce8d7;background:#16231dcc;border-radius:3px;padding:3px 7px;pointer-events:none}
 .world-iso-cam{position:absolute;right:10px;top:8px;display:flex;gap:5px;pointer-events:none}
 .world-iso-cam span{font:600 9px var(--mono,monospace);color:#dce8d7;background:#16231dcc;border:1px solid #ffffff22;border-radius:3px;padding:3px 6px}
@@ -815,3 +840,293 @@ body.dark{--effect-gold:#f3c156;--effect-orange:#f29a73;--effect-red:#ff8d89;--e
 .nav-config-list label{display:flex;align-items:center;gap:7px;font-size:11px;border:1px solid var(--line);border-radius:5px;padding:6px 9px;cursor:pointer;background:var(--surface-alt)}
 .nav-config-list input{accent-color:var(--green)}
 @media(max-width:780px){.nav-config-list{grid-template-columns:1fr}}
+/* Round 16: light-mode legibility for the panel result area */
+.panel-aside .damage-result{background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:0 3px 16px #0000000d}
+.panel-aside .damage-result .eyebrow{color:var(--green);letter-spacing:.14em;font-size:9px;font-weight:700}
+.panel-aside .damage-result h2{color:var(--ink);font:600 19px var(--serif);margin:2px 0 12px}
+.panel-aside .damage-result .button{margin-top:12px}
+.panel-aside .damage-number span{color:var(--muted)}
+.panel-battle-power{color:var(--ink)}
+.panel-battle-power>span,.panel-battle-power>span>small{color:var(--ink)!important}
+.panel-battle-power strong{color:var(--green-dark,var(--green));font-weight:700}
+.panel-bp-detail,.panel-bp-formula{color:var(--ink);background:var(--surface)}
+.panel-bp-formula h3,.panel-bp-formula h3 small{color:var(--ink)!important}
+.panel-bp-warning{color:var(--ink)}
+.panel-bp-expr{color:var(--ink)}
+.panel-bp-steps li,.panel-bp-steps li>em,.panel-bp-steps li code{color:var(--ink)}
+.panel-bp-steps li>b{color:var(--green)}
+.panel-bp-controls .tool-field span{color:var(--ink)}
+.panel-bp-detail .small-text.muted{color:var(--muted)}
+.panel-bp-evidence ol{color:var(--ink)}
+/* Shared infographic stat bars, reused in archive & panel */
+.char-stat-bars .ig-base-stats{margin:0 0 6px}
+.ig-stat-note{display:block;margin-top:8px;font-size:10px;color:var(--muted);line-height:1.6}
+.ig-stat-compact .ig-stat-grid{gap:5px}
+.ig-stat-compact .ig-stat-card{padding:5px 8px 5px}
+.ig-stat-compact .ig-stat-value .ig-stat-current{font-size:16px}
+.ig-stat-compact .ig-stat-value .ig-stat-icon{width:15px;height:15px;flex-basis:15px}
+.panel-aside .ig-base-stats{background:var(--surface-alt);border:1px solid var(--line)}
+.panel-aside .ig-stat-heading strong{color:var(--ink)}
+.panel-aside .ig-stat-heading small{color:var(--muted)}
+/* Round 18: results back to the RIGHT column, compact by default. */
+.panel-layout.panel-layout-three{grid-template-columns:minmax(175px,195px) minmax(0,1fr) minmax(280px,320px);gap:16px}
+.panel-layout-three>.panel-jump{grid-column:1;grid-row:1;position:sticky;top:96px;align-self:start}
+.panel-layout-three>#panel-form{grid-column:2;grid-row:1;min-width:0}
+.panel-layout-three>.panel-aside{grid-column:3;grid-row:1}
+.panel-aside{position:sticky;top:96px;align-self:start;
+  max-height:calc(100dvh - 112px);overflow-y:auto;overflow-x:hidden;
+  display:block;padding:0 4px 0 0}
+.panel-aside>section,.panel-aside>details{margin:0 0 8px;min-width:0}
+.panel-aside .content-card{padding:12px 13px}
+.panel-aside .content-card h3{font:600 13px var(--serif);margin:0 0 8px;color:var(--ink)}
+.panel-aside-fold>summary{gap:6px;padding:2px 0;color:var(--ink);list-style:none;cursor:pointer}
+.panel-aside-fold>summary::-webkit-details-marker{display:none}
+.panel-aside-fold>summary h3{font:600 12px var(--serif)}
+.panel-aside-fold .fold-hint{font-size:9px;color:var(--muted)}
+.panel-aside .damage-result{padding:12px 13px;grid-column:auto}
+.panel-aside .damage-result h2{font:600 15px var(--serif);margin:0 0 8px}
+.panel-aside .damage-result .eyebrow{display:none}
+.panel-aside::-webkit-scrollbar{width:7px}
+.panel-aside::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+.panel-aside::-webkit-scrollbar-track{background:var(--surface-alt);border-radius:4px}
+/* Compact stat cards in the right column: two abreast */
+.panel-aside .ig-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.panel-aside .ig-stat-card{padding:4px 7px 4px}
+.panel-aside .ig-stat-value .ig-stat-current{font-size:15px}
+.panel-aside .panel-bp-formula{grid-column:auto}
+.panel-aside .panel-bp-controls{grid-template-columns:1fr}
+.panel-aside .panel-bp-formula,.panel-aside .panel-bp-detail{overflow-wrap:anywhere}
+@media(max-width:1180px){
+  .panel-layout.panel-layout-three{grid-template-columns:175px minmax(0,1fr)}
+  .panel-layout-three>.panel-aside{grid-column:2;grid-row:2;position:static;max-height:none;
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
+@media(max-width:780px){
+  .panel-layout.panel-layout-three{grid-template-columns:1fr}
+  .panel-layout-three>.panel-jump{grid-column:1;grid-row:1;position:static}
+  .panel-layout-three>#panel-form{grid-column:1;grid-row:2}
+  .panel-layout-three>.panel-aside{grid-column:1;grid-row:3;grid-template-columns:1fr}
+}
+/* Round 17: fold the secondary calc rows into the compact summary. */
+.panel-aside #panel-output>dl.calculation-steps{margin:6px 0 0;font-size:9px;gap:2px}
+.panel-aside #panel-output>dl.calculation-steps>div{padding:2px 0}
+.panel-aside #panel-output>.panel-formula{margin-top:6px}
+.panel-aside .ig-stat-compact .ig-stat-value .ig-stat-label{font-size:8px}
+.panel-aside .ig-stat-compact .ig-stat-comparison em{font-size:9px}
+.panel-aside .ig-stat-compact .ig-stat-max{font-size:9px}
+.panel-bp-quick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.panel-bp-quick .button{padding:5px 9px;font-size:10px}
+/* Round 18: 单图工作区 (左侧可滚动列表 + 单张大图) */
+.world-map-workspace{display:grid;grid-template-columns:minmax(210px,250px) minmax(0,1fr);gap:14px;margin-top:10px}
+.world-picker{max-height:calc(100dvh - 170px);overflow-y:auto;overflow-x:hidden;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface-alt);padding:6px;
+  display:flex;flex-direction:column;gap:3px;scrollbar-width:thin}
+.world-picker::-webkit-scrollbar{width:6px}
+.world-picker::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.world-pick-item{display:grid;grid-template-columns:auto 1fr;gap:1px 7px;text-align:left;
+  border:1px solid transparent;border-radius:5px;background:transparent;color:var(--ink);
+  padding:6px 8px;cursor:pointer;font-size:11px;line-height:1.4}
+.world-pick-item:hover{background:var(--surface)}
+.world-pick-item.is-active{background:var(--green-soft);border-color:var(--green);color:var(--ink)}
+.world-pick-id{grid-row:1/3;align-self:center;font:600 10px var(--mono,monospace);color:var(--muted)}
+.world-pick-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.world-pick-sub{font-size:9px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.world-map-stage{min-width:0}
+.world-map-stage .world-map-card{margin:0}
+@media(max-width:900px){.world-map-workspace{grid-template-columns:1fr}
+  .world-picker{max-height:190px}}
+
+/* Round 18: 坑类地形（深水 / 浅水 / 禁行）下沉、半透明，不画实心柱 */
+.world-iso-block.is-pit{opacity:.86;box-shadow:inset 0 0 0 2px #4a90c266}
+.world-iso-block.is-pit .world-iso-top{box-shadow:inset 0 0 0 1px #7fd0ff55,inset 0 0 18px #0a284455}
+
+
+/* Round 18: compact-by-default right column, expandable with scrollbar */
+.panel-aside .panel-aside-fold:not([open]),
+.panel-aside #panel-damage-result:not([open]){padding:8px 12px}
+.panel-aside .panel-aside-fold:not([open])>summary h3,
+.panel-aside #panel-damage-result:not([open])>summary h3{margin:0}
+.panel-aside .panel-bp-formula:not([open]){padding:8px 12px}
+.panel-aside .panel-bp-formula:not([open])>summary h3{font-size:11px}
+.panel-aside .panel-bp-quick{margin-bottom:6px}
+.panel-aside .panel-bp-quick .button{font-size:9px;padding:4px 7px}
+.panel-aside .ig-stat-heading{margin-bottom:5px}
+.panel-aside .ig-stat-note{font-size:9px;margin-top:4px}
+.panel-aside .damage-result>button{margin-top:6px!important;padding:5px 8px;font-size:10px}
+.panel-aside #panel-output>dl.calculation-steps{margin:5px 0 0;font-size:9px;gap:2px}
+.panel-aside #panel-output>dl.calculation-steps>div{padding:2px 0}
+.panel-bp-meaning{font-size:10px;line-height:1.8;margin:0 0 8px;padding:7px 10px;
+  border-left:3px solid var(--green);background:var(--green-soft);color:var(--ink);border-radius:3px}
+/* Round 19: GPU-friendly map camera. Rotating / zooming only changes CSS
+   custom properties on the frame; no DOM is rebuilt. */
+.world-iso-frame[data-quad] .world-iso-stage{
+  transform:scale(calc(var(--zoom,1) * var(--fit,1)));
+  will-change:transform}
+.world-iso-canvas{will-change:transform}
+/* Avoid expensive per-cell shadow compositing while orbiting. */
+.world-iso-frame.is-dragging .world-iso-wall,
+.world-iso-frame.is-dragging .world-iso-top{box-shadow:none}
+.world-iso-frame.is-dragging .world-iso-wall::after{display:none}
+.world-picker{contain:layout style paint}
+/* ============================================================
+   Round 19: shared stat bars — fixed order (3 paired rows) and
+   theme-aware colours for BOTH the archive and the panel result.
+   ============================================================ */
+.stat-bars-panel .ig-stat-grid,
+.stat-bars-archive .ig-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.stat-bars-panel .ig-stat-card,
+.stat-bars-archive .ig-stat-card{position:relative;display:block;min-width:0;
+  clip-path:none;border-radius:7px;padding:7px 10px 6px}
+
+/* --- Panel result: follows the surrounding surface, light & dark --- */
+.stat-bars-panel .ig-stat-card{background:var(--surface-alt);color:var(--ink);
+  border:1px solid var(--line);box-shadow:none}
+.stat-bars-panel .ig-stat-value .ig-stat-label{color:var(--muted)}
+.stat-bars-panel .ig-stat-value .ig-stat-current{color:var(--ink)}
+.stat-bars-panel .ig-stat-card .ig-stat-max{color:var(--muted)}
+.stat-bars-panel .ig-stat-comparison em{color:var(--green)}
+.stat-bars-panel .ig-stat-card progress,
+.stat-bars-panel .ig-stat-card progress::-webkit-progress-bar{background:var(--line)}
+.stat-bars-panel .ig-stat-card progress::-webkit-progress-value{background:var(--green)}
+.stat-bars-panel .ig-stat-heading strong{color:var(--ink)}
+.stat-bars-panel .ig-stat-heading small{color:var(--muted)}
+.stat-bars-panel .ig-stat-note{color:var(--muted)}
+.dark .stat-bars-panel .ig-stat-card{background:#1d3540;color:#dbe7e9;border-color:#3a5d67}
+.dark .stat-bars-panel .ig-stat-value .ig-stat-label,
+.dark .stat-bars-panel .ig-stat-card .ig-stat-max,
+.dark .stat-bars-panel .ig-stat-note{color:#adc4c9}
+.dark .stat-bars-panel .ig-stat-value .ig-stat-current{color:#e7c479}
+.dark .stat-bars-panel .ig-stat-comparison em{color:#85d5e7}
+.dark .stat-bars-panel .ig-stat-card progress,
+.dark .stat-bars-panel .ig-stat-card progress::-webkit-progress-bar{background:#25424d}
+.dark .stat-bars-panel .ig-stat-card progress::-webkit-progress-value{background:#6badbb}
+.dark .stat-bars-panel .ig-stat-heading strong{color:var(--ink)}
+.dark .stat-bars-panel .ig-stat-heading small{color:var(--muted)}
+
+/* --- Character archive: quiet wiki-style tiles, day / night --- */
+/* Override the legacy 3-column grid with equal specificity. */
+.character-profile .profile-stats.profile-stats-bars{display:block;grid-template-columns:none;
+  gap:0;margin:10px 0 16px}
+.profile-stats-bars .ig-base-stats{display:block;margin:0;padding:0;border:0;background:transparent}
+.profile-stats-bars .ig-stat-heading{display:flex;justify-content:space-between;
+  align-items:baseline;gap:8px;margin:0 0 8px}
+.profile-stats-bars .ig-stat-heading strong{font:600 12px var(--serif);color:var(--ink)}
+.profile-stats-bars .ig-stat-heading small{font-size:10px;color:var(--muted)}
+.profile-stats-bars .ig-stat-note{display:block;margin:8px 0 0;font-size:10px;
+  line-height:1.6;color:var(--muted)}
+.profile-stats-bars .stat-bars-archive .ig-stat-card,
+.stat-bars-archive .ig-stat-card{background:var(--surface-alt);color:var(--ink);
+  border:1px solid var(--line);box-shadow:none}
+.stat-bars-archive .ig-stat-value .ig-stat-label{color:var(--muted)}
+.stat-bars-archive .ig-stat-value .ig-stat-current{color:var(--ink);font-size:17px}
+.stat-bars-archive .ig-stat-card .ig-stat-max{color:var(--muted)}
+.stat-bars-archive .ig-stat-comparison em{color:var(--green)}
+.stat-bars-archive .ig-stat-card progress,
+.stat-bars-archive .ig-stat-card progress::-webkit-progress-bar{background:var(--line)}
+.stat-bars-archive .ig-stat-card progress::-webkit-progress-value{background:var(--green)}
+.stat-bars-archive .ig-stat-value img.ig-stat-icon{filter:none;opacity:.75}
+.stat-bars-archive .ig-stat-value svg.ig-stat-icon{fill:var(--green)}
+.dark .stat-bars-archive .ig-stat-card{background:#16262d;color:#dbe7e9;border-color:#3a5d67}
+.dark .stat-bars-archive .ig-stat-value .ig-stat-label,
+.dark .stat-bars-archive .ig-stat-card .ig-stat-max{color:#adc4c9}
+.dark .stat-bars-archive .ig-stat-value .ig-stat-current{color:#e7c479}
+.dark .stat-bars-archive .ig-stat-comparison em{color:#85d5e7}
+.dark .stat-bars-archive .ig-stat-card progress,
+.dark .stat-bars-archive .ig-stat-card progress::-webkit-progress-bar{background:#25424d}
+.dark .stat-bars-archive .ig-stat-card progress::-webkit-progress-value{background:#6badbb}
+.dark .stat-bars-archive .ig-stat-value img.ig-stat-icon{filter:none;opacity:.9}
+.dark .stat-bars-archive .ig-stat-value svg.ig-stat-icon{fill:#9ebfc7}
+@media(max-width:620px){
+  .stat-bars-panel .ig-stat-grid,
+  .stat-bars-archive .ig-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* Round 19: narrow right column — keep paired columns but fit the cards. */
+.panel-aside .stat-bars-panel .ig-stat-grid{gap:5px}
+.panel-aside .stat-bars-panel .ig-stat-card{padding:5px 6px 5px;overflow:hidden}
+.panel-aside .stat-bars-panel .ig-stat-card .ig-stat-value{gap:3px}
+.panel-aside .stat-bars-panel .ig-stat-value .ig-stat-icon{width:13px;height:13px;flex:0 0 13px}
+.panel-aside .stat-bars-panel .ig-stat-value .ig-stat-label{font-size:9px;white-space:nowrap}
+.panel-aside .stat-bars-panel .ig-stat-value .ig-stat-current{font-size:13px;white-space:nowrap}
+.panel-aside .stat-bars-panel .ig-stat-comparison{margin:2px 0 1px}
+.panel-aside .stat-bars-panel .ig-stat-card .ig-stat-max,
+.panel-aside .stat-bars-panel .ig-stat-comparison em{font-size:8px}
+.panel-aside .stat-bars-panel .ig-stat-heading{flex-wrap:wrap;gap:2px}
+.panel-aside .stat-bars-panel .ig-stat-heading strong{font-size:11px}
+.panel-aside .stat-bars-panel .ig-stat-heading small{font-size:8px;white-space:normal}
+.panel-aside .stat-bars-panel .ig-stat-note{font-size:8px}
+.panel-aside .stat-bars-panel .ig-stat-card progress{height:2px}
+/* Round 19: the shared component inherits infographic.css's bordered grid
+   shell. Remove it for the panel/archive so nothing overflows the column. */
+.panel-aside .ig-base-stats.ig-stat-bars,
+.profile-stats-bars .ig-base-stats.ig-stat-bars{display:block;grid-template-columns:none;
+  min-width:0;width:100%;padding:0;border:0;background:transparent;margin:0}
+.panel-aside .ig-base-stats .ig-stat-heading,
+.panel-aside .ig-base-stats .ig-stat-grid,
+.profile-stats-bars .ig-base-stats .ig-stat-heading,
+.profile-stats-bars .ig-base-stats .ig-stat-grid{min-width:0;width:100%}
+.panel-aside .ig-base-stats .ig-stat-grid,
+.profile-stats-bars .ig-base-stats .ig-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.panel-aside .ig-base-stats .ig-stat-note,
+.profile-stats-bars .ig-base-stats .ig-stat-note{overflow-wrap:anywhere;min-width:0;max-width:100%}
+/* ============================================================
+   Round 20: square, larger map frame + flicker-free walls
+   ============================================================ */
+.world-iso-frame{height:auto;aspect-ratio:1/1;
+  width:min(100%,76dvh);min-width:320px;margin:10px auto 0}
+@media(max-height:760px){.world-iso-frame{width:min(100%,70dvh)}}
+
+/* All four walls stay in the DOM at all times. The compositor culls the two
+   back-facing ones via backface-visibility, so rotating never has to toggle
+   display / rebuild anything (no wall "refresh" flash). */
+.world-iso-wall{backface-visibility:hidden}
+/* Water / pit: recessed basin with its own thin rim. */
+.world-iso-block.is-pit{opacity:.94;box-shadow:inset 0 0 0 2px #4a90c280}
+.world-iso-wall.is-water-wall{opacity:.82;
+  box-shadow:inset 0 1px 0 #9fdcff55,inset 0 -2px 5px #06203366}
+/* ============================================================
+   Round 20: 强化与随机 — readable cards & tables
+   ============================================================ */
+.mechanics-hint{margin:6px 0 0;line-height:1.7}
+.enhance-summary{margin:0 0 14px}
+.enh-summary-head{margin:0 0 14px}
+.enh-summary-head h2{margin:0 0 5px;font:600 17px var(--serif);color:var(--ink)}
+.enh-summary-head p{margin:0;font-size:11px;line-height:1.7;color:var(--muted)}
+.enh-rules{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.enh-rules>li{display:flex;gap:10px;padding:11px 13px;border:1px solid var(--line);
+  border-radius:7px;background:var(--surface-alt);font-size:11px;line-height:1.85;color:var(--ink)}
+.enh-rule-num{flex:0 0 21px;height:21px;border-radius:50%;background:var(--green);color:#fff;
+  display:grid;place-items:center;font:600 11px var(--sans)}
+.enh-rules code{font-size:10px;background:var(--surface);border:1px solid var(--line);
+  border-radius:3px;padding:1px 4px;color:var(--green);word-break:break-word}
+.enh-rules strong{color:var(--ink);font-weight:700}
+.enh-source{margin:12px 0 0;font-size:10px;line-height:1.7;color:var(--muted);
+  padding-top:10px;border-top:1px solid var(--line)}
+.enh-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:9px}
+.enh-head h2{margin:0 0 4px;font:600 15px var(--serif);color:var(--ink)}
+.enh-note{margin:0;font-size:11px;line-height:1.7;color:var(--muted);max-width:70ch}
+.enh-count{flex:0 0 auto;display:grid;justify-items:center;padding:5px 12px;
+  border:1px solid var(--line);border-radius:7px;background:var(--surface-alt)}
+.enh-count strong{font:600 17px var(--serif);color:var(--green)}
+.enh-count small{font-size:9px;color:var(--muted)}
+.enh-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:10px;color:var(--muted)}
+.enh-meta code{font-size:10px;background:var(--surface-alt);border:1px solid var(--line);
+  border-radius:3px;padding:2px 6px;color:var(--green)}
+.enh-tags{display:flex;flex-wrap:wrap;gap:4px;margin:9px 0 4px}
+.enh-fold{margin:9px 0 0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.enh-fold>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;
+  gap:8px;padding:8px 11px;background:var(--surface-alt);font-size:11px;font-weight:600;color:var(--ink)}
+.enh-fold>summary::-webkit-details-marker{display:none}
+.enh-fold>summary span{font-weight:400;color:var(--muted);font-size:10px}
+.enh-fold>summary::before{content:"▾";margin-right:7px;color:var(--green)}
+.enh-fold[open]>summary::before{content:"▴"}
+.enh-table-wrap{max-height:340px;overflow:auto}
+.enh-table{width:100%;border-collapse:collapse;font-size:10.5px}
+.enh-table th,.enh-table td{text-align:left;padding:6px 11px;border-bottom:1px solid var(--line);
+  vertical-align:top;line-height:1.6}
+.enh-table th{position:sticky;top:0;background:var(--surface);color:var(--ink);
+  font-weight:600;z-index:1}
+.enh-table td{color:var(--ink)}
+.enh-table td code{font-size:10px;color:var(--green);word-break:break-word}
+.enh-num{font-variant-numeric:tabular-nums;font-weight:600}
+.enh-table tbody tr:hover{background:var(--surface-alt)}
+@media(max-width:780px){.enh-note{max-width:none}.enh-table th,.enh-table td{padding:5px 7px}}

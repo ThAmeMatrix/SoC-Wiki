@@ -22,24 +22,24 @@ def main():
         card = page.locator('.tool-card', has_text='局外面板计算器')
         assert card.count() == 1, 'panel card missing'
         card.click()
-        page.locator('#panel-output .panel-total-grid').wait_for()
-        totals = page.locator('.panel-total-grid strong').all_inner_texts()
-        assert len(totals) == 3, totals
+        page.locator('#panel-output [data-stat-bars]').wait_for()
+        totals = page.locator('#panel-output .ig-stat-current').all_inner_texts()
+        assert len(totals) == 6, totals
         print('panel default totals:', ' / '.join(totals))
-        expected = page.evaluate("()=>{const P=window.WIKI_PANEL_DATA,C=window.WikiPanelCalc;const r=C.calculate(C.defaults(P),P).total;return [String(r[0]),r[1]+' / '+r[2],r[3]+' / '+r[4]]}")
+        expected = page.evaluate("()=>{const P=window.WIKI_PANEL_DATA,C=window.WikiPanelCalc;const r=C.calculate(C.defaults(P),P);return [r.total[1],r.total[2],r.total[3],r.total[4],r.total[0],r.speed].map(String)}")
         norm = lambda s: s.replace(',', '').replace(' ', '')
         assert [norm(x) for x in totals] == [norm(x) for x in expected], (totals, expected)
         print('defaults match pure calculation:', ' / '.join(expected))
         assert page.locator('#panel-steps .panel-step-list > div').count() >= 3
 
         page.locator('[data-path="star"]').select_option('1')
-        low = page.locator('.panel-total-grid strong').all_inner_texts()
+        low = page.locator('#panel-output .ig-stat-current').all_inner_texts()
         assert low != totals, 'star change did not update'
         print('after 1 star   :', ' / '.join(low))
         page.locator('[data-path="star"]').select_option('5')
 
         page.locator('[data-path="weapon.enchant.percents.1"]').fill('100')
-        boosted = page.locator('.panel-total-grid strong').all_inner_texts()
+        boosted = page.locator('#panel-output .ig-stat-current').all_inner_texts()
         assert boosted != totals, 'enchant did not update'
         print('after enchant  :', ' / '.join(boosted))
         page.locator('[data-path="weapon.enchant.percents.1"]').fill('0')
@@ -49,17 +49,17 @@ def main():
         tree_nodes = page.locator('[data-line-node]')
         assert tree_nodes.count() >= 8, 'skill-axis tree nodes missing'
         assert page.locator('.panel-tree-tier').count() >= 4, 'skill-axis tiers missing'
-        before_lines = page.locator('.panel-total-grid strong').all_inner_texts()
+        before_lines = page.locator('#panel-output .ig-stat-current').all_inner_texts()
         right_node = page.locator('[data-line-node="1"][data-line-side="right"]')
         assert right_node.count() == 1, 'rank-1 right node missing'
         assert right_node.get_attribute('aria-pressed') == 'false', 'default right node should be unlit'
         right_node.click()
         assert page.locator('[data-line-node="1"][data-line-side="right"]').get_attribute('aria-pressed') == 'true'
-        after_lines = page.locator('.panel-total-grid strong').all_inner_texts()
+        after_lines = page.locator('#panel-output .ig-stat-current').all_inner_texts()
         assert after_lines != before_lines, 'skill-axis node click had no effect'
         print('skill-axis node:', ' / '.join(before_lines), '->', ' / '.join(after_lines))
         page.locator('[data-line-node="1"][data-line-side="right"]').click()
-        assert page.locator('.panel-total-grid strong').all_inner_texts() == before_lines, 'node did not toggle back'
+        assert page.locator('#panel-output .ig-stat-current').all_inner_texts() == before_lines, 'node did not toggle back'
 
         # Real talent trees: grade / 图 grouping, per-node investment, exp totals.
         assert page.locator('.panel-talent-tree').count() == 2, 'star and pioneer trees missing'
@@ -68,13 +68,13 @@ def main():
         assert page.locator('[data-talent-node]').count() > 4, 'no talent nodes rendered'
         summary = page.locator('.panel-talent-summary').inner_text()
         assert '品阶' in summary and '经验' in summary, summary
-        before_talent = page.locator('.panel-total-grid strong').all_inner_texts()
+        before_talent = page.locator('#panel-output .ig-stat-current').all_inner_texts()
         before_summary = page.locator('.panel-talent-summary').inner_text()
         # Pick a lit-capable attribute node and check the panel reacts.
         attr_node = page.locator('.panel-talent-node:not(.is-utility) [data-talent-node]').first
         assert attr_node.count() == 1, 'no attribute talent node'
         attr_node.click()
-        after_talent = page.locator('.panel-total-grid strong').all_inner_texts()
+        after_talent = page.locator('#panel-output .ig-stat-current').all_inner_texts()
         assert after_talent != before_talent, 'lighting a talent node had no effect'
         lit_summary = page.locator('.panel-talent-summary').inner_text()
         # Both trees start fully lit; clicking a node turns one OFF.
@@ -88,12 +88,12 @@ def main():
         level_select = page.locator('[data-talent-level]').first
         if level_select.count():
             level_select.select_option('1')
-            assert page.locator('.panel-total-grid strong').all_inner_texts(), 'level select broke the panel'
+            assert page.locator('#panel-output .ig-stat-current').all_inner_texts(), 'level select broke the panel'
         attr_node = page.locator('.panel-talent-node:not(.is-utility) [data-talent-node]').first
         attr_node.click()
-        assert page.locator('.panel-total-grid strong').all_inner_texts() == before_talent, 'talent node did not toggle back'
+        assert page.locator('#panel-output .ig-stat-current').all_inner_texts() == before_talent, 'talent node did not toggle back'
         page.locator('[data-path="talentAdjust.0"]').fill('100')
-        assert page.locator('.panel-total-grid strong').all_inner_texts() != before_talent
+        assert page.locator('#panel-output .ig-stat-current').all_inner_texts() != before_talent
         page.locator('[data-path="talentAdjust.0"]').fill('0')
 
         # Searchable weapon / offhand / tarot selectors.
@@ -140,7 +140,7 @@ def main():
         name = hits.first.locator('strong').inner_text()
         hits.first.click()
         page.locator('.char-picker').wait_for(state='detached')
-        swapped = page.locator('.panel-total-grid strong').all_inner_texts()
+        swapped = page.locator('#panel-output .ig-stat-current').all_inner_texts()
         assert swapped, 'character switch broke the calculator'
         norm = lambda s: s.replace('·', '-').replace('•', '-').replace('‧', '-').replace('・', '-')
         assert norm(name) == norm(page.locator('.panel-character strong').inner_text()), (name, page.locator('.panel-character strong').inner_text())
