@@ -134,6 +134,48 @@ def main():
         check('generated branch page renders', page.locator('.choice-backlink').count() == 1,
               page.locator('.detail-heading h1').inner_text())
 
+        # 「技能变更为[XXX]」的变化技能词条：与抉择技能同一套点击兜底，
+        # hover 仍显示「中括号介绍」说明，点击直达变化后的技能词条页。
+        switches = load('data/skill-switch-links.js', 'WIKI_SKILL_SWITCHES')
+        check('changed-skill term map covers the main skills',
+              len(switches) >= 90 and switches.get('烈风超重斩') == 100002464
+              and switches.get('突击解除') == 100006759, f'{len(switches)} names')
+        page.goto(BASE + '#/page/100002463')
+        page.locator('.ability-description.rich-text').first.wait_for()
+        changed = page.locator('.ability-description.rich-text a.term-link[href="#/page/300000235"]').first
+        check('changed-skill term keeps its glossary href', changed.count() == 1)
+        changed.hover()
+        page.wait_for_timeout(400)
+        check('hover still shows the glossary effect',
+              page.locator('.term-tip').is_visible()
+              and '烈风超重斩' in page.locator('.term-tip').inner_text())
+        changed.click()
+        page.wait_for_timeout(350)
+        check('clicking 技能变更为[烈风超重斩] opens the changed skill page',
+              page.evaluate('location.hash') == '#/page/100002464', page.evaluate('location.hash'))
+        # 「使用后技能变更」区块本身的链接保持可点。
+        page.goto(BASE + '#/page/100002463')
+        page.locator('.skill-switch-line a').first.wait_for()
+        page.locator('.skill-switch-line a').first.click()
+        page.wait_for_timeout(350)
+        check('使用后技能变更 block still links to the skill page',
+              page.evaluate('location.hash') == '#/page/100002464', page.evaluate('location.hash'))
+        # 没有同名状态词条的纯文本 [突击解除]，以及旧档案页的 <font> 纯文本，
+        # 渲染后也要变成可点词条。
+        page.goto(BASE + '#/page/100006758')
+        page.locator('.ability-description.rich-text').first.wait_for()
+        plain = page.locator('.ability-description.rich-text a.term-link[data-switch-target="100006759"]')
+        check('plain [突击解除] becomes a clickable term', plain.count() == 1)
+        if plain.count():
+            plain.first.click()
+            page.wait_for_timeout(350)
+            check('clicking the plain term opens 突击解除',
+                  page.evaluate('location.hash') == '#/page/100006759', page.evaluate('location.hash'))
+        page.goto(BASE + '#/page/2044')
+        page.locator('.ability-description.rich-text').first.wait_for()
+        check('archive-page <font> name becomes a clickable term',
+              page.locator('.ability-description.rich-text a.term-link[data-switch-target]').count() >= 1)
+
         page.goto(BASE + '#/mechanics')
         page.locator('.mechanics-toolbar').wait_for()
         check('mechanics browser lists rules', page.locator('.mechanics-entry').count() > 10)

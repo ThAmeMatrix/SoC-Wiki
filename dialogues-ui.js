@@ -10,7 +10,9 @@
 window.WikiDialogues = (() => {
   let root = null;
   let cleanup = () => {};
-  let state = {scene: -1, chapter: '', query: '', hits: []};
+  // lastSearch keeps the result list a reader came from, so a scene opened
+  // from search can return to exactly the same hits and scroll position.
+  let state = {scene: -1, chapter: '', query: '', hits: [], lastSearch: null, focusLine: -1};
   const esc = value => String(value ?? '').replace(/[&<>"']/g,
     c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const fmt = value => Number(value || 0).toLocaleString('zh-CN');
@@ -80,7 +82,7 @@ window.WikiDialogues = (() => {
   function transcript(D) {
     if (state.hits.length) {
       return `<div class="dialogue-transcript-head"><h2>搜索结果</h2><span>${fmt(state.hits.length)} 条（最多 80 条）</span></div>
-        <div class="dialogue-lines">${state.hits.map(hit => `<div class="dialogue-line dialogue-hit" role="button" tabindex="0" data-dlg-scene="${hit.scene}">
+        <div class="dialogue-lines">${state.hits.map(hit => `<div class="dialogue-line dialogue-hit" role="button" tabindex="0" data-dlg-scene="${hit.scene}" data-dlg-line="${hit.index}">
           <div class="dialogue-line-name">${esc(displayName(hit.speaker))}<small>${esc(D.scenes[hit.scene]?.[1] || '')}</small></div>
           <div class="dialogue-line-text">${textHtml(hit.text)}</div></div>`).join('')}</div>`;
     }
@@ -96,12 +98,15 @@ window.WikiDialogues = (() => {
       const line = D.lines[i];
       const speaker = D.speakers[line[1]] || '';
       const portrait = line[3] >= 0 ? D.portraits[line[3]] : '';
-      return `<div class="dialogue-line ${portrait ? 'has-portrait' : ''}">
+      return `<div class="dialogue-line ${portrait ? 'has-portrait' : ''} ${i === state.focusLine ? 'is-focus' : ''}" data-line-index="${i}">
         ${portrait ? `<span class="dialogue-portrait-mark" title="${esc(displayName(speaker))} · 立绘表情差分已归档">◈</span>` : ''}
         <div class="dialogue-line-body"><div class="dialogue-line-name">${esc(displayName(speaker))}</div>
         <div class="dialogue-line-text">${textHtml(line[2])}</div></div></div>`;
     }).join('');
-    return `<div class="dialogue-transcript-head"><div><span class="eyebrow">${esc(scene[2])}</span><h2>${esc(scene[1])}</h2></div>
+    const back = state.lastSearch
+      ? `<button type="button" class="dialogue-back" data-dlg-back>← 返回搜索结果「${esc(state.lastSearch.query)}」<small>${fmt(state.lastSearch.hits.length)} 条</small></button>`
+      : '';
+    return `${back}<div class="dialogue-transcript-head"><div><span class="eyebrow">${esc(scene[2])}</span><h2>${esc(scene[1])}</h2></div>
       <span>${indices.length} 句对白</span></div><div class="dialogue-lines">${lines}</div>`;
   }
 
@@ -142,6 +147,30 @@ window.WikiDialogues = (() => {
       if (ln) ln.scrollTop = before.lines;
       window.scrollTo({top: before.y, behavior: 'instant'});
     }
+    if (options?.linesScroll != null) {
+      const ln = root.querySelector('.dialogue-lines');
+      if (ln) ln.scrollTop = options.linesScroll;
+    }
+    if (options?.windowY != null) window.scrollTo({top: options.windowY, behavior: 'instant'});
+    if (options?.focus) focusLine();
+  }
+
+  // Scroll only the transcript box (never the page) to the line that matched
+  // the search, so the reader sees the hit in context.
+  function focusLine() {
+    const ln = root?.querySelector('.dialogue-lines');
+    const line = ln?.querySelector('.dialogue-line.is-focus');
+    if (!ln || !line) return;
+    ln.scrollTop = Math.max(0, line.offsetTop - ln.offsetTop - ln.clientHeight / 3);
+  }
+
+  function syncUrl() {
+    const parts = [];
+    if (state.scene >= 0 && !state.hits.length) parts.push('scene=' + state.scene);
+    const q = state.hits.length ? state.query : state.lastSearch?.query;
+    if (q) parts.push('q=' + encodeURIComponent(q));
+    if (state.focusLine >= 0 && !state.hits.length) parts.push('line=' + state.focusLine);
+    history.replaceState(null, '', '#/dialogues' + (parts.length ? '?' + parts.join('&') : ''));
   }
 
   function wire() {
@@ -154,6 +183,10 @@ window.WikiDialogues = (() => {
       state.query = value;
       state.hits = search(data(), value);
       state.scene = -1;
+      state.focusLine = -1;
+      // A new search replaces the remembered one; clearing the box forgets it.
+      state.lastSearch = null;
+      syncUrl();
       // Only repaint the transcript / scene list; the search input itself must
       // stay mounted or an IME composition (Chinese, Japanese) is cancelled.
       const D = data();
@@ -188,22 +221,51 @@ window.WikiDialogues = (() => {
     const onClick = e => {
       const target = e.target.closest('button, [role="button"]');
       if (!target) return;
+      if (target.dataset.dlgBack !== undefined) {
+        const saved = state.lastSearch;
+        if (!saved) return;
+        state.query = saved.query;
+        state.hits = saved.hits;
+        state.scene = -1;
+        state.focusLine = -1;
+        state.lastSearch = null;
+        const q = root.querySelector('#dialogue-query'); if (q) q.value = saved.query;
+        syncUrl();
+        paint({preserveScroll: false, linesScroll: saved.linesScroll, windowY: saved.windowY});
+        return;
+      }
       if (target.dataset.dlgChapter !== undefined) {
         state.chapter = target.dataset.dlgChapter;
         state.hits = [];
         state.query = '';
+        state.lastSearch = null;
+        state.focusLine = -1;
         const q = root.querySelector('#dialogue-query'); if (q) q.value = '';
+        syncUrl();
         paint();
         return;
       }
       if (target.dataset.dlgScene !== undefined) {
+        const fromHit = target.classList.contains('dialogue-hit') && state.hits.length;
+        if (fromHit) {
+          // Remember the result list (and where the reader was in it) so the
+          // scene view can offer「返回搜索结果」.
+          state.lastSearch = {
+            query: state.query,
+            hits: state.hits,
+            linesScroll: root.querySelector('.dialogue-lines')?.scrollTop ?? 0,
+            windowY: window.scrollY,
+          };
+          state.focusLine = Number(target.dataset.dlgLine ?? -1);
+        } else {
+          state.focusLine = -1;
+        }
         state.scene = Number(target.dataset.dlgScene);
         state.hits = [];
-        state.query = '';
-        const q = root.querySelector('#dialogue-query'); if (q) q.value = '';
-        history.replaceState(null, '', `#/dialogues?scene=${state.scene}`);
-        // Keep the reader at the clicked item: paint() restores scroll.
-        paint();
+        syncUrl();
+        // Keep the reader at the clicked item: paint() restores scroll; a hit
+        // additionally scrolls the transcript box to the matching line.
+        paint({focus: !!fromHit});
       }
     };
     const onKey = e => {
@@ -228,10 +290,22 @@ window.WikiDialogues = (() => {
     render(element, params) {
       unmount();
       root = element;
-      const requested = Number(params?.get?.('scene'));
+      // Number(null) is 0, so only read `scene` when the URL really has it.
+      const requested = params?.has?.('scene') ? Number(params.get('scene')) : -1;
+      const line = params?.has?.('line') ? Number(params.get('line')) : -1;
+      const q = (params?.get?.('q') || '').trim();
       state = {scene: Number.isInteger(requested) && requested >= 0 ? requested : -1,
-               chapter: '', query: '', hits: []};
-      paint();
+               chapter: '', query: q, hits: [], lastSearch: null,
+               focusLine: Number.isInteger(line) ? line : -1};
+      const D = data();
+      if (q && D) {
+        index(D);
+        const hits = search(D, q);
+        // ?scene=&q= : a scene opened from search; ?q= alone: the result list.
+        if (state.scene >= 0) state.lastSearch = {query: q, hits, linesScroll: 0, windowY: 0};
+        else state.hits = hits;
+      }
+      paint({focus: state.focusLine >= 0});
       wire();
     },
     unmount,

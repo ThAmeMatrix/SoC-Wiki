@@ -945,6 +945,75 @@
     }, size => { perPage = size; page = 1; paint(); });
   }
 
-  window.WikiWorld = {renderMaps, renderAI, renderCode, renderEnhance};
+  // The offline battle simulator reuses this exact renderer: real height
+  // layers, exposed side walls, recessed water and client top/wall textures.
+  
+/** Decrypted client script index (Round 29). Rendered on the code page. */
+function renderLuaScripts(root) {
+  if (!root || !window.WIKI_LUA_SCRIPTS) return;
+  const L = window.WIKI_LUA_SCRIPTS, m = L.meta || {};
+  const SUB = window.WIKI_CLIENT_MECHANISMS || null;
+  const card = document.createElement('details');
+  card.className = 'content-card world-lua-panel';
+  card.innerHTML = `<summary>已解密的客户端 Lua 脚本 · ${m.scripts || 0} / ${m.totalArchived || 0}</summary>
+    <p class="small-text">${esc(m.method || '')}</p>
+    <p class="small-text muted">可读字符串 ${m.readableStrings || 0} 条 · 明文出现 ${m.plainOccurrences || 0} 次 ·
+      仍以密文存储 ${m.encryptedOccurrences || 0} 处（不做猜测）· AI / 机制相关词项 ${(L.aiTerms || []).length} 条。</p>
+    <label class="tool-field"><span>检索脚本或脚本内常量</span>
+      <input type="search" class="world-lua-q" placeholder="ai_dict / ShareDamage / dynamicParam / 分摊"></label>
+    <div class="world-lua-out"></div>`;
+  root.appendChild(card);
+  const q = card.querySelector('.world-lua-q'), out = card.querySelector('.world-lua-out');
+  const escTerm = s => esc(String(s || ''));
+  // Effect types that appear in the decrypted bytecode. These are the same
+  // ones the simulator's EFFECTS table implements; SUB.evidence records the
+  // script group each term was recovered from.
+  const effectTypes = SUB && SUB.effectTypes ? SUB.effectTypes : [];
+  const verify = term => {
+    const low = String(term || '').toLowerCase();
+    return effectTypes.some(e => low.includes(String(e).toLowerCase())) ||
+      (SUB && SUB.phases || []).some(e => low.includes(String(e).toLowerCase())) ||
+      (SUB && SUB.castPipeline || []).some(e => low === String(e).toLowerCase());
+  };
+  const run = () => {
+    const term = (q.value || '').trim().toLowerCase();
+    if (!term) {
+      out.innerHTML = `<div class="bsim-lua-stats">
+        <span><b>${m.scripts || 0}</b> 个脚本已解密</span>
+        <span><b>${(L.pool || []).length}</b> 条可读常量</span>
+        ${SUB ? `<span><b>${(SUB.phases || []).length}</b> 阶段 AI 流水线</span>
+                 <span><b>${(SUB.castPipeline || []).length}</b> 步选位</span>
+                 <span><b>${effectTypes.length}</b> 类效果在字节码中被引用</span>
+                 <span><b>${SUB.engineCoverage ?? 0}%</b> 效果类型已由模拟器实现（${(SUB.engineEffectTypes || []).length} 类处理器）</span>` : ''}
+        </div>` + (SUB ? `<details class="world-lua-substrate" open><summary>解密得出的战斗逻辑基底</summary>
+          <p class="small-text">AI 阶段：<code>${(SUB.phases || []).map(escTerm).join(' → ')}</code></p>
+          <p class="small-text">选位流水线：<code>${(SUB.castPipeline || []).map(escTerm).join(' → ')}</code></p>
+          <p class="small-text">目标排序：<code>${(SUB.targetSorts || []).map(escTerm).join('、')}</code></p>
+          <p class="small-text">AOE 评分字段：<code>${(SUB.aoeFields || []).map(escTerm).join('、')}</code></p>
+          <p class="small-text muted">实时行动顺序：<code>${escTerm(JSON.stringify(SUB.waitTime || {}).slice(0, 220))}</code></p>
+          <div class="tag-list">${effectTypes.slice(0, 40).map(e => `<span class="mech-tag is-ok">${escTerm(e)}</span>`).join('')}</div>
+        </details>` : '');
+      return;
+    }
+    const pool = L.pool || [];
+    const hits = Object.entries(L.scripts || {}).filter(([name, [, ids]]) =>
+      name.toLowerCase().includes(term) || (ids || []).some(i => String(pool[i] || '').toLowerCase().includes(term))
+    ).slice(0, 30);
+    const terms = pool.filter(x => String(x).toLowerCase().includes(term)).slice(0, 40);
+    out.innerHTML = `<p class="small-text"><b>${hits.length}</b> 个脚本命中 · <b>${terms.length}</b> 条明文常量</p>
+      <div class="world-lua-files">${hits.map(([name, [group, ids]]) => `<details class="world-lua-file">
+        <summary>${escTerm(name)} <small>${escTerm(group)} · ${ids.length} 条常量</small></summary>
+        <div class="tag-list">${(ids || []).slice(0, 60).map(i => {
+          const s = String(pool[i] || '');
+          return `<span class="mech-tag${verify(s) ? ' is-ok' : ''}">${escTerm(s.slice(0, 90))}</span>`;
+        }).join('')}</div></details>`).join('') || '<p class="muted">没有匹配的脚本。</p>'}</div>
+      ${terms.length ? `<details open><summary>与检索词相关的解密常量（${terms.length}）</summary>
+        <div class="tag-list">${terms.map(x => `<span class="mech-tag${verify(x) ? ' is-ok' : ''}">${escTerm(x.slice(0, 110))}</span>`).join('')}</div></details>` : ''}`;
+  };
+  q && q.addEventListener('input', run);
+  run();
+}
+
+window.WikiWorld = {renderMaps, renderAI, renderCode, renderEnhance, renderLuaScripts, gridIso, gridSvg};
 
 })();

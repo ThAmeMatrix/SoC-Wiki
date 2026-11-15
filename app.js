@@ -112,7 +112,7 @@
     const NAV_ORDER=['character','equipment','skill','status','talent'];
     const archiveTypes=Object.keys(DATA.archive.counts||{}).filter(t=>types[t]);
     const orderedTypes=[...NAV_ORDER.filter(t=>archiveTypes.includes(t)), ...archiveTypes.filter(t=>!NAV_ORDER.includes(t))];
-    const allItems = [['#/', 'home', '资料馆总览', ''], ...orderedTypes.map(t => [routeFor(t), typeIcons[t], types[t], DATA.archive.counts[t]]), ['#/dialogues','book','剧情对话',''],['#/mechanics','tree','机制规则',''],['#/maps','map','战斗地图',''],['#/ai','cpu','自动战斗 AI',''],['#/code','code','客户端代码',''],['#/enhance','spark','强化与随机',''],['#/search','search','全站搜索',''],['#/tools','compare','离线工具',''],['#/archive','download','资料更新','']];
+    const allItems = [['#/', 'home', '资料馆总览', ''], ...orderedTypes.map(t => [routeFor(t), typeIcons[t], types[t], DATA.archive.counts[t]]), ['#/dialogues','book','剧情对话',''],['#/mechanics','tree','机制规则',''],['#/character-mechanics','user','逐角色机制',''],['#/maps','map','战斗地图',''],['#/ai','cpu','自动战斗 AI',''],['#/code','code','客户端代码',''],['#/enhance','spark','强化与随机',''],['#/search','search','全站搜索',''],['#/tools','compare','离线工具',''],['#/archive','download','资料更新','']];
     // External nav-config.js decides which entries show; recent additions are
     // off by default. Archive type links always stay visible.
     const items = allItems.filter(([url]) => navVisible(url));
@@ -123,10 +123,10 @@
   function characterCard(p, i = 0, mode = 'portrait') {
     const selected = comparison.includes(p.id);
     const sprite = mode==='sprite';
-    return `<article class="character-card ${sprite?'sprite-card':''}" data-character-id="${p.id}"><a href="${href(p)}" class="portrait-wrap ${['','blue','rose'][i % 3]}" aria-label="查看${esc(p.name)}"><span class="class-mark" title="${esc(p.class)}">${p.professionIcon?`<img src="${esc(p.professionIcon)}" alt="" loading="lazy">`:icon(classIcon(p.class),14)}</span>${sprite&&!p.sprite?'<span class="sprite-missing">暂无像素形象</span>':`<img src="${(sprite?p.sprite:p.image) || 'assets/brand/placeholder.svg'}" alt="${esc(p.name)}${sprite?'像素形象':'立绘'}" loading="lazy" decoding="async">`}${sprite&&p.unitNumber?`<span class="unit-number">NO. ${esc(p.unitNumber)}</span>`:''}${sprite?`<span class="faction-marks">${(p.faction||'').split(/[，,、]/).filter(Boolean).map(f=>{const t=f.trim(),src=(p.factionIcons||{})[t];return src?`<img src="${esc(src)}" alt="" title="${esc(t)}" loading="lazy">`:'';}).join('')}</span>`:''}</a>${favoriteButton(p)}<div class="character-info"><div class="rarity-line"><span class="rarity-diamond">◆</span> ${esc(p.rarity || '角色')} <span>· ${{SSR:'LEGENDARY',SR:'EPIC',R:'RARE',N:'COMMON'}[p.rarity] || 'ARCHIVE'}</span></div><a href="${href(p)}" class="character-name">${esc(p.name)}</a><div class="character-sub">${esc(p.class || '—')} <span>·</span> ${esc(p.faction.split(/[，,、]/)[0] || '其他角色')}</div><div class="card-bottom"><button class="compare-check ${selected ? 'selected' : ''}" data-compare="${p.id}" aria-pressed="${selected}">${icon(selected ? 'check' : 'compare',12)}${selected ? '已加入对比' : '加入对比'}</button><a href="${href(p)}" aria-label="打开${esc(p.name)}">${icon('arrow',14)}</a></div></div></article>`;
+    return `<article class="character-card ${sprite?'sprite-card':''}" data-character-id="${p.id}"><a href="${href(p)}" class="portrait-wrap ${['','blue','rose'][i % 3]}" aria-label="查看${esc(p.name)}"><span class="class-mark" title="${esc(p.class)}">${p.professionIcon?`<img src="${esc(p.professionIcon)}" alt="" loading="lazy">`:icon(classIcon(p.class),14)}</span>${sprite&&!p.sprite?'<span class="sprite-missing">暂无像素形象</span>':`<img src="${(sprite?p.sprite:thumbSrc(p.image)) || 'assets/brand/placeholder.svg'}" alt="${esc(p.name)}${sprite?'像素形象':'立绘'}" loading="lazy" decoding="async">`}${sprite&&p.unitNumber?`<span class="unit-number">NO. ${esc(p.unitNumber)}</span>`:''}${sprite?`<span class="faction-marks">${(p.faction||'').split(/[，,、]/).filter(Boolean).map(f=>{const t=f.trim(),src=(p.factionIcons||{})[t];return src?`<img src="${esc(src)}" alt="" title="${esc(t)}" loading="lazy">`:'';}).join('')}</span>`:''}</a>${favoriteButton(p)}<div class="character-info"><div class="rarity-line"><span class="rarity-diamond">◆</span> ${esc(p.rarity || '角色')} <span>· ${{SSR:'LEGENDARY',SR:'EPIC',R:'RARE',N:'COMMON'}[p.rarity] || 'ARCHIVE'}</span></div><a href="${href(p)}" class="character-name">${esc(p.name)}</a><div class="character-sub">${esc(p.class || '—')} <span>·</span> ${esc(p.faction.split(/[，,、]/)[0] || '其他角色')}</div><div class="card-bottom"><button class="compare-check ${selected ? 'selected' : ''}" data-compare="${p.id}" aria-pressed="${selected}">${icon(selected ? 'check' : 'compare',12)}${selected ? '已加入对比' : '加入对比'}</button><a href="${href(p)}" aria-label="打开${esc(p.name)}">${icon('arrow',14)}</a></div></div></article>`;
   }
-  function equipmentCard(p) { return `<article class="equipment-card">${favoriteButton(p)}<a href="${href(p)}"><div class="equipment-image"><img src="${p.image || 'assets/brand/placeholder.svg'}" alt="${esc(p.name)}" loading="lazy"></div><div class="rarity-line">◆ ${esc(p.rarity || '装备')} · EQUIPMENT</div><h3>${esc(p.name)}</h3><p>${esc(p.summary)}</p><div class="equipment-type"><span>${esc(p.weapon || '装备资料')}</span>${icon('arrow',14)}</div></a></article>`; }
-  function entryCard(p) { return `<article class="entry-card"><a href="${href(p)}" class="entry-card-icon" tabindex="-1" aria-hidden="true">${p.image ? `<img src="${p.image}" alt="" loading="lazy">` : icon(typeIcons[p.type],23)}</a><div class="entry-content"><a href="${href(p)}"><div class="entry-type">${esc(types[p.type])}</div><h3>${esc(p.name)}</h3><p>${esc(p.summary || '点击查看完整资料与原文内容。')}</p><div class="entry-date">原站更新 ${esc(p.date || '未记录')}</div></a></div>${favoriteButton(p)}</article>`; }
+  function equipmentCard(p) { return `<article class="equipment-card">${favoriteButton(p)}<a href="${href(p)}"><div class="equipment-image"><img src="${thumbSrc(p.image) || 'assets/brand/placeholder.svg'}" alt="${esc(p.name)}" loading="lazy"></div><div class="rarity-line">◆ ${esc(p.rarity || '装备')} · EQUIPMENT</div><h3>${esc(p.name)}</h3><p>${esc(p.summary)}</p><div class="equipment-type"><span>${esc(p.weapon || '装备资料')}</span>${icon('arrow',14)}</div></a></article>`; }
+  function entryCard(p) { return `<article class="entry-card"><a href="${href(p)}" class="entry-card-icon" tabindex="-1" aria-hidden="true">${p.image ? `<img src="${thumbSrc(p.image)}" alt="" loading="lazy">` : icon(typeIcons[p.type],23)}</a><div class="entry-content"><a href="${href(p)}"><div class="entry-type">${esc(types[p.type])}</div><h3>${esc(p.name)}</h3><p>${esc(p.summary || '点击查看完整资料与原文内容。')}</p><div class="entry-date">原站更新 ${esc(p.date || '未记录')}</div></a></div>${favoriteButton(p)}</article>`; }
   function empty(title, text, link = '#/characters', label = '探索角色图鉴', ic = 'book') { return `<div class="empty-state">${icon(ic,40)}<h2>${esc(title)}</h2><p>${esc(text)}</p><a class="button" href="${link}">${label}${icon('arrow',15)}</a></div>`; }
   function home() {
     const counts = DATA.archive.counts;
@@ -186,8 +186,9 @@
     const heading=(key,label)=>`<th scope="col" aria-sort="${catalog.sort===key?catalog.descending?'descending':'ascending':'none'}"><button data-unit-sort="${key}">${label}<span aria-hidden="true">${catalog.sort===key?catalog.descending?'↓':'↑':'↕'}</span></button></th>`;
     return `<div class="unit-list-heading"><span>单位列表</span><small>属性为满级满星 · 点击数值表头排序 · 横向滚动查看全部</small></div><div class="catalog-table-wrap unit-table-wrap" tabindex="0" role="region" aria-label="角色单位列表，可横向滚动"><table class="data-table unit-table"><thead><tr>${heading('name','角色')}<th scope="col">像素形象</th><th scope="col">稀有度</th><th scope="col">职业</th><th scope="col">阵营</th><th scope="col">武器</th>${stats.map(s=>heading('stat:'+s,s==='敏捷'?'速度':s)).join('')}<th scope="col">操作</th></tr></thead><tbody>${matches.map(p=>`<tr data-character-id="${p.id}"><td><a class="unit-identity" href="${href(p)}"><img class="unit-avatar" src="${esc(p.avatar||p.sprite||'assets/brand/placeholder.svg')}" alt="" loading="lazy"><span><strong>${esc(p.name)}</strong>${p.unitNumber?`<small>NO. ${esc(p.unitNumber)}</small>`:''}</span></a></td><td class="unit-sprite">${p.sprite?`<a href="${href(p)}" aria-label="查看${esc(p.name)}"><img src="${esc(p.sprite)}" alt="${esc(p.name)}像素形象" loading="lazy"></a>`:'—'}</td><td><span class="unit-rarity">${esc(p.rarity||'—')}</span></td><td><span class="unit-profession">${p.professionIcon?`<img src="${esc(p.professionIcon)}" alt="" loading="lazy">`:''}${esc(p.class||'—')}</span></td><td><div class="unit-factions">${p.faction.split(/[，,、]/).filter(Boolean).map(f=>{const t=f.trim(),src=(p.factionIcons||{})[t];return `<span>${src?`<img src="${esc(src)}" alt="" loading="lazy">`:''}${esc(t)}</span>`;}).join('')||'—'}</div></td><td>${esc(p.weapon||'—')}</td>${stats.map(s=>`<td class="unit-stat">${esc(p.stats?.[s]||'—')}</td>`).join('')}<td><div class="unit-actions">${favoriteButton(p)}<button class="icon-button" data-compare="${p.id}" aria-label="对比${esc(p.name)}" aria-pressed="${comparison.includes(p.id)}">${icon(comparison.includes(p.id)?'check':'compare',16)}</button></div></td></tr>`).join('')}</tbody></table></div>`;
   }
+  const thumbSrc=s=>window.WikiImg?window.WikiImg.thumb(s):s;const displaySrc=s=>window.WikiImg?window.WikiImg.display(s):s;
   function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=()=>{s.remove();resolve();};s.onerror=()=>{s.remove();reject(new Error('本地文件载入失败：'+src));};document.head.appendChild(s);});}
-  function loadPage(id){if(window.WIKI_PAGES[id])return Promise.resolve(window.WIKI_PAGES[id]);if(!pendingPages.has(id))pendingPages.set(id,loadScript(`data/pages/${id}.js`).then(()=>{if(!window.WIKI_PAGES[id])throw new Error('资料文件内容不完整');window.WIKI_PAGES[id]=window.WikiUpdates?.resolve(window.WIKI_PAGES[id])||window.WIKI_PAGES[id];return window.WIKI_PAGES[id];}).catch(e=>{pendingPages.delete(id);throw e;}));return pendingPages.get(id);}
+  function loadPage(id){if(window.WIKI_PAGES[id])return Promise.resolve(window.WIKI_PAGES[id]);if(!pendingPages.has(id))pendingPages.set(id,loadScript(`data/pages/${id}.js`).then(()=>{if(!window.WIKI_PAGES[id])throw new Error('资料文件内容不完整');window.WIKI_PAGES[id]=window.WikiUpdates?.resolve(window.WIKI_PAGES[id])||window.WIKI_PAGES[id];window.WikiImg?.optimizeDoc(window.WIKI_PAGES[id]);return window.WIKI_PAGES[id];}).catch(e=>{pendingPages.delete(id);throw e;}));return pendingPages.get(id);}
   function loadSearch(){if(!searchPromise)searchPromise=Promise.all([window.WIKI_SEARCH?Promise.resolve():loadScript('data/search.js').then(()=>window.WikiUpdates?.patchSearch()),window.WikiSearch.prepare(pages)]).catch(e=>{searchPromise=null;throw e;});return searchPromise;}
   function saveHistory(id){history=[id,...history.filter(x=>x!==id)].slice(0,50);persist('history',history);}
   function sourceFooter(doc){
@@ -209,7 +210,7 @@
   function skillMini(name,prefix='技能图鉴库'){
     if(!name)return '<div class="skill-mini"><span class="skill-missing">原站未提供该技能</span></div>';
     const p=find(prefix+'/'+name)||find('技能图鉴库/'+name)||find('技能/'+name)||find('极限解放/'+name);
-    return `<a class="skill-mini" href="${p?href(p):'#/search?q='+encodeURIComponent(name)}">${p?.image?`<img src="${p.image}" alt="" loading="lazy">`:icon('spark',29)}<div><h3>${esc(name)}</h3><p>${esc(p?.summary||'查看关联资料')}</p></div></a>`;
+    return `<a class="skill-mini" href="${p?href(p):'#/search?q='+encodeURIComponent(name)}">${p?.image?`<img src="${thumbSrc(p.image)}" alt="" loading="lazy">`:icon('spark',29)}<div><h3>${esc(name)}</h3><p>${esc(p?.summary||'查看关联资料')}</p></div></a>`;
   }
   function voiceList(p){
     const clips=(window.WIKI_VOICES||{})[String(p.id)]||[];
@@ -355,7 +356,7 @@
   function equipmentDetail(p,doc){
     const f=doc.fields;
     $('#main').innerHTML=`${detailHeading(p)}
-      <section class="equipment-profile"><img src="${p.image||'assets/brand/placeholder.svg'}" alt="${esc(p.name)}"><div><div class="rarity-line">◆ ${esc(p.rarity)}</div><h2>${esc(p.name)}</h2><div class="badges"><span class="badge">${esc(p.weapon)}</span></div><p>获取来源：${f['产出来源']||'原站未注明'}</p></div></section>
+      <section class="equipment-profile"><img src="${displaySrc(p.image)||'assets/brand/placeholder.svg'}" data-full="${p.image||''}" decoding="async" alt="${esc(p.name)}"><div><div class="rarity-line">◆ ${esc(p.rarity)}</div><h2>${esc(p.name)}</h2><div class="badges"><span class="badge">${esc(p.weapon)}</span></div><p>获取来源：${f['产出来源']||'原站未注明'}</p></div></section>
       <div class="detail-panels"><div>${equipmentReference(p)}
         <section class="content-card"><h2>装备技能</h2>${window.WikiCharacter.traitMarkup(doc,traitMode,starLevel,starButtons(),'星级效果展示方式','装备效果')}</section>
         ${equipmentSkillCards(doc)}
@@ -365,7 +366,7 @@
   }
   function genericDetail(p,doc){
     const f=doc.fields;let custom='';
-    const abilityTitle=label=>`<div class="ability-title">${p.image?`<img src="${p.image}" alt="" width="64" height="64">`:icon('spark',40)}<div><span class="eyebrow">${esc(p.rarity||types[p.type])}</span><h2>${label}</h2></div></div>`;
+    const abilityTitle=label=>`<div class="ability-title">${p.image?`<img src="${displaySrc(p.image)}" data-full="${p.image}" decoding="async" alt="" width="64" height="64">`:icon('spark',40)}<div><span class="eyebrow">${esc(p.rarity||types[p.type])}</span><h2>${label}</h2></div></div>`;
     if(f['技能描述'])custom=`<article class="content-card ability-card" id="article-content">${abilityTitle('技能效果')}<div class="ability-facts">${['技能类别','技能消耗','技能冷却','攻击方式','技能射程','射程高低','技能范围','范围高低'].filter(k=>f[k]).map(k=>`<div><span>${k.replace('技能','')}</span><strong>${f[k]}</strong></div>`).join('')}</div><div class="ability-description rich-text">${f['技能描述']}</div>${window.WikiCharacter.rangeFigure(doc)}</article>`;
     const starPrefix=['个性描述','天赋描述','特性描述'].find(pre=>[1,2,3,4,5].some(n=>f[pre+n]));
     if(starPrefix)custom=`<article class="content-card ability-card" id="article-content">${abilityTitle('效果与成长')}${window.WikiCharacter.traitMarkup(doc,traitMode,starLevel,starButtons())}</article>`;
@@ -375,7 +376,7 @@
     const related=(doc.related||[]).map(id=>byId.get(id)).filter(Boolean);
     const relatedLabel=c=>c.type==='character'?[c.class,c.rarity].filter(Boolean).join(' · '):(types[c.type]||'');
     // 通用词条（如「瞬发」「减益」）能挂到上百个角色，先给一屏，其余收进折叠里。
-    const card=c=>`<a href="${href(c)}"><img src="${c.avatar||c.image||'assets/brand/placeholder.svg'}" alt="" loading="lazy"><span><strong>${esc(c.name)}</strong><small>${esc(relatedLabel(c))}</small></span>${icon('chevron',15)}</a>`;
+    const card=c=>`<a href="${href(c)}"><img src="${c.avatar||thumbSrc(c.image)||'assets/brand/placeholder.svg'}" alt="" loading="lazy"><span><strong>${esc(c.name)}</strong><small>${esc(relatedLabel(c))}</small></span>${icon('chevron',15)}</a>`;
     const shown=related.slice(0,24),rest=related.slice(24);
     const relations=related.length?`<section class="content-card"><h2>${p.type==='status'?'关联角色':'关联'} <span class="heading-count">${related.length}</span></h2><div class="related-characters">${shown.map(card).join('')}</div>${rest.length?`<details class="related-more"><summary>展开其余 ${rest.length} 项</summary><div class="related-characters">${rest.map(card).join('')}</div></details>`:''}</section>`:'';
     // 关联要跟着正文走：词条页没有 custom 区块，之前整段被丢掉了。
@@ -401,7 +402,7 @@
       }
     }
   }
-  function displayDetail(){if(!currentPage)return;window.WikiCharacter.unmount();const p=byId.get(currentPage.id);if(p.type==='character')characterDetail(p,currentPage);else if(p.type==='equipment')equipmentDetail(p,currentPage);else genericDetail(p,currentPage);document.documentElement.style.setProperty('--reader-font',readerFont+'px');prepareSourceTables();}
+  function displayDetail(){if(!currentPage)return;window.WikiCharacter.unmount();const p=byId.get(currentPage.id);if(p.type==='character')characterDetail(p,currentPage);else if(p.type==='equipment')equipmentDetail(p,currentPage);else genericDetail(p,currentPage);linkifySwitchTerms();document.documentElement.style.setProperty('--reader-font',readerFont+'px');prepareSourceTables();}
   async function detail(id,token,params){
     if(id===7523||id===8027){saveHistory(id);toolView(id===7523?'damage':'gacha');return;}
     const catalogAlias={968:'character',2701:'character',7199:'monster'}[id];
@@ -418,7 +419,7 @@
   function updateDock(){const visible=comparison.length>0&&activeRoute!=='#/compare';$('#compare-dock').innerHTML=visible?`<div class="compare-dock-inner"><span class="compare-dock-label">${icon('compare',15)} 角色对比</span>${comparison.map(id=>`<div class="compare-chip"><span>${esc(byId.get(id).name)}</span><button data-compare="${id}" aria-label="移除${esc(byId.get(id).name)}">×</button></div>`).join('')}<a href="#/compare" class="button small">开始对比 ${comparison.length}/3${icon('arrow',13)}</a></div>`:'';}
   function compareView(){
     const selected=comparison.map(id=>byId.get(id));
-    $('#main').innerHTML=intro('SIDE BY SIDE','并肩，也能细细比较。','最多对比 3 位角色。属性直接来自原站「满级满星」字段，未提供的数值显示为 —。','<a href="#/characters" class="button secondary small">'+icon('users',15)+'选择角色</a>')+(selected.length?`<div class="catalog-table-wrap"><table class="data-table compare-table"><thead><tr><th>角色档案</th>${selected.map(p=>`<td><img class="compare-portrait" src="${p.image||'assets/brand/placeholder.svg'}" alt="${esc(p.name)}"><a href="${href(p)}" class="compare-name">${esc(p.name)}</a><div style="margin-top:12px"><button class="text-link" data-compare="${p.id}">移出对比</button></div></td>`).join('')}</tr></thead><tbody>${[['职业','class'],['稀有度','rarity'],['所属阵营','faction'],['武器类型','weapon']].map(([label,key])=>`<tr><th>${label}</th>${selected.map(p=>`<td>${esc(p[key]||'—')}</td>`).join('')}</tr>`).join('')}${['生命','物攻','魔攻','物防','魔防','敏捷'].map(s=>{const vals=selected.map(p=>Number(p.stats?.[s])||0);const max=Math.max(...vals);return `<tr><th>满级${s==='敏捷'?'速度':s}</th>${selected.map((p,i)=>`<td class="${max>0&&vals[i]===max&&selected.length>1?'best':''}">${esc(p.stats?.[s]||'—')}</td>`).join('')}</tr>`;}).join('')}</tbody></table></div><p class="muted small-text" style="margin-top:17px">高亮为当前对比中的最高数值。基础属性不包含装备、天赋和战斗增益。</p>`:empty('为你的阵容挑选伙伴','在角色卡片点击「加入对比」，就能并排查看属性与阵营。','#/characters','前往角色图鉴','compare'));
+    $('#main').innerHTML=intro('SIDE BY SIDE','并肩，也能细细比较。','最多对比 3 位角色。属性直接来自原站「满级满星」字段，未提供的数值显示为 —。','<a href="#/characters" class="button secondary small">'+icon('users',15)+'选择角色</a>')+(selected.length?`<div class="catalog-table-wrap"><table class="data-table compare-table"><thead><tr><th>角色档案</th>${selected.map(p=>`<td><img class="compare-portrait" src="${displaySrc(p.image)||'assets/brand/placeholder.svg'}" loading="lazy" decoding="async" alt="${esc(p.name)}"><a href="${href(p)}" class="compare-name">${esc(p.name)}</a><div style="margin-top:12px"><button class="text-link" data-compare="${p.id}">移出对比</button></div></td>`).join('')}</tr></thead><tbody>${[['职业','class'],['稀有度','rarity'],['所属阵营','faction'],['武器类型','weapon']].map(([label,key])=>`<tr><th>${label}</th>${selected.map(p=>`<td>${esc(p[key]||'—')}</td>`).join('')}</tr>`).join('')}${['生命','物攻','魔攻','物防','魔防','敏捷'].map(s=>{const vals=selected.map(p=>Number(p.stats?.[s])||0);const max=Math.max(...vals);return `<tr><th>满级${s==='敏捷'?'速度':s}</th>${selected.map((p,i)=>`<td class="${max>0&&vals[i]===max&&selected.length>1?'best':''}">${esc(p.stats?.[s]||'—')}</td>`).join('')}</tr>`;}).join('')}</tbody></table></div><p class="muted small-text" style="margin-top:17px">高亮为当前对比中的最高数值。基础属性不包含装备、天赋和战斗增益。</p>`:empty('为你的阵容挑选伙伴','在角色卡片点击「加入对比」，就能并排查看属性与阵营。','#/characters','前往角色图鉴','compare'));
   }
   function collection(key){const saved=key==='favorites';const ids=saved?[...favorites].reverse():history;$('#main').innerHTML=intro(saved?'YOUR COLLECTION':'THE PAGES YOU TURNED',saved?'珍藏旅途中的每一份灵感。':'走过的路，都有记录。',saved?'收藏角色、技能和攻略，让常用的资料触手可及。':'最近 50 份浏览档案保存在当前浏览器，按最近打开排序。',`<div class="intro-actions">${saved?'<button class="button secondary small" data-action="export">'+icon('download',14)+'导出备份</button>':'<button class="button secondary small" data-action="clear-history">清空记录</button>'}</div>`)+(ids.length?`<div class="catalog-result" style="margin-bottom:20px">共 <b>${ids.length}</b> 份档案</div><div class="entry-grid">${ids.map(id=>entryCard(byId.get(id))).join('')}</div>`:empty(saved?'收藏夹，等待一段相遇。':'还没有翻阅记录。',saved?'点击档案上的书签图标，把需要的资料放在这里。':'打开任意一份档案后，就能在这里继续阅读。','#/characters','寻找你的伙伴',saved?'bookmark':'clock'));}
   function syncSearchClear(input){
@@ -448,7 +449,7 @@
   }
   function searchResultMarkup(result,query){
     const {p,hits}=result,S=window.WikiSearch,excerpt=hits[0]?.text||p.summary,displayHits=hits.filter(hit=>hit.type!=='全文').slice(0,4);
-    return `<article class="search-result" data-search-id="${p.id}"><a class="search-identity" href="${href(p)}">${p.avatar||p.image?`<img src="${esc(p.avatar||p.image)}" alt="" loading="lazy">`:`<span class="search-type-icon">${icon(typeIcons[p.type],24)}</span>`}<div><span class="entry-type">${types[p.type]}${p.class?' · '+esc(p.class):''} · ${esc(p.date)}</span><h3>${highlighted(p.name,query)}</h3></div>${icon('arrow',18,'search-open')}</a>${p.faction?`<div class="search-faction-labels">${p.faction.split(/[，,、]/).filter(Boolean).map(c=>`<span>${S.badge(c)?`<img src="${esc(S.badge(c))}" alt="">`:''}${esc(c)}</span>`).join('')}</div>`:''}${displayHits.length?displayHits.map(hit=>`<div class="search-hit"><a href="${href(hit.id)}">${esc(hit.type)}${hit.name!==p.name?' · '+highlighted(hit.name,query):''}${hit.label?' · '+esc(hit.label):''}</a><p>${highlighted(S.snippet(hit.text,query,170),query)} ${S.groupTag(hit.text,query)}</p></div>`).join(''):`<p class="search-excerpt">${highlighted(S.snippet(excerpt,query,180),query)}</p>`}${hits.length>displayHits.length&&displayHits.length?`<a class="search-more" href="${href(p)}">查看完整资料及其他命中 →</a>`:''}</article>`;
+    return `<article class="search-result" data-search-id="${p.id}"><a class="search-identity" href="${href(p)}">${p.avatar||p.image?`<img src="${esc(p.avatar||thumbSrc(p.image))}" alt="" loading="lazy">`:`<span class="search-type-icon">${icon(typeIcons[p.type],24)}</span>`}<div><span class="entry-type">${types[p.type]}${p.class?' · '+esc(p.class):''} · ${esc(p.date)}</span><h3>${highlighted(p.name,query)}</h3></div>${icon('arrow',18,'search-open')}</a>${p.faction?`<div class="search-faction-labels">${p.faction.split(/[，,、]/).filter(Boolean).map(c=>`<span>${S.badge(c)?`<img src="${esc(S.badge(c))}" alt="">`:''}${esc(c)}</span>`).join('')}</div>`:''}${displayHits.length?displayHits.map(hit=>`<div class="search-hit"><a href="${href(hit.id)}">${esc(hit.type)}${hit.name!==p.name?' · '+highlighted(hit.name,query):''}${hit.label?' · '+esc(hit.label):''}</a><p>${highlighted(S.snippet(hit.text,query,170),query)} ${S.groupTag(hit.text,query)}</p></div>`).join(''):`<p class="search-excerpt">${highlighted(S.snippet(excerpt,query,180),query)}</p>`}${hits.length>displayHits.length&&displayHits.length?`<a class="search-more" href="${href(p)}">查看完整资料及其他命中 →</a>`:''}</article>`;
   }
   function updateSearchPage(query){
     clearTimeout(searchPageTimer);if($('#search-page-query'))syncSearchClear($('#search-page-query'));
@@ -518,11 +519,16 @@
     window.WikiCharacter.unmount();
     window.WikiTools?.unmount();
     window.WikiDialogues?.unmount();
+    window.WikiBattle?.unmount();
     clearTimeout(toastTimer);$('#toast').classList.remove('show');
     const hash=location.hash||'#/';const [path,query='']=hash.split('?');const params=new URLSearchParams(query);const token=++renderToken;
     if(path==='#/tools/advanced'){location.replace('#/search'+(query?'?'+query:''));return;}
     document.body.classList.remove('nav-open');document.body.classList.remove('reading');currentPage=null;detailTab='overview';starLevel=5;statLevel='max';activeRoute=path;
     window.scrollTo({top:0,behavior:'instant'});document.title='铃兰档案馆 · 离线 Wiki';nav();updateDock();setBreadcrumb('总览');
+    // Page-specific data (dialogues, maps, code, mechanics, simulator) is loaded
+    // on demand so ordinary pages do not download ~18 MB of unrelated data.
+    const needData=path==='#/dialogues'?['dialogues']:path==='#/mechanics'?['mechanics']:path==='#/character-mechanics'?['charmech']:(path==='#/maps'||path==='#/ai')?['world']:path==='#/code'?['code','lua','substrate']:path==='#/enhance'?['enhance']:path==='#/tools/panel'?['world']:path==='#/tools/battle'?['world','battle','cup','mech','substrate']:(path.startsWith('#/page/')&&byId.get(Number(path.split('/')[2]))?.type==='skill')?['mechanics']:[];
+    if(needData.length&&window.WikiData&&!needData.every(n=>window.WikiData.loaded(n))){$('#main').innerHTML='<div class="data-loading" role="status"><span></span>正在载入本页数据…</div>';try{await window.WikiData.ensure(needData);}catch(e){if(token===renderToken)$('#main').innerHTML=empty('本页数据未能载入。',e.message,location.hash,'重试');return;}if(token!==renderToken)return;}
     if(path==='#/'||path==='#')$('#main').innerHTML=home();
     else if(path==='#/characters'){setBreadcrumb(types.character);catalogView('character');}
     else if(path.startsWith('#/library/')){const type=path.split('/')[2];if(types[type]){setBreadcrumb(types[type]);catalogView(type);}else $('#main').innerHTML=empty('这条路还没有档案。','返回资料馆，继续探索。','#/','返回总览');}
@@ -532,10 +538,12 @@
     else if(path==='#/compare'){setBreadcrumb('角色对比');compareView();}
     else if(path==='#/dialogues'){setBreadcrumb('剧情对话');document.title='剧情对话 · 铃兰档案馆';window.WikiDialogues.render($('#main'),params);}
     else if(path==='#/mechanics'){setBreadcrumb('机制规则');document.title='机制规则 · 铃兰档案馆';window.WikiMechanics.render($('#main'));}
+    else if(path==='#/character-mechanics'){setBreadcrumb('逐角色机制');document.title='逐角色机制 · 铃兰档案馆';window.WikiMechanics.renderCharacters($('#main'));}
     else if(path==='#/maps'){setBreadcrumb('战斗地图');document.title='战斗地图 · 铃兰档案馆';window.WikiWorld.renderMaps($('#main'));}
     else if(path==='#/ai'){setBreadcrumb('自动战斗 AI');document.title='自动战斗 AI · 铃兰档案馆';window.WikiWorld.renderAI($('#main'));}
-    else if(path==='#/code'){setBreadcrumb('客户端代码');document.title='客户端代码 · 铃兰档案馆';window.WikiWorld.renderCode($('#main'));}
+    else if(path==='#/code'){setBreadcrumb('客户端代码');document.title='客户端代码 · 铃兰档案馆';window.WikiWorld.renderCode($('#main'));window.WikiWorld.renderLuaScripts?.($('#main'));}
     else if(path==='#/enhance'){setBreadcrumb('强化与随机');document.title='强化与随机 · 铃兰档案馆';window.WikiWorld.renderEnhance($('#main'));}
+    else if(path==='#/tools/battle'){activeRoute='#/tools';setBreadcrumb('自动对局模拟');document.title='自动对局模拟 · 铃兰档案馆';window.WikiBattle.render($('#main'),{intro,icon,read,persist,toast});}
     else if(path==='#/tools'||path==='#/tools/damage'||path==='#/tools/panel'||path==='#/tools/gacha'||path==='#/tools/equipment'||path==='#/tools/infographic')toolView(path.split('/')[2]||'');
     else if(path==='#/archive'){setBreadcrumb('资料馆信息');archiveView();const update=document.createElement('div');$('#main').prepend(update);updateCleanup=window.WikiUpdates.mount(update);}
     else $('#main').innerHTML=empty('这条路还没有档案。','返回资料馆，继续探索。','#/','返回总览');
@@ -581,7 +589,7 @@
       // 只有裸图片和外链放大图才进看图窗。
       const wrapper=articleImg.closest('a[href]');
       if(wrapper&&wrapper.getAttribute('href').startsWith('#/'))return;
-      e.preventDefault();openImage(articleImg.src,articleImg.alt||'原站图片');return;}
+      e.preventDefault();openImage(articleImg.dataset.full||articleImg.getAttribute('src'),articleImg.alt||'原站图片');return;}
     if(target===$('#lightbox-image')){$('.image-stage').classList.toggle('zoom');return;}
     const action=target.closest('[data-action]')?.dataset.action;
     if(action==='search')openSearch();
@@ -676,32 +684,74 @@
   document.addEventListener('focusin',e=>{const link=termFrom(e.target);if(link){clearTimeout(termTimer);termLink=link;showTerm(link);}});
   document.addEventListener('focusout',e=>{if(termFrom(e.target))hideTerm();});
   window.addEventListener('scroll',hideTerm,true);
-  // A 抉择 child term (e.g. [人为财死]) keeps its original bracket-glossary
-  // href so the hover tooltip is unchanged, but a click goes straight to the
-  // real skill page instead of making the reader open the parent skill first.
-  const choiceTermPages=()=>{
-    const data=window.WIKI_CHOICE_SKILLS;
-    if(!data)return null;
-    if(choiceTermPages.cache&&choiceTermPages.source===data)return choiceTermPages.cache;
-    const map=new Map();
-    for(const group of data.groups||[]){
-      const branch=data.branches?.[group.id];
+  // 抉择分支 [人为财死] 与「技能变更为[烈风超重斩]」的变化技能词条都保留
+  // 原来的「中括号介绍」href（鼠标悬停仍显示状态说明），但点击直接进入对应
+  // 技能词条页，不必先打开状态说明或父技能再二次跳转。变化技能的名字 ->
+  // 技能页映射由 scripts/build_skill_switch_links.py 从「使用后技能变更」
+  // 区块离线生成；客户端更新重建页面后会自动同步。
+  const termJumpPages=()=>{
+    const choices=window.WIKI_CHOICE_SKILLS,switches=window.WIKI_SKILL_SWITCHES;
+    if(termJumpPages.cache&&termJumpPages.choices===choices&&termJumpPages.switches===switches)
+      return termJumpPages.cache;
+    const map=new Map(Object.entries(switches||{}));
+    for(const group of choices?.groups||[]){
+      const branch=choices.branches?.[group.id];
       for(const [index,child] of (group.children||[]).entries()){
         const target=branch?.children?.[index]?.pageId||child.pageId;
         if(target)map.set(String(child.name||'').replace(/[·•‧・]/g,'-').trim(),target);
       }
     }
-    choiceTermPages.source=data;choiceTermPages.cache=map;return map;
+    termJumpPages.choices=choices;termJumpPages.switches=switches;termJumpPages.cache=map;
+    return map;
   };
+  const termKey=s=>String(s||'').replace(/[\[\]【】\s]/g,'').replace(/[·•‧・]/g,'-').trim();
   document.addEventListener('click',e=>{
     const link=e.target.closest?.('a.term-link[href^="#/page/"]');
     if(!link)return;
-    const map=choiceTermPages();if(!map)return;
-    const label=String(link.textContent||'').replace(/[\[\]【】\s]/g,'').replace(/[·•‧・]/g,'-').trim();
-    const target=map.get(label);
+    const target=termJumpPages().get(termKey(link.textContent));
     if(!target)return;
     e.preventDefault();e.stopPropagation();hideTerm();location.hash='#/page/'+target;
   },true);
+  // 有些「技能变更为[XXX]」里的名字没有生成词条链接（客户端描述缺同名状态，
+  // 或旧档案页用 <font> 标色纯文本），点不动。渲染技能详情后把它们补成
+  // term-link，href 直接指向技能页，与上面的点击兜底行为一致。
+  function linkifySwitchTerms(){
+    const map=termJumpPages();
+    if(!map.size)return;
+    const wrap=(node,target)=>{
+      const a=document.createElement('a');
+      a.className='term-link';a.href='#/page/'+target;a.dataset.switchTarget=String(target);
+      node.parentNode.insertBefore(a,node);a.appendChild(node);
+    };
+    for(const root of $$('.ability-description.rich-text')){
+      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+      const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+      for(const node of nodes){
+        if(node.parentElement?.closest('a'))continue;
+        const text=node.textContent||'';
+        const m=/((?:技能)?变更为[：:]?\s*)\[?([^\[\]<\n]{2,24})\]?/.exec(text);
+        if(!m)continue;
+        const target=map.get(termKey(m[2]));
+        if(!target)continue;
+        const frag=document.createDocumentFragment();
+        frag.append(document.createTextNode(text.slice(0,m.index+m[1].length)));
+        const a=document.createElement('a');
+        a.className='term-link';a.href='#/page/'+target;a.dataset.switchTarget=String(target);
+        a.textContent=m[0].slice(m[1].length);
+        frag.append(a,document.createTextNode(text.slice(m.index+m[0].length)));
+        node.replaceWith(frag);
+      }
+      // 旧档案页把名字放在 <font class="wiki-color-*"> 里，「变更为」在前一个
+      // 文本节点；两者合成一个可点词条。
+      for(const el of root.querySelectorAll('font, span[class*="wiki-color"]')){
+        if(el.closest('a'))continue;
+        const prev=el.previousSibling;
+        if(!prev||prev.nodeType!==3||!/变更为[：:]?\s*\[?$/.test(prev.textContent||''))continue;
+        const target=map.get(termKey(el.textContent));
+        if(target)wrap(el,target);
+      }
+    }
+  }
   document.addEventListener('click',hideTerm);
   document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTerm();});
   $('#nav-scrim').onclick=()=>document.body.classList.remove('nav-open');

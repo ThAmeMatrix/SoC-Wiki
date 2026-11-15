@@ -45,7 +45,12 @@ def main():
         for pid in (2917, 500000251, 2990, 8651):
             page.goto(BASE + f'#/page/{pid}')
             page.locator('#main').wait_for()
-            page.wait_for_timeout(220)
+            # Page chunks load asynchronously; wait for the rendered levels
+            # instead of a fixed delay so the check is not timing dependent.
+            try:
+                page.locator('.trait-levels .trait-level').first.wait_for(timeout=8000)
+            except Exception:
+                pass
             levels = page.locator('.trait-levels .trait-level').count()
             check(f'page {pid} shows five star levels', levels == 5, str(levels))
             body = page.locator('#main').inner_text()

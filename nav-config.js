@@ -10,12 +10,13 @@
 window.WIKI_NAV_CONFIG = {
   show: {
     '#/': true,
-    '#/dialogues': false,
-    '#/mechanics': false,
-    '#/maps': false,
-    '#/ai': false,
-    '#/code': false,
-    '#/enhance': false,
+    '#/dialogues': true,
+    '#/mechanics': true,
+    '#/character-mechanics': true,
+    '#/maps': true,
+    '#/ai': true,
+    '#/code': true,
+    '#/enhance': true,
     '#/search': true,
     '#/tools': true,
     '#/archive': true
@@ -24,6 +25,7 @@ window.WIKI_NAV_CONFIG = {
     '#/': '资料馆总览',
     '#/dialogues': '剧情对话',
     '#/mechanics': '机制规则',
+    '#/character-mechanics': '逐角色机制',
     '#/maps': '战斗地图',
     '#/ai': '自动战斗 AI',
     '#/code': '客户端代码',
