@@ -473,6 +473,9 @@ window.WikiBattleSim = (() => {
       // Round 32: client namespaces / helper functions referenced by
       // activation conditions and dynamic_param. Returning a concrete value
       // lets the condition be evaluated instead of being reported unknown.
+      // This is the STATIC inspection environment (no battle, no owner):
+      // the battle environment in luaEnv() overrides the stateful ones
+      // (IsInDelay / isFieldStatus / checkForget read the live owner there).
       CLASS_TYPE: {UNIT_SPEC: 1, SKILL_SPEC: 2, BUFF_SPEC: 3, PROPS: 4, TRAP: 5},
       Battle: {Entity: {Type: {Unit: 1, Props: 2, Trap: 3, Widget: 4}},
                AITemplate: {NONE: 0, MELEE: 1, RANGED: 2, SUPPORT: 3}},
@@ -996,7 +999,15 @@ window.WikiBattleSim = (() => {
     'SPECIFY_ATTRIBUTE_VALUE', 'BUFF_STACK_MODIFY_ATTRIBUTE', 'HIT_COUNT_MODIFY_ATTRIBUTE', 'DISTANCE_MODIFY_ATTRIBUTE',
     // ELEMENT_TYPE used to be here (so its handler was unreachable). It is a
     // plain declarative tag with a real handler now.
-    'ASSIST_ATTACK', 'ASSIST_COUNTER_ATTACK']);
+    'ASSIST_ATTACK', 'ASSIST_COUNTER_ATTACK',
+    // Declarative rows whose handlers used to write flags nobody read. They
+    // are read where the client applies them (see each handler's comment).
+    'BUFF_TARGET_LIMIT', 'SKILL_HEIGHT', 'FORCE_INITIATIVE', 'CAN_NOT_BE_ASSIT_DEFENCE',
+    'HIGHLAND', 'AURA_RANGE', 'UNIT_CAN_THROUGH', 'OVERFLOW_DAMAGE_STORAGE', 'HP_LOW_LIMIT',
+    'BUFF_MODIFY_ATTRIBUTE', 'IGNORE_PROFESSION_RESTRAIN', 'DAMAGE_BUFFER_DYNAMIC', 'ASSIST_TEAMMATE',
+    'CHANGE_PROFESSION_BY_BUFF', 'HEIGHT_ZERO_MOBILITY',
+    'CANT_ASSIST', 'CANT_REBORN', 'CANT_COUNTER', 'CANT_FIRST_HIT', 'DISABLE_SKILL', 'ISOLATE', 'STRAIGHT',
+    'DELAY_SKILL_INSTANCE']);
 
   function simulate(opts) {
     const data = opts.data || {}, map = opts.map;
@@ -1285,6 +1296,9 @@ window.WikiBattleSim = (() => {
       }
       cell.status = Number(id);
       sim.epoch++;                         // terrain-gated active_params (花田 / 烟雾) re-evaluate
+      // Who changed terrain this round — `owner:hasChangedFieldStatus(0)`
+      // (#28191「…改变地形后…」) asks whether the unit did it this turn.
+      if (sim.fieldActor) (sim.fieldChangers || (sim.fieldChangers = new Map())).set(sim.fieldActor, sim.round);
       sim.fieldStatus.set(key(cell.x, cell.y), {x: cell.x, y: cell.y, id: Number(id),
         turns: Math.max(1, Number(turns) || 2), round: sim.round, name: name || to?.name || `地块 #${id}`,
         sid: sid || 0});
@@ -1951,7 +1965,13 @@ window.WikiBattleSim = (() => {
         const s = inst.spec;
         if (s.t === 'MODIFY_ATTRIBUTE') { const n = attrName(s.p[0]); for (const A of COMPOSITE[n] || [n]) add(A, inst); }
         else if (s.t === 'MOVE_ATTACK') { const n = attrName(s.p[0]); for (const A of COMPOSITE[n] || [n]) add(A, inst); }
-        else if (s.t === 'CONVERT_ATTRIBUTE' || s.t === 'BUFF_STACK_MODIFY_ATTRIBUTE') add(attrName(s.p[1]), inst);
+        else if (s.t === 'CONVERT_ATTRIBUTE' || s.t === 'BUFF_STACK_MODIFY_ATTRIBUTE' ||
+                 s.t === 'BUFF_MODIFY_ATTRIBUTE') {
+          // p1 may be a COMPOSITE id (43 ATTACK / 44 DEFENCE / 5 主属性):
+          // 「每拥有1个减益，防御+5%」must reach PHYSIC_DEFENCE and
+          // SPELL_DEFENCE, otherwise attr() never sees the row.
+          const n = attrName(s.p[1]); for (const A of COMPOSITE[n] || [n]) add(A, inst);
+        }
         else if (s.t === 'SPECIFY_ATTRIBUTE_VALUE' || s.t === 'HIT_COUNT_MODIFY_ATTRIBUTE' || s.t === 'DISTANCE_MODIFY_ATTRIBUTE') {
           const n = attrName(s.p[0]); for (const A of COMPOSITE[n] || [n]) add(A, inst);
         }
@@ -1981,7 +2001,14 @@ window.WikiBattleSim = (() => {
     // used skill's own modifiers only apply inside it.
     const staticCache = new Map();
     let cacheEpoch = -1;
+    // Client "resource" attributes that specialities WRITE directly rather
+    // than modify: attr_cache (储能值 / 缓存值), overflow_damage (溢出储存).
+    // RECOVER_ATTRIBUTE, OVERFLOW_DAMAGE_STORAGE and DAMAGE_BUFFER_DYNAMIC
+    // keep them in u.store; attr() adds the stored amount on top of the
+    // computed value. Read outside the per-epoch cache: they change mid-cast.
+    const STORE_ATTRS = new Set(['ATTR_CACHE', 'OVERFLOW_DAMAGE']);
     function attr(u, A, ctx) {
+      if (STORE_ATTRS.has(A)) return attrRaw(u, A, ctx || null) + (u?.store?.[A] || 0);
       if (!ctx) {
         if (cacheEpoch !== sim.epoch) { staticCache.clear(); cacheEpoch = sim.epoch; }
         const ck = u.uid + '|' + A;
@@ -2068,6 +2095,16 @@ window.WikiBattleSim = (() => {
           pct += v; push(v, inst, s);
           return;
         }
+        // Client speciality_type 「状态属性修正」BUFF_MODIFY_ATTRIBUTE
+        // p = [buff_type 位掩码, 属性, 每个百分比, 最大百分比]: 「每拥有1个减益，
+        // 防御+5%，最大50%」(背叛骑士 #16912, 帕西法尔). Bit (bt-1) of p0 selects
+        // the buff type (4 = bit 2 = 减益). A negative per-buff value caps at
+        // the (negative) maximum. Used to be a flag nothing read.
+        if (s.t === 'BUFF_MODIFY_ATTRIBUTE') {
+          const v = buffTypeCountValue(u, s);
+          pct += v; push(v, inst, s);
+          return;
+        }
         if (s.t === 'HIT_COUNT_MODIFY_ATTRIBUTE') {
           if (!ctx?.targets) return;
           const n = Math.max(0, ctx.targets.length - (s.s ? 1 : 0));
@@ -2148,6 +2185,9 @@ window.WikiBattleSim = (() => {
           const n = buffCount(u, b => b.id === s.p[0]);
           row.pct = Math.min(s.p[3] || Infinity, n * s.p[2]);
           row.note = `${n} 层 × ${s.p[2]}%（上限 ${s.p[3] || '∞'}）`;
+        } else if (s.t === 'BUFF_MODIFY_ATTRIBUTE') {
+          row.pct = buffTypeCountValue(u, s);
+          row.note = `${buffTypeCount(u, s.p[0])} 个对应类型状态 × ${s.p[2]}%（上限 ${s.p[3] || '∞'}）`;
         } else if (s.t === 'HIT_COUNT_MODIFY_ATTRIBUTE' || s.t === 'DISTANCE_MODIFY_ATTRIBUTE') {
           row.note = '仅攻击结算时生效'; row.conditional = true;
         } else {
@@ -2340,6 +2380,9 @@ window.WikiBattleSim = (() => {
       const p = {
         __get(k) {
           switch (k) {
+            // Client camp id (1 / 2). `map:FindUnitsBySide(owner.side)` passes
+            // it back; unitsOfSide() accepts this value directly.
+            case 'side': return u.side;
             case 'temp_attributes': case 'attributes': {
               // Named values the client computes specially, then ANY client
               // attribute by its lower-case column name (attr_cache = 灵感指数
@@ -2352,7 +2395,7 @@ window.WikiBattleSim = (() => {
                 damage_buffer: () => armorOf(u, 'phys') + armorOf(u, 'spell'),
                 crit_ratio: () => K.CritBaseChance + attr(u, 'CRIT_RATIO'),
                 crit_damage: () => K.CritBaseDamage + attr(u, 'CRIT_DAMAGE'),
-                overflow_damage: () => u.damageStored || 0};
+                overflow_damage: () => attr(u, 'OVERFLOW_DAMAGE')};
               const known = new Set(Object.values(M?.enums?.attributes || {}));
               return {__get(k) {
                 if (Object.prototype.hasOwnProperty.call(special, k)) return special[k]();
@@ -2384,7 +2427,7 @@ window.WikiBattleSim = (() => {
               stay_type: Number(u.move?.type) || 1};
             case 'base_movement': return {wait_time: 10000 / Math.max(1, u.base.SPEED || 100), mobility: u.base.MOBILITY || 3};
             case 'temp_mobility': return attr(u, 'MOBILITY');
-            case 'IsInDelay': return () => false;
+            case 'IsInDelay': return () => (sim.delayed || []).some(d => d.owner === u);
             case 'checkForget': return () => !!u.flags.forget;
             case 'cooldown_max': return 0;
             case 'aimachine': return {state: 0, ai_state: 0, target: U(null),
@@ -2398,7 +2441,7 @@ window.WikiBattleSim = (() => {
               crit_damage: K.CritBaseDamage + attr(u, 'CRIT_DAMAGE')};
             case 'type': return 1;
             case 'data': return {star: u.star || 5, id: u.unitId, tp: u.tp};
-            case 'profession': return {category: u.prof};
+            case 'profession': return {category: profOf(u)};
             case 'hp': return u.hp;
             case 'tp': return u.tp;
             case 'id': return u.unitId;
@@ -2474,7 +2517,8 @@ window.WikiBattleSim = (() => {
           hasArmor: () => armorOf(u, 'phys') > 0 || armorOf(u, 'spell') > 0,
           getDistanceFrom: (a, b) => a?.__unit ? manhattan(u, a.__unit)
             : (typeof a === 'number' && typeof b === 'number') ? Math.abs(u.x - a) + Math.abs(u.y - b) : 99,
-          checkHighland: (o) => !!o?.__unit && heightOf(u) - heightOf(o.__unit) >= (hg.minDiff || 2),
+          checkHighland: (o) => !!o?.__unit && (heightOf(u) - heightOf(o.__unit) >= (hg.minDiff || 2) ||
+            !!specActive(u, 'HIGHLAND', {attacker: u, defender: o.__unit})),
           getMoveHeight: () => u.flags.moveHeight || 0,
           isClimbOver: () => !!u.flags.climbed,
           IsHPDamagedTurn: () => !!u.flags.damagedTurn,
@@ -2495,8 +2539,8 @@ window.WikiBattleSim = (() => {
           IsTempOnStage: () => u.alive,
           canAct: () => u.alive && !u.buffs.some(b => CONTROL_SKIP.has(b.def.et)),
           checkSeal: () => u.buffs.some(b => b.def.et === 'Seal' || b.def.et === 'SpecialSeal'),
-          IsProfessionCategory: (c) => u.prof === c,
-          GetProfessionCategory: () => u.prof,
+          IsProfessionCategory: (c) => profOf(u) === c,
+          GetProfessionCategory: () => profOf(u),
           GetCurTurn: () => sim.round,
           getSkillByID: (id) => { const s = u.skills.find(x => x.id === id) || u.passiveSkills.find(x => x.id === id); return s ? S(s, u) : null; },
           // Client dynamic_param reads a unit's speciality of a given type to
@@ -2523,9 +2567,13 @@ window.WikiBattleSim = (() => {
           getSpecialityByID: (id) => u.passive.some(i => i.sid === id) || u.buffs.some(b => b.def.sp.includes(id)),
           checkForget: () => !!u.flags.forget,
           getBuffCountByTagId: (tagId) => u.buffs.filter(b => (b.def.tags || []).includes(Number(tagId))).length,
-          CheckImmuneType: () => false,
+          // `target:CheckImmuneType(buff_type, buffData|0, buffId, middle, sub, category)`:
+          // would THIS buff be blocked by the unit's IMMUNE rows (#28987
+          // 「施加前确认目标不免疫」 / #30367). Uses the engine's own immuneTo().
+          CheckImmuneType: (bt, data, bid, mid, sub, cat) => !!luaImmune(u, bt, data, bid, mid, sub, cat),
           HasUnitTagByID: (id) => (u.tags || []).includes(Number(id)),
-          IsInDelay: () => false,
+          // Owner has a pending delayed / charged cast (蓄力中).
+          IsInDelay: () => (sim.delayed || []).some(d => d.owner === u),
           GetAttributeModify: (id) => {
             const n = attrName(id);
             return n ? Math.round(attr(u, n) - (u.base?.[n] || 0)) : 0;
@@ -2533,10 +2581,29 @@ window.WikiBattleSim = (() => {
           isState: (at) => !!sim.live.get(u)?.has(at),
           isRoundState: (at) => !!u.turnStates?.has(at),
           IgnoreKnockbackOrUnMovable: () => immuneToKnockback(u) || hasEffect(u, 'Immobilize'),
-          getNeighborPropsCount: () => 0,
-          // field statuses are never changed in this simulator (no 地块 effects)
-          hasChangedFieldStatus: () => false,
-          hasTag: () => false,
+          // `map:getNeighborPropsCount` is the map form; the unit form is the
+          // same query centred on this unit.
+          getNeighborPropsCount: (friend, lo, hi, attackable) => neighborProps(u, friend, lo, hi, attackable),
+          // Did this unit change any terrain tile during the current round?
+          hasChangedFieldStatus: () => sim.fieldChangers?.get(u) === sim.round,
+          // owner:hasSkillTag("Guard") — any carried skill with that tag.
+          hasSkillTag: (t) => [...(u.skills || []), ...(u.passiveSkills || [])].some(s => (s.tags || []).includes(t)),
+          // Units have no skill_tag of their own; the client form is skill:hasTag.
+          hasTag: (t) => (u.tags || []).some(x => String(x) === String(t)),
+          GetHPDamagedTurn: () => (u.damagedRound === sim.round ? u.damagedTurn || 0 : 0),
+          IsDirectBeDamaged: () => !!u.lastDirectHit,
+          // getBuffCountByEffectType(effect bit): buffs whose buff_effect_type
+          // has that bit (#18105–18107「晕眩+冰冻+石化 共 N 个时」).
+          getBuffCountByEffectType: (bit) => (u.buffs || []).filter(b => buffOn(b) && !b.aura &&
+            effectBit(b.def.et) === Number(bit)).length,
+          // target:CheckDispelForData(buff.data, map): can this buff be
+          // dispelled (client buff.dispel flag) — #32106 / #33605 count only
+          // 「被显示且可以被驱散的属性增益」.
+          CheckDispelForData: (data) => {
+            const id = Number(data?.id) || 0;
+            const b = (u.buffs || []).find(x => x.id === id);
+            return !!(b ? b.def.disp && !b.aura : M?.buffs?.[id]?.disp);
+          },
         },
         __unit: u,
       };
@@ -2650,7 +2717,7 @@ window.WikiBattleSim = (() => {
                                      // >=3 的技能后…」reads skill.template.tp.
                                      tp: s.tp || 0, tp_max: s.tp || 0};
             case 'isCounter': return !!flags.counter;
-            case 'isInitiative': return !flags.counter && !flags.sub;
+            case 'isInitiative': return forcedInitiative(s, !flags.counter && !flags.sub);
             case 'isFirstHit': return !!flags.firstHit;
             case 'target_entitys': return (flags.targets || (target ? [target] : [])).map(U);
             case 'skill_start_ix': return flags.start ? flags.start.x : caster?.x;
@@ -2691,7 +2758,17 @@ window.WikiBattleSim = (() => {
           getSpecialityByID: (id) => (s.sp || []).includes(id),
           getConsumeTP: () => (caster ? tpCost(caster, s) : s.tp || 0),
           getSpecialityByID: (id) => (s.sp || []).some(x => Number(x) === Number(id))
-            ? {temp_limit_count_turn: 0, temp_limit_count: 0, limit_count_turn: 0, limit_count: 0} : null,
+            ? (() => {
+                // Live per-speciality counters (limitOk / scopedLimitOk).
+                const sp = M?.specs?.[id] || {};
+                const key = caster ? Object.keys(caster.limits || {}).find(k => k.endsWith(':' + id)) : null;
+                const lim = key ? caster.limits[key] : {};
+                const scoped = sim.scopedLimits?.get(`c|${caster?.uid || ''}|${id}`);
+                return {limit_count_turn: sp.lt || 0, limit_count: sp.lc || 0,
+                        limit_count_command: sp.lcc || 0,
+                        temp_limit_count_turn: lim.turn || 0, temp_limit_count: lim.total || 0,
+                        temp_limit_count_command: scoped && scoped.epoch === (sim.actionId || 0) ? scoped.n : 0};
+              })() : null,
           // Client fills an out-table with this skill's specialities of a type;
           // each entry exposes Spec.data.param3 etc.
           getSpecialitys: (typeId, out) => {
@@ -2711,6 +2788,22 @@ window.WikiBattleSim = (() => {
           checkSeal: () => !!(caster?.flags?.seal),
           checkHpAttenuation: (state) => hpState(caster) === state,
           getCoolDown: () => uCd(s, caster),
+          // skill:CanInitiativeCastSkill() — the skill is one the unit can
+          // cast by its own choice (主动技能: client type 1 / active pool),
+          // not a 被动 / 反应 / 联动 row. Gates 「技能最大射程+1（非近战，主动）」
+          // #24238 and 7 sibling SKILL_RANGE rows.
+          CanInitiativeCastSkill: () => forcedInitiative(s, castable(s)),
+          // owner:getSkillByID(10657):checkLimitCount() — true while the skill
+          // still has uses left this battle / this round (client limit_count
+          // + SKILL_COUNT bonus, limit_count_turn). #28570 picks whichever of
+          // two 限次技能 is still available.
+          checkLimitCount: () => {
+            if (!caster) return true;
+            const lim = skillLimitOf(caster, s);
+            if (lim > 0 && (caster.uses[s.id] || 0) >= lim) return false;
+            if (s.lct && (caster.uses[s.id + ':t'] || 0) >= s.lct) return false;
+            return true;
+          },
         },
         __skill: s, __flags: flags, __caster: caster,
       };
@@ -2736,6 +2829,12 @@ window.WikiBattleSim = (() => {
           case 'temp_unit': return U(units.find(x => x.alive && x.x === c.x && x.y === c.y)) || null;
           case 'unit': return U(units.find(x => x.alive && x.x === c.x && x.y === c.y)) || null;
           case 'temp_trap': case 'trap': return obj ? trapProxy(obj) : null;
+          // block.temp_props: the interactive prop (木箱 / 炸药桶 …) on this
+          // tile — 「有敌人或友方召唤物 / 有可攻击物件」 (#24265 …).
+          case 'temp_props': case 'props': {
+            const pr = placed.find(o => o.alive && o.kind === 'PLACE_ITEM' && o.x === c.x && o.y === c.y);
+            return pr ? U(pr) : null;
+          }
           case 'ix': case 'temp_ix': return c.x;
           case 'iz': case 'temp_iz': return c.y;
           case 'iy': return c.h ?? grid.at(c.x, c.y)?.h ?? 0;
@@ -2744,6 +2843,9 @@ window.WikiBattleSim = (() => {
         }
         return null;
       }, __methods: {isFieldStatus: (a, b) => (c.status || 1) === Number(b ?? a),
+        // block:dist(ix, iz) — Manhattan distance from this block (#30618
+        // 警戒范围「block:dist(owner.temp_ix, owner.temp_iz) < 4」).
+        dist: (x, y) => Math.abs(c.x - Number(x)) + Math.abs(c.y - Number(y)),
         // block:canStay(stay_type, …): may a unit of that class END its move
         // here — walkable, not a pit / 禁行, no collidable object. Units on
         // the block are tested separately by the caller (temp_unit == nil).
@@ -2943,7 +3045,37 @@ window.WikiBattleSim = (() => {
         if (!c) return 0;
         return units.filter(x => x.alive && x !== c && (friend ? x.side === c.side : x.side !== c.side) && manhattan(x, c) <= range).length;
       },
-      GetNeighborBlockFieldStatusCount: () => 0,
+      GetNeighborBlockFieldStatusCount: (o, fs, rmin, rmax, self) => neighborFieldCount(o, fs, rmin, rmax, self),
+      // `map:getNeighborPropsCount(owner, friend|nil, rmin, rmax, attackableOnly)`
+      // — props (PLACE_ITEM objects: 木箱 / 炸药桶 …) within [rmin, rmax].
+      getNeighborPropsCount: (o, friend, lo, hi, attackable) => neighborProps(o?.__unit, friend, lo, hi, attackable),
+      // `map:FindUnitsBySide(side)` / `FindUnitsOnStageBySide(side|0)`: Lua
+      // arrays of unit proxies (0 = every side). OnStage excludes 召唤物 that
+      // are not on the action order (none in this engine) — same list.
+      FindUnitsBySide: (side) => unitsOfSide(side).map(U),
+      FindUnitsOnStageBySide: (side) => unitsOfSide(side).map(U),
+      // `map:getBlockByIndex(buff.delay_cast_block_index)`: blocks are
+      // indexed row-major (iz * width + ix), matching delay_cast_block_index.
+      getBlockByIndex: (idx) => {
+        const n = Number(idx);
+        if (!Number.isFinite(n)) return null;
+        const w = grid.w || (Math.max(...[...grid.cells.values()].map(c => c.x)) + 1);
+        const c = grid.at(n % w, Math.floor(n / w));
+        return c ? blockProxy(c) : null;
+      },
+      // `map:CheckShadowStepValid(skill, owner, target, range, side)`: is
+      // there a free tile directly behind the target (relative to owner)
+      // that the owner may land on — 「影步」#7236 背后瞬移.
+      CheckShadowStepValid: (sk, o, t) => {
+        const a = o?.__unit, d = t?.__unit;
+        if (!a || !d) return false;
+        const dx = Math.sign(d.x - a.x), dy = Math.sign(d.y - a.y);
+        const spots = dx && dy ? [[dx, 0], [0, dy]] : [[dx, dy]];
+        return spots.some(([sx, sy]) => {
+          const c = grid.at(d.x + sx, d.y + sy);
+          return c && c.walk !== false && !units.some(x => x.alive && x !== a && x.x === c.x && x.y === c.y);
+        });
+      },
     }};
     const BUILTIN = {
       pairs: v => ({__iter: Array.isArray(v) ? v.map((x, i) => [i + 1, x]) : []}),
@@ -2958,9 +3090,10 @@ window.WikiBattleSim = (() => {
       CLASS: {UNIT_SPEC: 1, SKILL_SPEC: 2},
       BehaviorDecision: () => true,
       CasterLocation: (a, b) => ({x: owner?.x || 0, y: owner?.y || 0}),
-      IsInDelay: () => false,
-      isFieldStatus: () => false,
-      checkForget: () => false,
+      // Bare globals (rare; the unit forms are the common ones).
+      IsInDelay: () => (sim.delayed || []).some(d => d.owner === owner),
+      isFieldStatus: (a, b) => !!owner && (grid.at(owner.x, owner.y)?.status || 1) === Number(b ?? a),
+      checkForget: () => !!owner?.flags?.forget,
       table: {insert: (arr, v) => { if (Array.isArray(arr)) arr.push(v); return arr; },
               remove: (arr, v) => { if (Array.isArray(arr)) { const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); } return arr; },
               concat: (a, b) => (Array.isArray(a) ? a : []).concat(Array.isArray(b) ? b : []),
@@ -2990,7 +3123,7 @@ window.WikiBattleSim = (() => {
     // State predicate shared by TargetState / CasterStatus:
     // (profession category, buff category, hp_attenuation state, unit tag) — 0 = any, tables allowed.
     const unitState = (u, prof, cat, hp, tag) => !!u &&
-      inList(u.prof, prof) && (!cat || (Array.isArray(cat) ? cat.some(c => u.buffs.some(b => b.def.cat === c)) : u.buffs.some(b => b.def.cat === cat))) &&
+      inList(profOf(u), prof) && (!cat || (Array.isArray(cat) ? cat.some(c => u.buffs.some(b => b.def.cat === c)) : u.buffs.some(b => b.def.cat === cat))) &&
       inList(hpState(u), hp) && (tag === undefined || tag === null || tag === 0 || hasUnitTag(u, tag));
     function luaEnv(inst, ctx, probe = false) {
       const owner = inst.owner;
@@ -3018,7 +3151,19 @@ window.WikiBattleSim = (() => {
         AttackDirection: (d) => !!(c.attacker && c.defender && relPos(c.attacker, c.defender) === d),
         IsMainSkill: () => !c.sub,
         GetCurTurn: () => sim.round,
-        GetNeighborBlockFieldStatusCount: () => 0,
+        // ActiveConditionFuncs:GetNeighborBlockFieldStatusCount(unit, fs, rmin, rmax, includeSelf)
+        GetNeighborBlockFieldStatusCount: (o, fs, rmin, rmax, self) => neighborFieldCount(o, fs, rmin, rmax, self),
+        // CasterBuffCount(buff_type): how many 增益(2) / 减益(3) / 中立(1) the
+        // owner carries (#5253「增益>3」, #11672「无增益」).
+        CasterBuffCount: (bt) => buffCount(owner, b => !bt || b.def.bt === Number(bt)),
+        // TargetBuffHasSpeciality({typeIds}): does the event target carry a
+        // buff that contains a speciality of one of these TYPE ids (#29875
+        // {150} = 拥有「…」类状态时).
+        TargetBuffHasSpeciality: (list) => !!target && (target.buffs || []).some(b => buffOn(b) &&
+          (Array.isArray(list) ? list : [list]).some(id => hasSpecType(b.def.sp, Number(id)))),
+        // TargetCheckImmuneType(bt, buffId, middle, sub, category): is the
+        // event target immune to such a buff (#26960「不免疫控制时」).
+        TargetCheckImmuneType: (bt, bid, mid, sub, cat) => !!target && !!luaImmune(target, bt, 0, bid, mid, sub, cat),
         CasterAttribute: (name) => name === 'tp' ? owner.tp : name === 'hp' ? owner.hp : name === 'hp_max' ? maxHpOf(owner) : 0,
         TargetAttribute: (name) => !target ? 0 : name === 'tp' ? target.tp : name === 'hp' ? target.hp : name === 'hp_max' ? maxHpOf(target) : 0,
         TargetState: (prof, cat, hp, tag) => unitState(target, prof, cat, hp, tag),
@@ -3034,17 +3179,21 @@ window.WikiBattleSim = (() => {
           return list.includes(grid.at(owner.x, owner.y)?.t);
         },
         BehaviorDecision: () => true,
-        IsInDelay: () => false,
-        checkForget: () => false,
+        IsInDelay: () => (sim.delayed || []).some(d => d.owner === owner),
+        checkForget: () => !!owner?.flags?.forget,
         TargetLocation: (a, b, list) => {
           if (!Array.isArray(list) || !target) return false;
           return list.includes(grid.at(target.x, target.y)?.t);
         },
       }};
       const BattleSkill = {
-        isInitiativeAttack: (s, o) => !!(s?.__skill && o?.__unit && s.__caster === o.__unit && !s.__flags.counter && !s.__flags.sub),
-        isInitiativeDefence: (s, o) => !!(s?.__skill && o?.__unit && s.__caster && s.__caster !== o.__unit && !s.__flags.counter &&
-          (s.__flags.targets || []).includes(o.__unit)),
+        // FORCE_INITIATIVE on the skill overrides whether it counts as an
+        // initiative (主动) cast — 圣剑·天怒流星斩 is forced 非主动 so it does
+        // not trigger 反击 / 援护 listeners; 毒刀扇 / 移动结束诱发普攻 are forced 主动.
+        isInitiativeAttack: (s, o) => !!(s?.__skill && o?.__unit && s.__caster === o.__unit &&
+          forcedInitiative(s.__skill, !s.__flags.counter && !s.__flags.sub)),
+        isInitiativeDefence: (s, o) => !!(s?.__skill && o?.__unit && s.__caster && s.__caster !== o.__unit &&
+          forcedInitiative(s.__skill, !s.__flags.counter) && (s.__flags.targets || []).includes(o.__unit)),
         isCounterAttack: (s, o) => !!(s?.__skill && o?.__unit && s.__caster === o.__unit && s.__flags.counter),
         isCounterDefence: (s, o) => !!(s?.__skill && o?.__unit && s.__caster !== o.__unit && s.__flags.counter &&
           (s.__flags.targets || []).includes(o.__unit)),
@@ -3193,8 +3342,9 @@ window.WikiBattleSim = (() => {
       } else {
         b = {id, def, holder: target, turns: t, total: t, age: 0, stacks: Math.min(Math.max(1, def.sc || 1), Math.max(1, stacks || 1)), src,
              aura: !!opts.aura, weather: !!opts.weather, triggered: false, armor: null,
-             actionScoped: !!opts.actionScoped && !opts.aura};
+             actionScoped: !!opts.actionScoped && !opts.aura, serial: (sim.buffSerial = (sim.buffSerial || 0) + 1)};
         target.buffs.push(b);
+        enforceBuffTargetLimit(b);
       }
       // Shields are sized when applied (PHYSIC_ARMOR / SPELL_ARMOR).
       // The client grants the listed percentage PER STACK (buff 3263「后备隐藏
@@ -3325,8 +3475,24 @@ window.WikiBattleSim = (() => {
     // speciality; checking unitSpecs() directly is authoritative at any time.
     // This is what makes IGNORE_EVADE / FORCE_BACKSTAB / NOT_RECOVER_TP /
     // IGNORE_ARMOR / FORBIDDEN_RECOVER etc. actually take effect.
+    // Set of speciality TYPES on the unit's current spec list, cached on the
+    // list object itself (unitSpecs() returns a new array whenever buffs /
+    // HP stage / live active_params change). Lets specActive() and the
+    // declarative readers bail out in O(1) for the vast majority of units
+    // that carry none of the queried type — specActive() is called inside
+    // the AI's per-candidate damage estimates.
+    function specTypes(u) {
+      const list = unitSpecs(u);
+      if (list._types) return list._types;
+      const set = new Set();
+      for (const i of list) set.add(i.spec.t);
+      Object.defineProperty(list, '_types', {value: set, enumerable: false});
+      return set;
+    }
+    const hasSpecTypeNow = (u, type) => !!u?.base && specTypes(u).has(type);
     function specActive(u, type, ctx = {}) {
       if (!u || !u.alive) return null;
+      if (u.base && !specTypes(u).has(type)) return null;
       const c = Object.assign({attacker: u, defender: u, target: u}, ctx);
       return unitSpecs(u).find(i => i.spec.t === type && limitOk(i) && cond(i, c)) || null;
     }
@@ -3345,6 +3511,158 @@ window.WikiBattleSim = (() => {
       return null;
     }
     const activeSpec = (u, s, type, ctx) => specActive(u, type, ctx) || skillSpecActive(s, u, type, ctx);
+
+    /* ---------- declarative rows that used to write flags nobody read ----------
+       The following client speciality types were dispatched (if at all) to a
+       handler that only set `owner.flags.X`, and no code ever read X — a
+       disguised stub. They are declarative (mostly active_time 1), so they
+       are now read exactly where the client applies them. */
+    // 「技能类型锁定」FORCE_INITIATIVE p0: 1 = 强制判为非主动技能, 0 = 强制判为
+    // 主动技能 (p1 = 1: 仍触发反击/援护). Declarative row on the skill itself.
+    function forcedInitiative(s, dflt) {
+      const sp = s?.sp || [];
+      for (const sid of sp) {
+        const q = M?.specs?.[sid];
+        if (q?.t === 'FORCE_INITIATIVE') return !Number(q.p?.[0]);
+      }
+      return dflt;
+    }
+    // BUFF_MODIFY_ATTRIBUTE p0 is a buff_type bit mask: bit (bt-1).
+    function buffTypeCount(u, bits) {
+      const mask = Number(bits) || 0;
+      return (u?.buffs || []).filter(b => !b.aura && buffOn(b) && b.def.ui !== false &&
+        (mask & (1 << ((Number(b.def.bt) || 1) - 1)))).length;
+    }
+    function buffTypeCountValue(u, s) {
+      const raw = buffTypeCount(u, s.p[0]) * (Number(s.p[2]) || 0);
+      const cap = Number(s.p[3]) || 0;
+      if (!cap) return raw;
+      return raw < 0 ? Math.max(cap, raw) : Math.min(cap, raw);
+    }
+    // 「改变职业(Buff)」CHANGE_PROFESSION_BY_BUFF p0 = 职业大类 while the
+    // carrying buff lives (沙娜姿); 「易容」CHANGE_PROFESSION_BY_SKILL stores
+    // a timed override (索菲亚). Every restraint / Lua profession read uses this.
+    function profOf(u) {
+      if (!u) return 0;
+      const o = u.profOverride;
+      if (o && sim.round <= o.until) return o.prof;
+      if (!u.base || !hasSpecTypeNow(u, 'CHANGE_PROFESSION_BY_BUFF')) return u.prof;
+      const inst = unitSpecs(u).find(i => i.spec.t === 'CHANGE_PROFESSION_BY_BUFF' && cond(i, {target: u}, true));
+      return inst ? (Number(inst.spec.p[0]) || u.prof) : u.prof;
+    }
+    // 「技能射程高度变动」SKILL_HEIGHT p = [最小高度, 最大高度]: widens the
+    // height window of the caster's cast range (珀列维特「职业技能高低差+4/6/8」,
+    // 「技能最大最小射程高度+99」). skill_active_param narrows it per skill.
+    function skillHeightBonus(u, s) {
+      if (!u?.base || !hasSpecTypeNow(u, 'SKILL_HEIGHT')) return [0, 0];
+      const memo = u._skillHeight && u._skillHeight.ver === u.ver ? u._skillHeight : (u._skillHeight = {ver: u.ver, map: new Map()});
+      if (memo.map.has(s.id)) return memo.map.get(s.id);
+      let lo = 0, hi = 0;
+      for (const i of unitSpecs(u)) {
+        if (i.spec.t !== 'SKILL_HEIGHT' || !skillCondOk(i, s) || !cond(i, {attacker: u, skill: s}, true)) continue;
+        lo += Number(i.spec.p[0]) || 0; hi += Number(i.spec.p[1]) || 0;
+      }
+      memo.map.set(s.id, [lo, hi]);
+      return [lo, hi];
+    }
+    // 「光环范围修正」AURA_RANGE p1 = 修正值: the owner's auras reach further
+    // (萨曼莎「圣光恩赐-光环扩大」+2). Whole-field auras are unaffected.
+    function auraRangeBonus(owner) {
+      if (!owner?.base || !hasSpecTypeNow(owner, 'AURA_RANGE')) return 0;
+      if (owner._auraBonusVer === owner.ver) return owner._auraBonus;
+      let v = 0;
+      for (const i of unitSpecs(owner)) if (i.spec.t === 'AURA_RANGE' && cond(i, {target: owner}, true)) v += Number(i.spec.p[1]) || 0;
+      owner._auraBonusVer = owner.ver; owner._auraBonus = v;
+      return v;
+    }
+    // 「是否可被穿过」UNIT_CAN_THROUGH p0: 1 = anyone may walk through this
+    // unit (幽灵类), 0 = nobody may (not even allies). null = default rule.
+    function throughRule(u) {
+      if (!u?.base || !hasSpecTypeNow(u, 'UNIT_CAN_THROUGH')) return null;
+      const inst = unitSpecs(u).find(i => i.spec.t === 'UNIT_CAN_THROUGH' && cond(i, {target: u}, true));
+      return inst ? !!Number(inst.spec.p[0]) : null;
+    }
+    // 「免疫传送」CANT_TRANSFER (圣械系 / 自然守护 at=62 可被贯穿): the unit
+    // cannot be moved by another unit's teleport / swap / hook. Timed rows
+    // (at=62) mark the current command like IGNORE_KNOCKBACK.
+    function markAction(inst, ctx, field) {
+      const at = AT_ALIAS[inst.spec.at] || inst.spec.at;
+      if (at === 1) return;                  // permanent rows are read directly
+      for (const t of targetsOf(inst, ctx)) if (t?.alive) t[field] = sim.actionId || 0;
+    }
+    const markedNow = (u, field) => !!u && u[field] !== undefined && u[field] === (sim.actionId || 0);
+    function transferImmune(t, inst, ctx) {
+      if (!t?.base) return false;
+      const hit = markedNow(t, 'transferImmuneAction') || hasSpecTypeNow(t, 'CANT_TRANSFER') &&
+        unitSpecs(t).some(i => i.spec.t === 'CANT_TRANSFER' && (AT_ALIAS[i.spec.at] || i.spec.at) === 1 &&
+          cond(i, {target: t, defender: t, attacker: inst?.owner, skill: ctx?.skill}));
+      if (hit) log(`${t.name} 免疫传送（${inst?.name || inst?.spec?.n || '位移'}）`);
+      return hit;
+    }
+    // 「Buff目标上限」BUFF_TARGET_LIMIT p0 = 同一来源最多同时存在于几个目标:
+    // a buff carrying this row (爱丽丝「自拍时间到」, 凯瑟琳「羁绊印记」,
+    // 菲尼克斯 / 普尔希拉 …) may only live on p0 units per source; applying it
+    // to a new target removes the OLDEST copy. Read on the buff definition.
+    function enforceBuffTargetLimit(b) {
+      if (!b.src || !M) return;
+      let cap = 0, sameCamp = false;
+      for (const sid of b.def.sp || []) if (M.specs[sid]?.t === 'BUFF_TARGET_LIMIT') {
+        cap = Math.max(cap, Number(M.specs[sid].p[0]) || 0);
+        // sparam.limit_same_source_camp:「受不限同阵营，施限制同阵营」— only
+        // copies on the SOURCE's own camp count toward the cap.
+        if (M.specs[sid].sj?.limit_same_source_camp) sameCamp = true;
+      }
+      if (!cap) return;
+      if (sameCamp && b.holder?.side !== b.src.side) return;
+      const live = [];
+      for (const u of units) for (const x of u.buffs || []) if (x.id === b.id && x.src === b.src && !x.aura &&
+        (!sameCamp || u.side === b.src.side)) live.push(x);
+      if (live.length <= cap) return;
+      live.sort((p, q) => (p.serial || 0) - (q.serial || 0));
+      for (const old of live.slice(0, live.length - cap)) {
+        removeBuff(old.holder, old, `目标上限 ${cap}`);
+        bump(cov.executed, 'BUFF_TARGET_LIMIT');
+      }
+    }
+    /* ---------- client Lua APIs that used to be constant stubs ---------- */
+    // GetNeighborBlockFieldStatusCount(unit, fs, rmin, rmax, includeSelf):
+    // count tiles of field status `fs` within [rmin, rmax] of the unit
+    // (#10104「周围3–8格有燃烧地块」, #12373「全场燃烧地块≥10」).
+    function neighborFieldCount(o, fs, rmin, rmax, self) {
+      const c = o?.__unit || (o?.x !== undefined ? o : null);
+      if (!c) return 0;
+      const want = Number(fs) || 0, lo = Number(rmin) || 0, hi = Number(rmax) || 99;
+      let n = 0;
+      for (const cell of grid.cells.values()) {
+        const d = Math.abs(cell.x - c.x) + Math.abs(cell.y - c.y);
+        if (d < lo || d > hi || (!self && d === 0 && lo > 0)) continue;
+        if ((cell.status || NORMAL_FIELD) === want) n++;
+      }
+      return n;
+    }
+    // neighbour props (PLACE_ITEM objects such as 木箱 / 炸药桶 / 冰柱).
+    function neighborProps(u, friend, lo, hi, attackable) {
+      if (!u) return 0;
+      const a = Number(lo) || 0, b = Number(hi) || 1;
+      return placed.filter(o => o.alive && o.kind === 'PLACE_ITEM' &&
+        (!attackable || o.attackable) &&
+        (friend === true ? o.owner?.side === u.side : friend === false ? o.owner?.side !== u.side : true) &&
+        manhattan(o, u) >= a && manhattan(o, u) <= b).length;
+    }
+    function unitsOfSide(side) {
+      const s = side?.__unit ? side.__unit.side : side;
+      return units.filter(x => x.alive && (!s || x.side === s || String(x.side) === String(s)));
+    }
+    // Lua CheckImmuneType(buff_type, buffData|0, buffId, middle, sub, category)
+    // — synthesise a buff definition and ask the real immunity rules.
+    function luaImmune(u, bt, data, bid, mid, sub, cat) {
+      const id = Number(bid) || Number(data?.id) || 0;
+      const real = id && M?.buffs?.[id];
+      const def = real ? Object.assign({}, real) : {bt: Number(bt) || 3, mi: Number(mid) || 0,
+        sb: Number(sub) || 0, cat: Number(cat) || 0, imm: true, sp: []};
+      if (Number(bt)) def.bt = Number(bt);
+      return immuneTo(u, def, null);
+    }
 
     /* ---------- triggers ---------- */
     // The client stores `limit_count_turn` / `cur_limit_count_turn` on every
@@ -3725,12 +4043,19 @@ window.WikiBattleSim = (() => {
 
     /* ---------- damage ---------- */
     function restrainSpecs(a, d) {
-      return (M?.restrain || []).filter(r => r.from === a.prof && r.to === d.prof).flatMap(r => r.sp);
+      // 「无视职业克制」IGNORE_PROFESSION_RESTRAIN (p0 攻击者无视): the attacker
+      // ignores profession restraint entirely (沙娜姿 / 贝拉·魔术师).
+      if (specActive(a, 'IGNORE_PROFESSION_RESTRAIN', {attacker: a, defender: d})) return [];
+      const pa = profOf(a), pd = profOf(d);
+      return (M?.restrain || []).filter(r => r.from === pa && r.to === pd).flatMap(r => r.sp);
     }
     function heightBonus(a, d, skill, ctx) {
       const fa = grid.at(a.x, a.y), fd = grid.at(d.x, d.y);
       const diff = (fa?.h ?? 0) - (fd?.h ?? 0);
       let b = diff >= hg.minDiff ? hg.up : diff <= -hg.minDiff ? hg.down : 0;
+      // 「强制高地优势」HIGHLAND: the attacker always counts as holding the
+      // high ground (伊奇 / 王国军弓箭手 / 莉莉薇儿 …).
+      if (diff < hg.minDiff && specActive(a, 'HIGHLAND', Object.assign({attacker: a, defender: d, skill}, ctx || {}))) b = hg.up;
       for (const sid of skill.sp || []) {
         const sp = M?.specs?.[sid];
         if (sp?.t === 'HEIGHT_ATTACK' && diff > 0) b += sp.p[0] + sp.p[1] * diff;
@@ -3967,7 +4292,7 @@ window.WikiBattleSim = (() => {
       add('技能倍率', `${df}%`,
           `${opts.segLabel ? opts.segLabel + ' · ' : ''}damage_factor · 技能「${skill.n}」`,
           `技能倍率 = ${df}%`);
-      const restraint = c.restrain.length ? (M.restrain.find(r => r.from === a.prof && r.to === d.prof)?.evaluate || 100) / 100 : 1;
+      const restraint = c.restrain.length ? (M.restrain.find(r => r.from === profOf(a) && r.to === profOf(d))?.evaluate || 100) / 100 : 1;
       if (dt === 3) {
         let amount = raw * df / 100;
         // PERCENT_HEAL: 血量类型 (1 = 已损失生命, 2 = 最大生命) × 技能倍率，上限 = 上限属性 × 上限百分比
@@ -4135,7 +4460,7 @@ window.WikiBattleSim = (() => {
       // attribute — 「受到的伤害值30%转移为[灵感指数]（不会造成实际伤害）」.
       // The engine used to only set an unread flag, so 贝拉's own 造物赋能
       // killed her 灵感星核 and the core's 灵感迸发 never charged.
-      if (src && src.base && src !== victim) {
+      if (src && src.base && src !== victim && hasSpecTypeNow(victim, 'DAMAGE_BUFFER_DYNAMIC')) {
         for (const raw of unitSpecs(victim)) {
           if (raw.spec.t !== 'DAMAGE_BUFFER_DYNAMIC') continue;
           const c0 = {attacker: src, defender: victim, target: src, skill: info.skill || null};
@@ -4145,12 +4470,15 @@ window.WikiBattleSim = (() => {
           const A = attrName(aid);
           const gain = Math.floor(amount * (Number(convert) || 0) / 100);
           if (A && gain > 0) {
-            const before = Number(victim.base[A]) || 0;
+            // Stored resource attributes (attr_cache …) live in u.store so
+            // attr() / Lua `attributes.attr_cache` / RECOVER_ATTRIBUTE agree.
+            const bag = STORE_ATTRS.has(A) ? (victim.store || (victim.store = {})) : victim.base;
+            const before = Number(bag[A]) || 0;
             const lim = Number(cap) > 0 ? Number(cap) : Infinity;
-            victim.base[A] = Math.min(lim, before + gain);
+            bag[A] = Math.min(lim, before + gain);
             touch(victim);
             log(`${victim.name} 的「${raw.name}」：受到友军 ${src.name} 的 ${amount} 伤害，${convert}% 转为 ${A} ` +
-                `${before} → ${victim.base[A]}${lim < Infinity ? `（上限 ${lim}）` : ''}`);
+                `${before} → ${bag[A]}${lim < Infinity ? `（上限 ${lim}）` : ''}`);
           }
           const cut = Math.round(amount * (Number(blocked) || 0) / 100);
           if (cut > 0) {
@@ -4215,7 +4543,35 @@ window.WikiBattleSim = (() => {
         }
       }
       const before = victim.hp;
+      // 「血量锁定下限」HP_LOW_LIMIT p0 = 百分比: while active, this hit cannot
+      // take HP below p0% of max (阿尔曼 / 主线 BOSS 生命阈值). Only a hit that
+      // CROSSES the floor is clamped; a unit already under it keeps falling.
+      const floorSpec = left > 0 && victim.hp > 0 ? specActive(victim, 'HP_LOW_LIMIT', {attacker: src, defender: victim, skill: info.skill}) : null;
+      if (floorSpec) {
+        const floor = Math.ceil(maxHpOf(victim) * (Number(floorSpec.spec.p[0]) || 0) / 100);
+        if (victim.hp > floor && victim.hp - left < floor) {
+          log(`${victim.name} 的「${floorSpec.name || floorSpec.spec.n}」锁定生命下限 ${floorSpec.spec.p[0]}%：伤害 ${Math.round(left)} → ${victim.hp - floor}`);
+          left = victim.hp - floor;
+        }
+      }
       victim.hp = Math.max(0, victim.hp - Math.max(0, left));
+      // 「溢出伤害储存」OVERFLOW_DAMAGE_STORAGE on the ATTACKER p = [上限属性,
+      // 上限百分比]: damage beyond the victim's remaining HP is banked into
+      // overflow_damage (罗格妮达 上限魔攻800% / 阿尔曼 上限生命600%), which
+      // 力大砖飞 then converts to attr_cache and releases as extra damage.
+      if (src?.base && left > before && before > 0) {
+        const os = specActive(src, 'OVERFLOW_DAMAGE_STORAGE', {attacker: src, defender: victim, skill: info.skill});
+        if (os) {
+          const cap = Math.round(attrById(src, os.spec.p[0]) * (Number(os.spec.p[1]) || 0) / 100) || Infinity;
+          const store = src.store || (src.store = {});
+          const prev = store.OVERFLOW_DAMAGE || 0;
+          store.OVERFLOW_DAMAGE = Math.min(cap, prev + Math.round(left - before));
+          if (store.OVERFLOW_DAMAGE !== prev) {
+            log(`${src.name} 溢出伤害储存 ${prev} → ${store.OVERFLOW_DAMAGE}（溢出 ${Math.round(left - before)}，上限 ${cap}）`);
+            touch(src);
+          }
+        }
+      }
       // Snapshot HP *before* 不屈 (REBORN) rewrites it. `dealt` used to be
       // `before - victim.hp` computed AFTER the revive, so a target that
       // survived at higher HP than it started reported NEGATIVE damage
@@ -4225,7 +4581,13 @@ window.WikiBattleSim = (() => {
       touch(victim);
       let rebornName = null, rebornHp = 0;
       if (afterDamageHp <= 0) {
-        const reborn = unitSpecs(victim).find(i => i.spec.t === 'REBORN' && limitOk(i) && cond(i, {attacker: src, defender: victim, skill: info.skill}));
+        // 「禁止不屈」CANT_REBORN (伦伽勒·SP「贯杀」, 卡姆洛特 …): the victim's
+        // REBORN rows cannot save it. tt=4 rows sit on the attacker's skill
+        // and forbid the TARGET's 不屈; read both sides.
+        const noReborn = specActive(victim, 'CANT_REBORN', {attacker: src, defender: victim, skill: info.skill}) ||
+          (src && info.skill && activeSpec(src, info.skill, 'CANT_REBORN', {attacker: src, defender: victim, skill: info.skill}));
+        const reborn = !noReborn && unitSpecs(victim).find(i => i.spec.t === 'REBORN' && limitOk(i) && cond(i, {attacker: src, defender: victim, skill: info.skill}));
+        if (noReborn && unitSpecs(victim).some(i => i.spec.t === 'REBORN')) log(`${victim.name} 的不屈被「禁止不屈」阻止`);
         if (reborn) {
           spend(reborn);
           bump(cov.executed, 'REBORN');
@@ -4241,6 +4603,14 @@ window.WikiBattleSim = (() => {
       const dealt = Math.max(0, before - afterDamageHp);
       if (src) { src.tally.dealt += dealt; }
       victim.tally.taken += dealt;
+      // Per-round HP loss and "last hit was a direct attack" — read by
+      // owner:GetHPDamagedTurn() (#9923「本回合受到伤害>=25000」) and
+      // target:IsDirectBeDamaged() (#3990「受到直接伤害时」).
+      if (dealt > 0) {
+        if (victim.damagedRound !== sim.round) { victim.damagedRound = sim.round; victim.damagedTurn = 0; }
+        victim.damagedTurn += dealt;
+        victim.lastDirectHit = !!(src && info.skill && !info.pierce && !info.reflect && info.direct !== false);
+      }
       if (victim.hp <= 0 && victim.alive) kill(src, victim, info);
       return {dealt, absorbed, reborn: rebornName, rebornHp,
               zeroReason: dealt === 0 && !absorbed && amount <= 0 ? '伤害已全部分摊给同伴' : ''};
@@ -4379,6 +4749,20 @@ window.WikiBattleSim = (() => {
             let v = flat + maxHpOf(t) * pct / 100;
             if (v >= 0) heal(inst.owner, t, raw ? v : v * Math.max(0, 1 + attr(t, 'BE_HEAL_FACTOR') / 100), inst.name);
             else { const r = dealDamage(null, t, Math.round(-v), {pierce: true}); log(`${t.name} 失去 ${r.dealt} 生命（${inst.name}）`); }
+            continue;
+          }
+          // Stored resource attributes (attr_cache / overflow_damage): p1 is
+          // added, p2 is a percentage of the CURRENT stored value, so
+          // p=[64,0,-100] clears it (「攻击后【缓冲值】归零」) and the dynamic
+          // `return nil, owner.attributes.overflow_damage` moves 溢出储存 into
+          // the cache (罗格妮达「力大砖飞」, 塔罗贝拉 灯柱传递储能值). This branch
+          // used to be missing, so every such row silently did nothing.
+          if (STORE_ATTRS.has(n)) {
+            const store = t.store || (t.store = {});
+            const cur = store[n] || 0;
+            store[n] = Math.max(0, Math.round(cur + (Number(flat) || 0) + cur * (Number(pct) || 0) / 100));
+            touch(t);
+            log(`${t.name} 的 ${n === 'ATTR_CACHE' ? '缓存值' : '溢出储存'} ${cur} → ${store[n]}（${inst.name}）`);
           }
         }
       },
@@ -4750,8 +5134,12 @@ window.WikiBattleSim = (() => {
         // casts keep changing just the anchor cell (烟幕游击 / 贯日强击).
         const cells = (ctx?.opArea?.length > 1 ? ctx.opArea : [anchor])
           .map(c => grid.at(c.x, c.y)).filter(Boolean);
-        for (const tile of cells) setFieldStatus(tile, fieldId, Number(p[1]) || 2,
-          fieldDef(fieldId)?.name || opName || inst.name, inst.sid);
+        const prevActor = sim.fieldActor;
+        sim.fieldActor = o || null;
+        try {
+          for (const tile of cells) setFieldStatus(tile, fieldId, Number(p[1]) || 2,
+            fieldDef(fieldId)?.name || opName || inst.name, inst.sid);
+        } finally { sim.fieldActor = prevActor; }
         // The caster lands on / creates a concealing tile inside this same
         // action; make the tile AURA (烟雾 → 隐身) live before anything else
         // evaluates targeting. refreshAuras() is re-entrancy guarded.
@@ -4894,6 +5282,7 @@ window.WikiBattleSim = (() => {
           if (!t.alive) continue;
           const pull = (s.p[0] || 0) > 1;
           const mover = pull ? t : o, anchor = pull ? o : t;
+          if (mover !== o && transferImmune(mover, inst, ctx)) continue;
           const c = near(mover, anchor);
           if (!c || (mover.x === c.x && mover.y === c.y)) continue;
           mover.x = c.x; mover.y = c.y; touch(mover);
@@ -4971,12 +5360,30 @@ window.WikiBattleSim = (() => {
       // later tick instead of dropping the effect entirely.
       DELAY_SKILL(inst, ctx) {
         const s = inst.spec;
-        const n = clamp(Math.round(s.p[0] || 0), 0, 8);
+        // p0 is the client `waittime` penalty while charging (#1576「蓄力时速度
+        // 减300」= 300), NOT a round count — every one of the 64 carrier skills
+        // says 「准备1回合」. The old clamp(p0, 0, 8) delayed #1576 skills by 8
+        // rounds. Release is always the next round start.
+        const n = 0;
         const owner = inst.owner;
         const skill = ctx.skill;
         if (!skill) return;
+        // This cast IS the charged release (resolveDelayed / 立即施法):
+        // the charge is complete, resolve normally — never re-queue.
+        if (sim.resolvingDelayed === skill.id) return;
+        // 「蓄力技能跳过蓄力」DELAY_SKILL_INSTANCE (at=1, on a buff such as
+        // 小马头「灌能附魔」5 层 / 二哈沙「蓄势待发」的「跳过准备」lc=1): the
+        // charge is skipped and the skill resolves now; spend the row.
+        const skip = specActive(owner, 'DELAY_SKILL_INSTANCE', {attacker: owner, skill});
+        if (skip) {
+          spend(skip);
+          log(`${owner.name} 的「${skill.n}」跳过蓄力（${skip.name || skip.spec.n}）`);
+          bump(cov.executed, 'DELAY_SKILL_INSTANCE');
+          return;
+        }
         (sim.delayed || (sim.delayed = [])).push({owner, skill, target: ctx.target || ctx.defender, left: n});
-        log(`${owner.name} 的「${skill.n}」延迟 ${n} 时点结算（${inst.name}）`);
+        sim.charging = skill;
+        log(`${owner.name} 的「${skill.n}」开始蓄力（准备1回合${Number(s.p[0]) ? `，蓄力等待 +${s.p[0]}` : ''}；${inst.name}）`);
       },
       KNOCKBACK_SELF(inst, ctx) {
         // 「向后退 N 格」: move AWAY from the other party of this event, tile
@@ -5012,11 +5419,7 @@ window.WikiBattleSim = (() => {
         o.damageStored = Math.min(s.p[3] || Infinity, (o.damageStored || 0) + amount);
         log(`${o.name} 储存 ${Math.round(amount)} 伤害（${inst.name}）`);
       },
-      DEMAND_ASSIST_DEFENCE(inst, ctx) {
-        const o = inst.owner;
-        o.flags.demandAssist = Math.max(1, inst.spec.p[0] || 1);
-        log(`${o.name} 要求援护防御（${inst.name}）`);
-      },
+      DEMAND_ASSIST_DEFENCE(inst, ctx) { /* declarative listener: read by the 援护防御 guard search in castSkill() */ },
       // TARGET_BUFF_MODIFY_ATTRIBUTE p = [buffType, attrId, per, cap]:
       // attacker gains `per` of an attribute for each debuff on the target.
       TARGET_BUFF_MODIFY_ATTRIBUTE(inst, ctx) {
@@ -5134,17 +5537,38 @@ window.WikiBattleSim = (() => {
         const c = near[0];
         if (c) { o.x = c.x; o.y = c.y; touch(o); log(`${o.name} 瞬移到 (${c.x},${c.y})（${inst.name}）`); }
       },
-      BLINK(inst, ctx) { EFFECTS.TELEPORT(inst, ctx); },
+      // #20039 「[SP伦伽勒]-反应瞬步-找枪灵传送」declares JSON
+      // `sparam.find_trap = 139`: instead of blinking next to the attack
+      // target, find a LIVE 长枪之灵 (trap 139) and land on it. Trap 139 is a
+      // 停留(Stay) trigger giving 暴击2/移动1 to allies, so landing on it must
+      // also fire its trigger — plain TELEPORT did neither (7 dispatches in
+      // the 192-game sweep all landed next to the enemy instead).
+      BLINK(inst, ctx) {
+        const trapId = Number(inst.spec.sj?.find_trap);
+        if (!trapId) { EFFECTS.TELEPORT(inst, ctx); return; }
+        const o = inst.owner;
+        const traps = placed.filter(t => t.alive && t.kind === 'PLACE_TRAP' &&
+          Number(t.id) === trapId && grid.at(t.x, t.y)?.walk &&
+          !units.some(u => u.alive && u !== o && u.x === t.x && u.y === t.y));
+        if (!traps.length) { EFFECTS.TELEPORT(inst, ctx); return; }
+        traps.sort((a, b) => manhattan(a, o) - manhattan(b, o) || a.x - b.x || a.y - b.y);
+        const t = traps[0];
+        o.x = t.x; o.y = t.y;
+        touch(o);
+        log(`${o.name} 找到「${t.name}」(${t.x},${t.y}) 并瞬移过去（找枪灵传送）`);
+        triggersOnPath([{x: t.x, y: t.y}], o);
+        refreshAuras();
+      },
       EXCHANGE_POSITION(inst, ctx) {
         const o = inst.owner, t = ctx.target || ctx.defender;
-        if (!t?.alive) return;
+        if (!t?.alive || (t !== o && transferImmune(t, inst, ctx))) return;
         const x = o.x, y = o.y;
         o.x = t.x; o.y = t.y; t.x = x; t.y = y; touch(o); touch(t);
         log(`${o.name} 与 ${t.name} 交换位置（${inst.name}）`);
       },
       HOOK(inst, ctx) {
         const o = inst.owner, t = ctx.target || ctx.defender;
-        if (!t?.alive) return;
+        if (!t?.alive || transferImmune(t, inst, ctx)) return;
         const dx = Math.sign(o.x - t.x), dy = Math.sign(o.y - t.y);
         const c = grid.at(t.x + dx, t.y + dy);
         if (c?.walk && !units.some(u => u.alive && u !== t && u.x === c.x && u.y === c.y)) {
@@ -5164,13 +5588,7 @@ window.WikiBattleSim = (() => {
           heal(o, t, Math.round(maxHpOf(t) * pct / 100), inst.name);
         }
       },
-      DISABLE_SKILL(inst, ctx) {
-        for (const t of targetsOf(inst, ctx)) {
-          if (!t.alive) continue;
-          t.flags.disabledSkills = t.flags.disabledSkills || new Set();
-          if (inst.spec.p[0]) t.flags.disabledSkills.add(inst.spec.p[0]);
-        }
-      },
+      DISABLE_SKILL(inst, ctx) { /* declarative: read by skillDisabled() in usable() */ },
       FORCE_STOP(inst, ctx) {
         for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.forceStop = true;
       },
@@ -5189,9 +5607,19 @@ window.WikiBattleSim = (() => {
       INVISIBLE(inst, ctx) { if (inst.owner) inst.owner.flags.invisible = true; },
       IGNORE_EVADE(inst, ctx) { if (inst.owner) inst.owner.flags.ignoreEvade = true; },
       IGNORE_PARRY(inst, ctx) { if (inst.owner) inst.owner.flags.ignoreParry = true; },
-      IGNORE_KNOCKBACK(inst, ctx) { if (inst.owner) inst.owner.flags.ignoreKnockback = true; },
-      CAN_NOT_COUNTER(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.cantCounter = true; },
-      CAN_NOT_FIRST_HIT(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.cantFirstHit = true; },
+      // Two client forms: at=1 rows are permanent (read by
+      // immuneToKnockback()); timed rows such as 「自然守护」at=62 (被非贯穿
+      // 攻击前) grant immunity to THIS attack only — the dispatch marks the
+      // current command so the knock-back that follows is refused.
+      IGNORE_KNOCKBACK(inst, ctx) {
+        const o = inst.owner;
+        if (o && (AT_ALIAS[inst.spec.at] || inst.spec.at) !== 1) o.kbImmuneAction = sim.actionId || 0;
+      },
+      // 无视反击 / 无视先制: at=1 rows are read by queueCounter() / the 先制
+      // check; timed rows (at=2 「攻击前」, tt=2 敌人) mark the targets for
+      // the current command only.
+      CAN_NOT_COUNTER(inst, ctx) { markAction(inst, ctx, 'noCounterAction'); },
+      CAN_NOT_FIRST_HIT(inst, ctx) { markAction(inst, ctx, 'noFirstHitAction'); },
       CLIMB_OVER(inst, ctx) { if (inst.owner) inst.owner.move.up = Math.max(inst.owner.move.up || 2, 99); },
       NO_FIELDSTATUS_MOBILITY(inst, ctx) { if (inst.owner) inst.owner.flags.ignoreFieldStatus = true; },
       BUFF_ADD_REPLACE(inst, ctx) {
@@ -5212,7 +5640,7 @@ window.WikiBattleSim = (() => {
           if (b) { b.turns = Math.max(b.turns, inst.spec.p[1] || 1); touch(t); }
         }
       },
-      BUFF_TARGET_LIMIT(inst, ctx) { if (inst.owner) inst.owner.flags.buffTargetLimit = inst.spec.p[0] || 1; },
+      BUFF_TARGET_LIMIT(inst, ctx) { /* declarative on the buff: enforced by enforceBuffTargetLimit() in addBuff() */ },
       DISPEL_CONVERT(inst, ctx) {
         for (const t of targetsOf(inst, ctx)) {
           if (!t.alive) continue;
@@ -5228,15 +5656,26 @@ window.WikiBattleSim = (() => {
         const id = inst.spec.p[0]; const rec = id ? skillRec(id) : null;
         if (rec && ctx.target) castSkill(inst.owner, rec, grid.at(ctx.target.x, ctx.target.y), {sub: true, free: true, label: '动态施放'});
       },
-      DELAY_CAST_SKILL(inst, ctx) { EFFECTS.DELAY_SKILL(inst, ctx); },
+      // 「延迟释放技能」DELAY_CAST_SKILL p0 = 技能 (sparam = 优先级 / JSON
+      // {target_block}): queue SKILL p0 — 「自身强制离场」, 「解除封印」,
+      // 塔罗萨曼莎「最终审判攻击部分」 — to resolve at the owner's next
+      // countdown, aimed at the event target (target_block: the event block).
+      // It used to alias DELAY_SKILL and re-queue the CURRENT skill instead.
+      DELAY_CAST_SKILL(inst, ctx) {
+        const o = inst.owner, rec = skillRec(inst.spec.p[0]);
+        if (!o?.alive || !rec) return;
+        const target = inst.spec.sj?.target_block ? (ctx.target || ctx.defender || o) : (ctx.target || ctx.defender || o);
+        (sim.delayed || (sim.delayed = [])).push({owner: o, skill: rec, target, left: 1, cast: true});
+        log(`${o.name} 的「${inst.name || inst.spec.n}」：延迟释放「${rec.n}」#${rec.id}`);
+      },
       FORCE_CAST_SKILL(inst, ctx) {
         const id = inst.spec.p[0]; const rec = id ? skillRec(id) : null;
         const t = ctx.target || ctx.defender;
         if (rec && t) castSkill(inst.owner, rec, grid.at(t.x, t.y), {sub: true, free: true, label: '强制施放'});
       },
-      SKILL_HEIGHT(inst, ctx) { if (inst.owner) inst.owner.flags.skillHeight = inst.spec.p[0] || 1; },
+      SKILL_HEIGHT(inst, ctx) { /* declarative: read by skillHeightBonus() in targetCells() */ },
       FORCE_DAMAGE_TYPE(inst, ctx) { if (inst.owner) inst.owner.flags.forceDamageType = inst.spec.p[0] || 1; },
-      FORCE_INITIATIVE(inst, ctx) { if (inst.owner) inst.owner.flags.forceInitiative = true; },
+      FORCE_INITIATIVE(inst, ctx) { /* declarative on the skill: read by forcedInitiative() in the Lua proxies */ },
       RESET_LIMIT_COUNT(inst, ctx) { if (inst.owner) inst.owner.limits = {}; },
       BUFF_COUNTERACT(inst, ctx) {
         for (const t of targetsOf(inst, ctx)) {
@@ -5264,43 +5703,56 @@ window.WikiBattleSim = (() => {
         addBuff(t, 645, 2, 1, inst.owner, {force: true});
     }
   },
-      ISOLATE(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.isolate = true; },
+      ISOLATE(inst, ctx) { /* declarative: read by refreshAuras() (no allied auras) */ },
       // ---- Round 31: remaining client speciality types -------------------
       // These are mostly state markers the client checks during damage,
       // movement, targeting and restraint resolution. Implementing them as
       // flags (rather than reporting them as skipped) lets dependent logic
       // consult them and makes the coverage report honest.
       MOVE_ATTACK(inst, ctx) { if (inst.owner) inst.owner.flags.moveAttack = inst.spec.p[0] || 1; },
-      ASSIST_TEAMMATE(inst) { if (inst.owner) inst.owner.flags.assistTeammate = true; },
-      SPELL_INSTANCE(inst) { if (inst.owner) inst.owner.flags.spellInstance = true; },
+      ASSIST_TEAMMATE(inst) { /* declarative listener: queued after a hit in castSkill() (assistTeammates) */ },
+      // 「立即施法」SPELL_INSTANCE (at 攻击后): the owner's pending delayed /
+      // charged casts resolve now instead of at their countdown — 小马头「跳过
+      // 蓄力」, SP阿加塔「见切-蓄力立即释放」, 塔罗萨曼莎「使最终审判立即降临」.
+      SPELL_INSTANCE(inst) {
+        const o = inst.owner;
+        // sparam.delay_cast_skill (塔罗萨曼莎「使最终审判立即降临」): release the
+        // owner's DELAY_CAST_SKILL queue; otherwise release charge skills.
+        const wantCast = !!inst.spec.sj?.delay_cast_skill;
+        const mine = (sim.delayed || []).filter(d => d.owner === o && !!d.cast === wantCast);
+        if (!o?.alive || !mine.length) return;
+        sim.delayed = sim.delayed.filter(d => !mine.includes(d));
+        log(`${o.name} 的「${inst.name || inst.spec.n}」使 ${mine.length} 个延迟/蓄力技能立即结算`);
+        for (const d of mine) resolveDelayed(d, '立即施法');
+      },
       PATH_OPERATION(inst, ctx) { if (ctx?.target) ctx.target.flags.pathOperation = inst.spec.p[0] || 1; },
-      CAN_NOT_BE_ASSIT_DEFENCE(inst) { if (inst.owner) inst.owner.flags.cantBeAssisted = true; },
+      CAN_NOT_BE_ASSIT_DEFENCE(inst) { /* declarative: read by the 援护防御 guard search in castSkill() */ },
       DISPEL_TRANSFER(inst, ctx) {
         for (const t of targetsOf(inst, ctx)) {
           const bad = t.buffs.find(b => b.def.bt === 3);
           if (bad) { removeBuff(t, bad, '转移'); addBuff(inst.owner, bad.id, 1, 1, t); }
         }
       },
-      HIGHLAND(inst) { if (inst.owner) inst.owner.flags.highland = inst.spec.p[0] || 1; },
-      AURA_RANGE(inst) { if (inst.owner) inst.owner.flags.auraRange = inst.spec.p[0] || 1; },
+      HIGHLAND(inst) { /* declarative: read by heightBonus() and unit:checkHighland() */ },
+      AURA_RANGE(inst) { /* declarative: read by auraRangeBonus() in auraRange() */ },
       CLIMB_OVER_COUNT(inst) { if (inst.owner) inst.owner.move.up = Math.max(inst.owner.move.up || 2, inst.spec.p[0] || 2); },
       ABNORMAL_STATE(inst, ctx) {
         for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.abnormal = inst.spec.p[0] || 1;
       },
-      UNIT_CAN_THROUGH(inst) { if (inst.owner) inst.owner.flags.canThrough = true; },
+      UNIT_CAN_THROUGH(inst) { /* declarative: read by throughRule() in reachable() */ },
       STRENGTHEN_ALERT(inst) { if (inst.owner) inst.owner.flags.strengthenAlert = true; },
       KNOCKBACK_DISTANCE_MODIFY(inst) { if (inst.owner) inst.owner.flags.knockDist = inst.spec.p[0] || 1; },
       ALERT_ATTACK_DISPLAY(inst) {
         if (inst.owner) inst.owner.flags.alertDisplay = true;
         bump(cov.executed, 'ALERT_ATTACK_DISPLAY');
       },
-      DELAY_SKILL_INSTANCE(inst, ctx) { EFFECTS.DELAY_SKILL(inst, ctx); },
+      DELAY_SKILL_INSTANCE(inst, ctx) { /* declarative: read by DELAY_SKILL (charge is skipped) */ },
       SKILL_COUNT_TURN(inst) {
         const o = inst.owner;
         if (o && inst.spec.p[0]) o.uses[inst.spec.p[0] + ':t'] = 0;
       },
-      OVERFLOW_DAMAGE_STORAGE(inst) { if (inst.owner) inst.owner.flags.overflowStorage = inst.spec.p[0] || 1; },
-      HP_LOW_LIMIT(inst) { if (inst.owner) inst.owner.flags.hpLowLimit = inst.spec.p[0] || 1; },
+      OVERFLOW_DAMAGE_STORAGE(inst) { /* declarative: banked by dealDamage() into store.OVERFLOW_DAMAGE */ },
+      HP_LOW_LIMIT(inst) { /* declarative: enforced by dealDamage() */ },
       BODY_REPLACE(inst, ctx) {
         const o = inst.owner, t = ctx.target || ctx.defender;
         if (t?.alive && o) { const x = o.x, y = o.y; o.x = t.x; o.y = t.y; t.x = x; t.y = y; touch(o); touch(t); }
@@ -5308,25 +5760,52 @@ window.WikiBattleSim = (() => {
       FORGET(inst) { if (inst.owner) inst.owner.flags.forget = true; },
       SEAL(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.seal = true; },
       CONVERT_ANIM(inst) { /* animation only */ },
-      REFLECT_DAMAGE(inst) { if (inst.owner) inst.owner.flags.reflect = inst.spec.p[0] || 0; },
-      STRAIGHT(inst) { if (inst.owner) inst.owner.flags.straight = true; },
-      HEIGHT_ZERO_MOBILITY(inst) { if (inst.owner) inst.owner.flags.heightZeroMobility = true; },
-      CHANGE_PROFESSION_BY_SKILL(inst) { if (inst.owner) inst.owner.flags.profBySkill = inst.spec.p[0] || 1; },
-      CHANGE_PROFESSION_BY_BUFF(inst) { if (inst.owner) inst.owner.flags.profByBuff = inst.spec.p[0] || 1; },
-      CANT_ASSIST(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.cantAssist = true; },
-      CANT_TRANSFER(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.cantTransfer = true; },
-      CANT_REBORN(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.cantReborn = true; },
+      REFLECT_DAMAGE(inst, ctx) {
+        // 「反弹伤害」p = [伤害百分比, 伤害固定值, 计数类型] at 被攻击后: return
+        // p0% of the damage just taken (+p1) to the attacker as 穿透伤害.
+        const o = inst.owner;
+        const foe = ctx.attacker && ctx.attacker !== o ? ctx.attacker : (ctx.target && ctx.target !== o ? ctx.target : null);
+        const got = Number(ctx.damage) || 0;
+        if (!o?.alive || !foe?.alive || foe.side === o.side || got <= 0) return;
+        const v = Math.round(got * (Number(inst.spec.p[0]) || 0) / 100 + (Number(inst.spec.p[1]) || 0));
+        if (v <= 0) return;
+        const r = dealDamage(o, foe, v, {pierce: true, skill: null, reflect: true});
+        log(`${o.name} 反弹 ${r.dealt} 伤害给 ${foe.name}（${inst.name || inst.spec.n}：受到 ${got} × ${inst.spec.p[0]}%）`);
+      },
+      // 「直行」STRAIGHT: only on a test buff and the 逆塔「战车」BOSS (a
+      // scripted vehicle). It constrains the client's path animation, not a
+      // rule the auto-battle can observe; kept as a declarative tag.
+      STRAIGHT(inst) { /* declarative tag (scripted vehicle path) */ },
+      HEIGHT_ZERO_MOBILITY(inst) { /* satisfied by the movement model: see reachable() */ },
+      // 「改变职业(Skill)」p = [继承目标职业, 继承伤害来源职业, 持续时间]: 索菲亚
+      // 「易容」takes the profession of the unit she just hit for p2 rounds.
+      CHANGE_PROFESSION_BY_SKILL(inst, ctx) {
+        const o = inst.owner;
+        if (!o) return;
+        const [fromTarget, fromSource, turns] = inst.spec.p;
+        const who = fromTarget ? (ctx.defender && ctx.defender !== o ? ctx.defender : ctx.target)
+          : fromSource ? ctx.attacker : null;
+        if (!who?.base || who === o) return;
+        const prof = profOf(who);
+        o.profOverride = {prof, until: sim.round + Math.max(1, Number(turns) || 1)};
+        touch(o);
+        log(`${o.name} 的「${inst.name || inst.spec.n}」：职业变为与 ${who.name} 相同（大类 ${prof}），持续 ${Math.max(1, Number(turns) || 1)} 回合`);
+      },
+      CHANGE_PROFESSION_BY_BUFF(inst) { /* declarative: read by profOf() */ },
+      CANT_ASSIST(inst, ctx) { /* declarative: read by the 援护防御 guard search and assist-attack queue */ },
+      CANT_TRANSFER(inst, ctx) { markAction(inst, ctx, 'transferImmuneAction'); },
+      CANT_REBORN(inst, ctx) { /* declarative: read by dealDamage() before 不屈 */ },
       CONVERT_SKILL(inst) { if (inst.owner) inst.owner.flags.convertSkill = inst.spec.p[0] || 1; },
-      CANT_COUNTER(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.cantCounter = true; },
-      CANT_FIRST_HIT(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.cantFirstHit = true; },
+      CANT_COUNTER(inst, ctx) { /* declarative: read by queueCounter() */ },
+      CANT_FIRST_HIT(inst, ctx) { /* declarative: read by the 先制 check in castSkill() */ },
       CHARM(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.charm = true; },
       DISARM(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.disarm = true; },
       CAN_NOT_TRIGGER_AI(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.noTriggerAI = true; },
       TAUNTED(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.taunted = true; },
       DEEP_HYPNOTIZE(inst, ctx) { for (const t of targetsOf(inst, ctx)) if (t.alive) t.flags.deepSleep = true; },
-      BUFF_MODIFY_ATTRIBUTE(inst) { if (inst.owner) inst.owner.flags.buffModifyAttr = true; },
+      BUFF_MODIFY_ATTRIBUTE(inst) { /* declarative: summed by attr() via buffTypeCountValue() */ },
       FADE(inst) { if (inst.owner) inst.owner.flags.fade = true; },
-      IGNORE_PROFESSION_RESTRAIN(inst) { if (inst.owner) inst.owner.flags.ignoreRestrain = true; },
+      IGNORE_PROFESSION_RESTRAIN(inst) { /* declarative: read by restrainSpecs() */ },
       // NOT_TURN_AROUND is declared once at the top of EFFECTS; the duplicate
       // flag-only copy was removed (same JS-object-literal shadowing bug).
       DISPLAY_AOE(inst) { /* client UI hint only */ },
@@ -5389,7 +5868,7 @@ window.WikiBattleSim = (() => {
         const t = ctx.target || ctx.defender;
         if (t?.base && inst.owner) inst.owner.flags.copyFrom = t.uid;
       },
-      DAMAGE_BUFFER_DYNAMIC(inst) { if (inst.owner) inst.owner.flags.dynamicBuffer = inst.spec.p[0] || 0; },
+      DAMAGE_BUFFER_DYNAMIC(inst) { /* declarative: banked by dealDamage() into store[缓存属性] */ },
       ELEMENT_MASTER(inst) { if (inst.owner) inst.owner.flags.elementMaster = inst.spec.p[0] || 1; },
       // Client element_type (element.json 地/火/风/水/光/暗). The client's
       // battle Lua has NO element restraint table and units carry no element
@@ -5695,9 +6174,11 @@ window.WikiBattleSim = (() => {
     // Which side receives it is the speciality's target_type (1/5 友军, 2 敌方, 3 自身, 4 全体).
     function auraRange(spec, owner, u) {
       const packed = spec.p[1] >>> 0;
-      const max = packed & 0xFF, min = (packed >>> 8) & 0xFF;
+      let max = packed & 0xFF;
+      const min = (packed >>> 8) & 0xFF;
       const up = (packed >>> 24) & 0xFF, down = (packed >>> 16) & 0xFF;
       if (!owner || spec.p[0] === 7 || max >= 50) return true;
+      max += auraRangeBonus(owner);
       const d = manhattan(owner, u);
       if (d < min || d > max) return false;
       const dh = (grid.at(u.x, u.y)?.h ?? 0) - (grid.at(owner.x, owner.y)?.h ?? 0);
@@ -5745,10 +6226,14 @@ window.WikiBattleSim = (() => {
         if (inst.spec.t === 'AURA' && !inst.buff?.aura) sources.push(inst);
       sources.push(...envAuras);
       const want = new Map();
+      // 「孤立」ISOLATE (buff 635「自身无法受到来自友军的[光环]效果」): the
+      // unit receives no aura from an ALLIED source (enemy auras still apply).
+      const isolated = new Set(units.filter(u => u.alive && hasSpecTypeNow(u, 'ISOLATE')));
       for (const inst of sources) {
         const s = inst.spec, o = inst.owner;
         for (const u of units) {
           if (!u.alive || !auraSide(s, o, u) || !auraRange(s, o, u)) continue;
+          if (o && o !== u && o.side === u.side && isolated.has(u)) continue;
           // Environment auras (weather) evaluate their condition on the receiver.
           const ci = o ? inst : Object.assign({}, inst, {owner: u});
           if (s.c && !cond(ci, {target: u})) continue;
@@ -5801,6 +6286,12 @@ window.WikiBattleSim = (() => {
     /* ---------- knockback ---------- */
     const noReactive = u => unitSpecs(u).some(i => i.spec.t === 'FORBIDDEN_REACTIVE' && cond(i, {}));
     function immuneToKnockback(t) {
+      // 「免疫击退」IGNORE_KNOCKBACK (19 赛事/图鉴单位：圣械系、卡姆洛特 …,
+      // 部分带「拥有护甲时 / 蓄力时」条件). Used to be a flag nobody read.
+      // at=1 rows are permanent; timed rows (自然守护 at=62) mark the command.
+      if (t.kbImmuneAction && t.kbImmuneAction === (sim.actionId || 0)) return true;
+      if (hasSpecTypeNow(t, 'IGNORE_KNOCKBACK') && unitSpecs(t).some(i => i.spec.t === 'IGNORE_KNOCKBACK' && (AT_ALIAS[i.spec.at] || i.spec.at) === 1 &&
+          cond(i, {target: t, defender: t}))) return true;
       const bit = effectBit('Knockback') || effectBit('KnockBack') || effectBit('Repel');
       if (!bit) return false;
       return unitSpecs(t).some(i => i.spec.t === 'IMMUNE' && (i.spec.p[1] & (1 << (bit - 1))) && cond(i, {}));
@@ -6109,11 +6600,13 @@ window.WikiBattleSim = (() => {
       const cells = offsets
         ? offsets.map(([dx, dy]) => grid.at(origin.x + dx, origin.y + dy))
         : [...grid.cells.values()];
+      // SKILL_HEIGHT widens the client range-height window for this caster.
+      const [hLo, hHi] = u ? skillHeightBonus(u, s) : [0, 0];
       for (const c of cells) {
         if (!c) continue;
         const up = c.h - origin.h;
-        if (s.up && up > s.up) continue;
-        if (s.dn && -up > s.dn) continue;
+        if (s.up && up > s.up + hHi) continue;
+        if (s.dn && -up > s.dn + hLo) continue;
         out.push(c);
       }
       return out;
@@ -6198,6 +6691,23 @@ window.WikiBattleSim = (() => {
     // A `lc` of 0 means unlimited, and a negative delta must never turn an
     // unlimited skill into a gated one.
     const skillLimitOf = (u, s) => (Number(s.lc) || 0) + (u?.skillLimit?.[s.id] || 0);
+    // 「禁用特定类型技能」DISABLE_SKILL p0 = damage_type bits (bit dt-1: 11 =
+    // 物理+魔法+固定伤害 「禁用单体伤害技能」, 16 = 状态), p1 = class_type bits
+    // (bit ct-1), sparam = skill ids that stay usable (「特供禁主动（不禁悔罪）」).
+    // Used to write an unread flags.disabledSkills set.
+    function skillDisabled(u, s) {
+      if (!hasSpecTypeNow(u, 'DISABLE_SKILL')) return false;
+      for (const i of unitSpecs(u)) {
+        if (i.spec.t !== 'DISABLE_SKILL' || !cond(i, {attacker: u, skill: s}, true)) continue;
+        const keep = String(i.spec.s || '').split(/[|,;\s]+/).map(Number).filter(Boolean);
+        if (keep.includes(Number(s.id))) continue;
+        const dtBits = Number(i.spec.p[0]) || 0, ctBits = Number(i.spec.p[1]) || 0;
+        const dtHit = dtBits && s.dt && (dtBits & (1 << (Number(s.dt) - 1)));
+        const ctHit = ctBits && s.ct && (ctBits & (1 << (Number(s.ct) - 1)));
+        if (dtHit || ctHit) return true;
+      }
+      return false;
+    }
     function usable(u, s) {
       if ((u.cd[s.id] || 0) > 0) return false;
       if (tpCost(u, s) > u.tp) return false;
@@ -6211,6 +6721,7 @@ window.WikiBattleSim = (() => {
         return (s.tags || []).includes('Equipment');
       }
       if ((hasEffect(u, 'Seal') || hasEffect(u, 'SpecialSeal')) && !s.isNormal) return false;
+      if (skillDisabled(u, s)) return false;
       if (s.lct && (u.uses[s.id + ':t'] || 0) >= s.lct) return false;
       if (skillLimitOf(u, s) > 0 && (u.uses[s.id] || 0) >= skillLimitOf(u, s)) return false;
       return true;
@@ -6708,7 +7219,20 @@ window.WikiBattleSim = (() => {
         runSpec({spec: sp, sid, owner: caster, src: 'skill:' + s.id, name: s.n, skill: s},
           at({defender: primary, object: primaryProp || null, opArea: area}));
       }
+      const prevCharging = sim.charging;
+      sim.charging = null;
       runSkillSpecs(s, caster, 2, at({defender: primary}), handledRandom, headUnits);
+      // 「蓄力技能（准备1回合）」DELAY_SKILL (64 skills: 吞噬生灵 / 焚炎之阵 /
+      // 烈焰星陨 / 肃清万恶 …): THIS cast only starts the charge — TP / CD are
+      // spent, the skill is queued, and it resolves at the next round start
+      // (releasePending → resolveDelayed). The engine used to resolve it now
+      // AND again on release, and the release re-queued itself every round.
+      if (sim.charging === s) {
+        sim.charging = prevCharging;
+        log(`${caster.name} 的「${s.n}」进入蓄力，下一回合释放`);
+        return [];
+      }
+      sim.charging = prevCharging;
       fire(2, caster, evAt({defender: primary}));
       const counters = [];
       let primaryEvaded = false;
@@ -6718,10 +7242,42 @@ window.WikiBattleSim = (() => {
         if (!t.alive) continue;
         const enemyHit = t.side !== caster.side && evSkill.dt !== 5 && evSkill.dt !== 3;
         // 援护防御：友军受到单体直击时换位代为承受
-        if (enemyHit && single && s.hm === 2 && !unitSpecs(caster).some(i => i.spec.t === 'IGNORE_ASSIST_DEFENCE')) {
-          const guard = units.find(g => g.alive && g !== t && g.side === t.side && !noReactive(g) && unitSpecs(g).some(i =>
+        // 「无法被援护防御」CAN_NOT_BE_ASSIT_DEFENCE on the TARGET (科尔 /
+        // 名单杀手 / 光辉使者“利刃” …) forbids any guard from swapping in.
+        if (enemyHit && single && s.hm === 2 && !unitSpecs(caster).some(i => i.spec.t === 'IGNORE_ASSIST_DEFENCE') &&
+            !specActive(t, 'CAN_NOT_BE_ASSIT_DEFENCE', {attacker: caster, defender: t, skill: s})) {
+          // 「无法援护」CANT_ASSIST (希孜 / 拉维耶 …, 「实际上还包括无法援攻」)
+          // keeps that unit out of the guard search.
+          const noAssist = g => specActive(g, 'CANT_ASSIST', {attacker: caster, defender: t, skill: s});
+          let guard = units.find(g => g.alive && g !== t && g.side === t.side && !noReactive(g) &&
+            !noAssist(g) && unitSpecs(g).some(i =>
             i.spec.t === 'ASSIST_DEFENCE' && manhattan(g, t) <= Math.max(1, i.spec.p[0]) && limitOk(i) &&
             cond(i, {attacker: caster, defender: t, skill: s, target: t}) && (spend(i), true)));
+          // 「请求援防」DEMAND_ASSIST_DEFENCE on the TARGET p = [范围, 上高差,
+          // 下高差, 单位阵营 tag], sparam = buff the helper must carry: the
+          // attacked unit pulls an ally in to take the hit (苏莱曼「特殊条款」→
+          // 己方召唤物, 黑帮女「家人」濒死时, 骑士团「严密防守」→〈骑士同盟〉,
+          // 异端领袖 → 拥有[质疑之种]的友军). Used to write an unread flag.
+          if (!guard) {
+            const dctx = {attacker: caster, defender: t, skill: s, target: t};
+            const req = hasSpecTypeNow(t, 'DEMAND_ASSIST_DEFENCE') &&
+              unitSpecs(t).find(i => i.spec.t === 'DEMAND_ASSIST_DEFENCE' && limitOk(i) && cond(i, dctx));
+            if (req) {
+              const [range, up, down, tag] = req.spec.p.map(Number);
+              const needBuff = String(req.spec.s || '').split(/[|,;\s]+/).map(Number).filter(Boolean);
+              const th = heightOf(t);
+              guard = units.filter(g => g.alive && g !== t && g.side === t.side && !noReactive(g) && !noAssist(g) &&
+                  manhattan(g, t) <= Math.max(1, range || 1) &&
+                  (!up || heightOf(g) - th <= up) && (!down || th - heightOf(g) <= down) &&
+                  (!tag || (g.tags || []).some(x => Number(x) === tag) || (tag === 14 && g.summon)) &&
+                  (!needBuff.length || needBuff.some(id => (g.buffs || []).some(b => b.id === id && buffOn(b)))))
+                .sort((a, b) => manhattan(a, t) - manhattan(b, t))[0] || null;
+              if (guard) {
+                spend(req); bump(cov.executed, 'DEMAND_ASSIST_DEFENCE');
+                log(`${t.name} 的「${req.name || req.spec.n}」请求 ${guard.name} 援护防御`);
+              }
+            }
+          }
           if (guard) {
             fire(34, guard, at({defender: t}));
             fire(36, t, at({defender: t}));
@@ -6766,8 +7322,10 @@ window.WikiBattleSim = (() => {
             queueCounter(t, caster, 19, counters, ctx);
             continue;
           }
-          // 先制
-          if (!opts.counter && !noReactive(t)) {
+          // 先制 — refused by 「无视先制」CAN_NOT_FIRST_HIT on the attacker
+          // and 「无法先制」CANT_FIRST_HIT on the defender.
+          if (!opts.counter && !noReactive(t) && !markedNow(t, 'noFirstHitAction') &&
+              !activeSpec(caster, s, 'CAN_NOT_FIRST_HIT', ctx) && !specActive(t, 'CANT_FIRST_HIT', ctx)) {
             const fh = unitSpecs(t).find(i => i.spec.t === 'FIRST_HIT' && limitOk(i) && cond(i, ctx));
             if (fh) {
               const fs = skillRec(fh.spec.p[0]) || t.skills.find(x => x.isNormal);
@@ -7056,6 +7614,38 @@ window.WikiBattleSim = (() => {
           else settleBonus(caster, s, plan, bt, count, at, hits);
         }
       }
+      // 「支援队友」ASSIST_TEAMMATE p = [技能id, 是否在技能范围内]: a listener
+      // reacts when one of its ALLIES is directly attacked by an enemy
+      // damaging skill. In the Lua condition `target` is that attacked ally,
+      // `attacker` the enemy — 萨曼莎「虔诚祈求」TargetState(0,0,2) =「友军
+      // 受伤时」, 沼泽魔女「3格内有友军被直接攻击后，给他治疗并造花田」,
+      // 骑士团剑盾兵「给盾」. The listener casts p0 on the attacked ally (the
+      // linked skill's own aim decides the final target cell); p1=1 requires
+      // that ally to be inside p0's cast range. One response per listener per
+      // attack; the listener itself being hit is NOT 支援.
+      if (!opts.sub && caster.alive && damageIntent(s) && sim.depth < 4) {
+        const hitAllies = targets.filter(x => x.alive && x.base && x.side !== caster.side);
+        for (const ally of units.slice()) {
+          if (!ally.alive || !ally.base || ally.side === caster.side || !hasSpecTypeNow(ally, 'ASSIST_TEAMMATE')) continue;
+          for (const inst of unitSpecs(ally)) {
+            if (inst.spec.t !== 'ASSIST_TEAMMATE' || !limitOk(inst)) continue;
+            const rec = skillRec(inst.spec.p[0]);
+            if (!rec) break;
+            const need = Number(inst.spec.p[1]);
+            const [mn, mx] = need ? rangeMods(ally, false, rec) : [0, 0];
+            const friend = hitAllies.find(f => f !== ally && cond(inst, {attacker: caster, defender: f, target: f, skill: s}) &&
+              (!need || (manhattan(ally, f) >= Math.max(0, (rec.rmin || 0) + mn) &&
+                         manhattan(ally, f) <= Math.max(0, (rec.rmax || 0) + mx))));
+            if (!friend) continue;
+            spend(inst); bump(cov.executed, 'ASSIST_TEAMMATE');
+            log(`${ally.name} 的「${inst.name || inst.spec.n}」支援受击的 ${friend.name}（攻击者 ${caster.name}）→ 施放「${rec.n}」`);
+            sim.depth++;
+            try { castSkill(ally, rec, grid.at(friend.x, friend.y), {sub: true, free: true, label: '支援', link: inst.sid}); }
+            finally { sim.depth--; }
+            break;
+          }
+        }
+      }
       // 反击：每名受击者只触发 1 个，按满足条件的第一条（手册「反击堆叠规则」）。
       for (const c of counters) {
         if (!c.unit.alive || !caster.alive) continue;
@@ -7088,6 +7678,12 @@ window.WikiBattleSim = (() => {
     function queueCounter(t, caster, at, list, ctx) {
       if (list.some(c => c.unit === t) || !t.alive || noReactive(t)) return;
       if (CONTROL_SKIP.has(t.buffs.find(b => CONTROL_SKIP.has(b.def.et))?.def.et)) return;
+      // 「无视反击」CAN_NOT_COUNTER on the ATTACKER (双子妹妹「让子弹飞-5格以外」,
+      // #165「敌人无法反击」) and 「无法反击」CANT_COUNTER on the DEFENDER
+      // (古兹曼 / 沙娜姿) both forbid the counter. Used to be flags nobody read.
+      const rctx = Object.assign({}, ctx, {attacker: caster, defender: t});
+      if (markedNow(t, 'noCounterAction') || (ctx?.skill ? activeSpec(caster, ctx.skill, 'CAN_NOT_COUNTER', rctx)
+          : specActive(caster, 'CAN_NOT_COUNTER', rctx)) || specActive(t, 'CANT_COUNTER', rctx)) return;
       for (const inst of unitSpecs(t)) {
         if (inst.spec.t !== 'COUNTER_ATTACK') continue;
         const sat = AT_ALIAS[inst.spec.at] || inst.spec.at;
@@ -7219,7 +7815,11 @@ window.WikiBattleSim = (() => {
       const dh = to.h - from.h;
       return dh > 0 ? dh <= (mover.move.up || 2) : -dh <= (mover.move.down || 2);
     }
-    // 高差 ≥2 的每步额外消耗 0.5 移动力（战斗手册「高低移动」）。
+    // Movement cost follows the client AIMachine: each step costs the
+    // terrain's own step value plus field_status mobility; climbing is gated
+    // by jump up/down in canStep() but costs NO extra mobility. That is why
+    // 「高地不扣移动力-攀爬」HEIGHT_ZERO_MOBILITY (#4239, 25 roster units)
+    // needs no extra code: under this model height never deducts mobility.
     function reachable(unit, budgetOverride) {
       const start = grid.at(unit.x, unit.y);
       const occ = new Map(units.filter(u => u.alive && u !== unit).map(u => [key(u.x, u.y), u]));
@@ -7246,8 +7846,13 @@ window.WikiBattleSim = (() => {
           // Client `move_block` / `block.temp_unit:isFriend(owner)`: a unit
           // may walk THROUGH a friendly unit, but enemies block the path.
           // Occupied cells are still marked `blocked` below, so nobody can
-          // finish a move inside a teammate's tile.
-          if (blocker && blocker.side !== unit.side) continue;
+          // finish a move inside a teammate's tile. 「是否可被穿过」
+          // UNIT_CAN_THROUGH overrides this per blocker (幽灵类 p0=1 可被任何
+          // 人穿过；p0=0 连友军也不能穿过).
+          if (blocker) {
+            const rule = throughRule(blocker);
+            if (rule === false || (rule === null && blocker.side !== unit.side)) continue;
+          }
           // The client's AIMachine charges the terrain step cost only;
           // height changes are gated by unit.jump_up / jump_down in canStep.
           // The old +0.5 "高低移动" surcharge was an engine invention that made
@@ -8419,13 +9024,20 @@ window.WikiBattleSim = (() => {
       }
       const due = (sim.delayed || []).filter(d => --d.left <= 0);
       sim.delayed = (sim.delayed || []).filter(d => d.left > 0);
-      for (const d of due) {
-        if (!d.owner.alive || !d.skill) continue;
-        const t = d.target?.alive ? d.target : units.find(x => x.alive && x.side !== d.owner.side);
-        if (!t) continue;
-        const cell = grid.at(t.x, t.y);
-        if (cell) castSkill(d.owner, d.skill, cell, {sub: true, free: true, label: '延迟结算'});
-      }
+      for (const d of due) resolveDelayed(d, '延迟结算');
+    }
+    // One delayed / charged cast (DELAY_SKILL / DELAY_CAST_SKILL). Shared by
+    // the end-of-turn countdown and 「立即施法」SPELL_INSTANCE.
+    function resolveDelayed(d, label) {
+      if (!d.owner.alive || !d.skill) return;
+      const t = d.target?.alive ? d.target : units.find(x => x.alive && x.side !== d.owner.side);
+      if (!t) return;
+      const cell = grid.at(t.x, t.y);
+      if (!cell) return;
+      const prev = sim.resolvingDelayed;
+      sim.resolvingDelayed = d.skill.id;
+      try { castSkill(d.owner, d.skill, cell, {sub: true, free: true, label}); }
+      finally { sim.resolvingDelayed = prev; }
     }
 
     /* ---------- turn loop ---------- */

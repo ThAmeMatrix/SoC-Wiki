@@ -28,10 +28,11 @@ WORK = ROOT / 'work'
 ROUNDS = [21, 22, 23, 24, 25, 26, 37, 38, 39, 40, 41, 42, 43]
 PHYSICAL_CORES = int(os.environ.get('REG_PHYSICAL_CORES') or
                      max(1, (int(os.environ.get('NUMBER_OF_PROCESSORS', '8')) + 1) // 2))
-# Eight heavy jobs (full + r37..r43) each contain their own 192-battle sweep.
-# Running all of them at full physical-core concurrency makes them contend for
-# memory bandwidth: measured 10 workers -> 658.9s, 8 workers -> 623.4s on the
-# same 10-core box, with identical ALL-PASS results. Leave two cores free.
+# Eight heavy jobs (sweep + r37..r43) each contain a 192-battle sweep. They
+# are memory-bandwidth bound on this box: 10 workers -> 658.9s vs 8 -> 623.4s,
+# and starting all eight heavy jobs at once with a 9th worker made every one
+# of them exceed 900s. Keep 8 workers and let the light jobs stagger the
+# heavy starts.
 DEFAULT_JOBS = max(1, PHYSICAL_CORES - 2)
 
 
@@ -43,16 +44,14 @@ def jobs(no_full: bool, only: str | None):
             out.append((tok, [sys.executable, '-X', 'utf8', f'scripts/verify_round{tok}.py']))
         return out
     if not no_full:
-        # `verify_battle.py --full` runs the SAME assertions as the fast
-        # suite PLUS the 192-battle sweep — it is a strict superset. Running
-        # both concurrently duplicated ~200s of CPU work and made every other
-        # job contend for cores. Keep only the superset.
-        out.append(('full', [sys.executable, '-X', 'utf8', 'scripts/verify_battle.py', '--full']))
-    else:
-        out.append(('fast', [sys.executable, '-X', 'utf8', 'scripts/verify_battle.py']))
+        # The 92 fast checks and the 192-battle sweep are independent. Run
+        # them as TWO jobs (no duplicated work: `--sweep-only` skips the fast
+        # checks) so the sweep is not serialised behind the fast checks.
+        out.append(('sweep', [sys.executable, '-X', 'utf8', 'scripts/verify_battle.py', '--sweep-only']))
+    out.append(('fast', [sys.executable, '-X', 'utf8', 'scripts/verify_battle.py']))
     for n in ROUNDS:
         out.append((f'r{n}', [sys.executable, '-X', 'utf8', f'scripts/verify_round{n}.py']))
-    # Wiki term-jump regressions (抉择 / 变化技能词条) — 7s, mostly browser idle.
+    # Wiki term-jump / sentence-mechanism browser regressions — ~7s.
     out.append(('rules', [sys.executable, '-X', 'utf8', 'scripts/verify_battle_rules.py']))
     return out
 
@@ -82,6 +81,12 @@ def main():
     ap.add_argument('--no-full', action='store_true')
     args = ap.parse_args()
     WORK.mkdir(exist_ok=True)
+    # The sentence-mechanism wiki cites battle-sim-core.js line numbers.
+    # Rebuild it (2s, no client data needed beyond data/*.js) so assertion 92
+    # always checks the CURRENT engine, not a stale snapshot.
+    pre = subprocess.run([sys.executable, '-X', 'utf8', 'scripts/build_sentence_mechanics.py'],
+                         cwd=ROOT, capture_output=True, text=True, encoding='utf8', errors='replace')
+    print('  ' + (pre.stdout.strip().splitlines() or ['逐句机制映射未生成'])[0][:160], flush=True)
     todo = jobs(args.no_full, args.only)
     t0 = time.perf_counter()
     print(f'parallel regression: {len(todo)} jobs, {args.jobs} concurrent processes '

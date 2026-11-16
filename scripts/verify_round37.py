@@ -126,8 +126,10 @@ def main():
                   'offset_moves', 'alert_dist', 'alert_points']
     for k in mechanisms:
         check(f'client mechanism {k}', k in core)
+    # Round 63: the rule now also honours 「是否可被穿过」UNIT_CAN_THROUGH
+    # (throughRule); the default branch is still `blocker.side !== unit.side`.
     check('ally pass-through is side-aware',
-          'if (blocker && blocker.side !== unit.side) continue;' in core)
+          '(rule === null && blocker.side !== unit.side)' in core and 'const rule = throughRule(blocker);' in core)
     check('no exclusive per-action skill rotation',
           'declaredRotation' not in core and 'bossRotation' in core)
     decide = core[core.index('function decide(unit, reachOverride) {'):
@@ -190,7 +192,7 @@ def main():
           len(s) > 2 and s[2]['name'] == '阿列克谢·SP' and s[2]['to'] == {'x': 9, 'y': 5},
           str(s[2] if len(s) > 2 else s))
     check('2 · 友军格可穿越（引擎按 side 判定，非全体阻断）',
-          'if (blocker && blocker.side !== unit.side) continue;' in core)
+          '(rule === null && blocker.side !== unit.side)' in core)
     check('2 · 乌莉娅仍走到 (12,3) 施放「天降蜜果啦！」',
           len(s) > 0 and s[0]['to'] == {'x': 12, 'y': 3} and s[0]['skill'] == '天降蜜果啦！',
           str(s[0] if s else s))

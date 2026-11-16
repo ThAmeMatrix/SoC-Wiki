@@ -10,13 +10,13 @@
 window.WIKI_NAV_CONFIG = {
   show: {
     '#/': true,
-    '#/dialogues': true,
-    '#/mechanics': true,
-    '#/character-mechanics': true,
-    '#/maps': true,
-    '#/ai': true,
-    '#/code': true,
-    '#/enhance': true,
+    '#/dialogues': false,
+    '#/mechanics': false,
+    '#/character-mechanics': false,
+    '#/maps': false,
+    '#/ai': false,
+    '#/code': false,
+    '#/enhance': false,
     '#/search': true,
     '#/tools': true,
     '#/archive': true

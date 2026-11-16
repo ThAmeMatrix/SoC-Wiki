@@ -112,7 +112,7 @@
     const NAV_ORDER=['character','equipment','skill','status','talent'];
     const archiveTypes=Object.keys(DATA.archive.counts||{}).filter(t=>types[t]);
     const orderedTypes=[...NAV_ORDER.filter(t=>archiveTypes.includes(t)), ...archiveTypes.filter(t=>!NAV_ORDER.includes(t))];
-    const allItems = [['#/', 'home', '资料馆总览', ''], ...orderedTypes.map(t => [routeFor(t), typeIcons[t], types[t], DATA.archive.counts[t]]), ['#/dialogues','book','剧情对话',''],['#/mechanics','tree','机制规则',''],['#/character-mechanics','user','逐角色机制',''],['#/maps','map','战斗地图',''],['#/ai','cpu','自动战斗 AI',''],['#/code','code','客户端代码',''],['#/enhance','spark','强化与随机',''],['#/search','search','全站搜索',''],['#/tools','compare','离线工具',''],['#/archive','download','资料更新','']];
+    const allItems = [['#/', 'home', '资料馆总览', ''], ...orderedTypes.map(t => [routeFor(t), typeIcons[t], types[t], DATA.archive.counts[t]]), ['#/dialogues','book','剧情对话',''],['#/mechanics','tree','机制规则',''],['#/character-mechanics','user','逐角色机制',''],['#/sentence-mechanics','code','逐句机制与代码',''],['#/maps','map','战斗地图',''],['#/ai','cpu','自动战斗 AI',''],['#/code','code','客户端代码',''],['#/enhance','spark','强化与随机',''],['#/search','search','全站搜索',''],['#/tools','compare','离线工具',''],['#/archive','download','资料更新','']];
     // External nav-config.js decides which entries show; recent additions are
     // off by default. Archive type links always stay visible.
     const items = allItems.filter(([url]) => navVisible(url));
@@ -383,9 +383,15 @@
     const M=window.WikiMechanics;
     const decision=p.type==='skill'?(M?.choiceBlock(p,doc)||''):'';
     const rules=p.type==='skill'?(M?.mechanicBlock(p,doc)||''):'';
+    // 逐句机制：技能描述每一句 → 客户端特技 → 自动对局引擎代码（分片懒加载）。
+    const sentenceSid=p.type==='skill'?M?.skillIdOf(p,doc):0;
+    const sentence=sentenceSid?`<section class="content-card sm-card" id="sentence-mechanics"><h2>逐句机制与实现代码</h2><div data-sentence-skill="${sentenceSid}"></div></section>`:'';
+    // 个性页（客户端 unit_personality）：按星级展开个性技能的逐句机制。
+    const persRow=doc.clientSource?.table==='unit_personality'?doc.clientSource.rowId:0;
+    const persBlock=persRow?`<section class="content-card sm-card" id="sentence-mechanics"><h2>个性技能逐句机制</h2><div data-sentence-personality="${persRow}"></div></section>`:'';
     const backlink=M?.parentBlock(p,doc)||'';
     const content=backlink+(custom||`<article class="content-card wiki-content" id="article-content">${doc.html}</article>`)
-        +decision+rules+relations
+        +decision+rules+sentence+persBlock+relations
         +(custom?`<details class="content-card source-details"><summary>完整原文与补充资料</summary><div class="wiki-content">${doc.html}</div></details>`:'');
     const sections=doc.sections.filter(s=>+s.toclevel<=2).slice(0,25);
     $('#main').innerHTML=`${detailHeading(p)}${doc.hasOnlineMedia?`<div class="source-notice">${icon('info',16)}正文与已收录图片可离线阅读。原文中的外部视频、网页链接需要联网。</div>`:''}<div class="reader-toolbar"><span>阅读字号</span><button class="icon-button" data-action="font-down" aria-label="缩小字号">A−</button><button class="icon-button" data-action="font-up" aria-label="放大字号">A+</button><button class="button secondary small" data-action="reading">${icon('expand',13)}${document.body.classList.contains('reading')?'退出专注阅读':'专注阅读'}</button></div><div class="reader-layout"><div>${content}${sourceFooter(doc)}</div><aside class="reader-aside">${sections.length?`<nav class="toc" aria-label="本页目录"><h3>本页目录</h3>${sections.map(s=>`<a href="${href(p)}?section=${encodeURIComponent(s.anchor)}">${esc(s.line.replace(/<[^>]*>/g,''))}</a>`).join('')}</nav>`:''}${notesBox(p.id)}<div class="source-notice small-text">${icon('archive',15)}本页保存在离线资料库。数据以原站标注日期为准。</div></aside></div>`;
@@ -402,7 +408,12 @@
       }
     }
   }
-  function displayDetail(){if(!currentPage)return;window.WikiCharacter.unmount();const p=byId.get(currentPage.id);if(p.type==='character')characterDetail(p,currentPage);else if(p.type==='equipment')equipmentDetail(p,currentPage);else genericDetail(p,currentPage);linkifySwitchTerms();document.documentElement.style.setProperty('--reader-font',readerFont+'px');prepareSourceTables();}
+  function displayDetail(){if(!currentPage)return;window.WikiCharacter.unmount();const p=byId.get(currentPage.id);if(p.type==='character')characterDetail(p,currentPage);else if(p.type==='equipment')equipmentDetail(p,currentPage);else genericDetail(p,currentPage);linkifySwitchTerms();mountSentence();document.documentElement.style.setProperty('--reader-font',readerFont+'px');prepareSourceTables();}
+  function mountSentence(){
+    const S=window.WikiSentence;if(!S)return;
+    for(const host of $$('[data-sentence-skill]'))S.attach(host,Number(host.dataset.sentenceSkill));
+    for(const host of $$('[data-sentence-personality]'))S.personality(host,String(host.dataset.sentencePersonality));
+  }
   async function detail(id,token,params){
     if(id===7523||id===8027){saveHistory(id);toolView(id===7523?'damage':'gacha');return;}
     const catalogAlias={968:'character',2701:'character',7199:'monster'}[id];
@@ -539,6 +550,7 @@
     else if(path==='#/dialogues'){setBreadcrumb('剧情对话');document.title='剧情对话 · 铃兰档案馆';window.WikiDialogues.render($('#main'),params);}
     else if(path==='#/mechanics'){setBreadcrumb('机制规则');document.title='机制规则 · 铃兰档案馆';window.WikiMechanics.render($('#main'));}
     else if(path==='#/character-mechanics'){setBreadcrumb('逐角色机制');document.title='逐角色机制 · 铃兰档案馆';window.WikiMechanics.renderCharacters($('#main'));}
+    else if(path==='#/sentence-mechanics'){setBreadcrumb('逐句机制与代码');document.title='逐句机制与实现代码 · 铃兰档案馆';window.WikiSentence.mechanismsView($('#main'),params);}
     else if(path==='#/maps'){setBreadcrumb('战斗地图');document.title='战斗地图 · 铃兰档案馆';window.WikiWorld.renderMaps($('#main'));}
     else if(path==='#/ai'){setBreadcrumb('自动战斗 AI');document.title='自动战斗 AI · 铃兰档案馆';window.WikiWorld.renderAI($('#main'));}
     else if(path==='#/code'){setBreadcrumb('客户端代码');document.title='客户端代码 · 铃兰档案馆';window.WikiWorld.renderCode($('#main'));window.WikiWorld.renderLuaScripts?.($('#main'));}

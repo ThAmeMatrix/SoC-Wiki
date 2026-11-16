@@ -36,6 +36,11 @@ const CORE=fs.readFileSync('battle-sim-core.js','utf8');
 const team=id=>C.teams.find(t=>t.id===id);
 const mem=t=>S.cupFighters(t);
 const side=t=>t===1?'A':t===2?'B':'both';
+// `--sweep-only` (run_regression's `sweep` job) skips the 92 fast checks and
+// runs ONLY the 192-battle audit, so the fast suite and the sweep run in two
+// parallel processes instead of one ~12-minute serial `--full` job.
+let out={};
+if(!SWEEP_ONLY){
 const PLAN=JSON.parse(fs.readFileSync(PLAN_PATH,'utf8')).plans[0];
 const sc=C.schedules.find(x=>x.id===76);
 const teams={A:mem(team(sc.team1Id)),B:mem(team(sc.team2Id))};
@@ -1142,7 +1147,150 @@ const c88={casterAttrRows:Object.values(M.specs).filter(v=>v.sj?.caster_attr!==u
   src:['const useCaster = sj ?','useCaster ? inst.owner : t','!sj?.cut_defence']
     .every(k=>CORE.includes(k))};
 
-const out={error:r.error,steps:r.steps.length,winner:r.winner,
+// ---- Round 63: disguised stubs + constant Lua stubs -----------------------
+// Each speciality type below used to dispatch to a handler that only wrote
+// `owner.flags.X` with NO reader anywhere (a disguised stub), or a Lua API
+// returned a constant. One 8-round battle per mechanism family is enough;
+// schedule 80 (阿尔曼 70% 阈值), 52 (罗格妮达 溢出 / 阿列克谢 锁链) and
+// 13 (阿坎贝 特殊条款) carry them naturally.
+const run63=(id,seed,rounds)=>{const sc=C.schedules.find(x=>x.id===id);
+  const tm={A:S.cupFighters(C.teams.find(t=>t.id===sc.team1Id)),B:S.cupFighters(C.teams.find(t=>t.id===sc.team2Id))};
+  const bf=(sc.buffDetails||[]).filter(b=>b.buffId).map(b=>({buffId:b.buffId,side:b.target===1?'A':b.target===2?'B':'both'}));
+  return S.simulate({data:D,mech:M,map:W.maps.find(m=>m.id===Number(C.environment.mapId))||W.maps[0],
+    teams:tm,mode:'left',seed,maxRounds:rounds,env:{weatherId:C.environment.weatherId,buffs:bf},substrate:SUB});};
+const r63=[run63(80,1080,20),run63(52,1052,20),run63(13,1013,20),run63(6,1006,10)];
+const ev63=r63.flatMap(rr=>rr.steps.flatMap(s=>s.events||[]));
+const cnt63=re=>ev63.filter(e=>re.test(e)).length;
+// 89 — HP_LOW_LIMIT / OVERFLOW_DAMAGE_STORAGE / RECOVER_ATTRIBUTE on stored
+// attributes / BUFF_TARGET_LIMIT / DEMAND_ASSIST_DEFENCE / ASSIST_TEAMMATE now act.
+const c89={hpFloor:cnt63(/锁定生命下限/),overflow:cnt63(/溢出伤害储存 \d+ → \d+/),
+  storeWrite:cnt63(/的 (缓存值|溢出储存) \d+ → /),targetLimit:cnt63(/目标上限 \d+/),
+  demand:cnt63(/」请求 .+ 援护防御/),support:cnt63(/」支援受击的/),
+  errors:r63.filter(x=>x.error).length,
+  src:['function enforceBuffTargetLimit(b)',"specActive(victim, 'HP_LOW_LIMIT'",
+       "specActive(src, 'OVERFLOW_DAMAGE_STORAGE'",'STORE_ATTRS.has(n)',
+       "i.spec.t === 'DEMAND_ASSIST_DEFENCE'","inst.spec.t !== 'ASSIST_TEAMMATE'"].every(k=>CORE.includes(k))};
+// 90 — declarative rows are read where the client applies them, and none of
+// the former disguised stubs still writes an unread flag.
+const stubFlags=['ignoreKnockback','buffTargetLimit','skillHeight','forceInitiative','cantBeAssisted','highland',
+  'auraRange','canThrough','overflowStorage','hpLowLimit','buffModifyAttr','ignoreRestrain','dynamicBuffer',
+  'assistTeammate','spellInstance','reflect','heightZeroMobility','profBySkill','profByBuff','cantCounter',
+  'cantFirstHit','cantAssist','cantTransfer','cantReborn','disabledSkills','isolate','straight','demandAssist'];
+const c90={leftover:stubFlags.filter(f=>new RegExp('flags\\.'+f+'\\s*=').test(CORE)),
+  readers:['function restrainSpecs(a, d)',"specActive(a, 'IGNORE_PROFESSION_RESTRAIN'","specActive(a, 'HIGHLAND'",
+    'function skillHeightBonus(u, s)','function auraRangeBonus(owner)','function throughRule(u)',
+    'function buffTypeCountValue(u, s)','function profOf(u)','function forcedInitiative(s, dflt)',
+    'function skillDisabled(u, s)','function transferImmune(t, inst, ctx)',"specActive(t, 'CANT_COUNTER'",
+    "'CANT_ASSIST'","'CANT_REBORN'",'isolated.has(u)','REFLECT_DAMAGE(inst, ctx) {','SPELL_INSTANCE(inst) {',
+    'CHANGE_PROFESSION_BY_SKILL(inst, ctx) {'].filter(k=>!CORE.includes(k)),
+  composite:CORE.includes("const n = attrName(s.p[1]); for (const A of COMPOSITE[n] || [n]) add(A, inst);")};
+// 91 — the 23 client Lua APIs that used to return a constant now answer
+// from live state; a full sweep has zero unknown names (checked in F1).
+// Only the BATTLE environment (function luaEnv … the static inspection
+// table before it has no owner by design) must be free of constant stubs.
+const luaBattle=CORE.slice(CORE.indexOf('    function luaEnv('));
+const c91={stubs:['CheckImmuneType: () => false','IsInDelay: () => false','getNeighborPropsCount: () => 0',
+    'hasChangedFieldStatus: () => false','hasTag: () => false','GetNeighborBlockFieldStatusCount: () => 0',
+    'isFieldStatus: () => false','checkForget: () => false'].filter(k=>luaBattle.includes(k)),
+  apis:['CheckImmuneType: (bt, data, bid, mid, sub, cat)','IsInDelay: () => (sim.delayed','getNeighborPropsCount: (',
+    'hasChangedFieldStatus: () => sim.fieldChangers','hasSkillTag: (t)','GetHPDamagedTurn: ()','IsDirectBeDamaged: ()',
+    'getBuffCountByEffectType: (bit)','CheckDispelForData: (data)','CasterBuffCount: (bt)','TargetBuffHasSpeciality: (list)',
+    'TargetCheckImmuneType: (','FindUnitsBySide: (side)','FindUnitsOnStageBySide: (side)','getBlockByIndex: (idx)',
+    'CheckShadowStepValid: (','checkLimitCount: ()','CanInitiativeCastSkill: ()',"case 'temp_props'",'dist: (x, y)',
+    'temp_limit_count_command:',"case 'side': return u.side"].filter(k=>!CORE.includes(k)),
+  luaUnknown:r63.reduce((n,rr)=>n+Object.keys(rr.mechanics?.luaUnknown||{}).length,0)};
+// 92 — sentence → speciality → engine-code map is generated and current.
+const SMI=(()=>{const t=fs.readFileSync('data/sentence-mechanics.js','utf8');
+  return JSON.parse(t.slice(t.indexOf('window.WIKI_SENTENCE_INDEX=')+27).replace(/;\s*$/,''));})();
+const SMC=(()=>{const t=fs.readFileSync('data/mechanics-code.js','utf8');
+  return JSON.parse(t.slice(t.indexOf('window.WIKI_MECHANICS_CODE=')+27).replace(/;\s*$/,''));})();
+const coreLines=CORE.replace(/\r\n/g,'\n').split('\n');
+const anchorsOk=Object.values(SMC.common).flatMap(c=>c.anchors||[]).filter(a=>{
+  const first=(a.code||'').split('\n').find(l=>l.startsWith(String(a.l).padStart(5)+'  '));
+  if(!first)return false;
+  const text=first.slice(7).replace(/…$/,'');
+  return (coreLines[a.l-1]||'').trimEnd().startsWith(text.slice(0,60));
+}).length;
+const anchorsAll=Object.values(SMC.common).reduce((n,c)=>n+(c.anchors||[]).length,0);
+const sh15386=(()=>{const n=15386%SMI.shards;const t=fs.readFileSync('data/sentence-mechanics/'+n+'.js','utf8');
+  const key='['+n+']=';return JSON.parse(t.slice(t.indexOf(key)+key.length).replace(/;\s*$/,''));})();
+const c92={skills:SMI.meta.skills,sentences:SMI.meta.sentences,mapped:SMI.meta.mapped,withSpec:SMI.meta.withSpec,
+  common:SMI.meta.common,anchorsAll,anchorsOk,engineLines:SMI.meta.engineLines,coreLines:coreLines.length,
+  gaps:(SMC.meta.gaps||[]).length,luaMissing:(SMC.meta.luaMissing||[]).length,
+  pers:Object.keys(SMI.personalities).length,shards:fs.readdirSync('data/sentence-mechanics').length,
+  sample:(sh15386.skills['15386']?.s||[]).map(x=>(x.s||[]).length)};
+// 93 — Round 64: the sentence wiki must cover EVERY sentence of the CLIENT's
+// full description. battle-mech.js truncates desc to 120 chars, so a
+// build-time-only data/skill-desc-full.js restores the rest; the browser must
+// NOT load it. Sentences with no speciality still resolve to an attr/at/core
+// mechanism or an explicit note: (no logic), never a blank row.
+const FULL_DESC=(()=>{try{const t=fs.readFileSync('data/skill-desc-full.js','utf8');
+  return JSON.parse(t.slice(t.indexOf('=')+1,t.lastIndexOf(';')));}catch(e){return {};}})();
+const html64=fs.readFileSync('index.html','utf8');
+const SMC64=(()=>{const t=fs.readFileSync('data/mechanics-code.js','utf8');
+  return JSON.parse(t.slice(t.indexOf('=')+1,t.lastIndexOf(';')));})();
+// Count blank rows and bare fragments across all 64 shards.
+const SH64=(()=>{const c2={window:{}};vm.createContext(c2);
+  for(const f of fs.readdirSync('data/sentence-mechanics'))
+    vm.runInContext(fs.readFileSync('data/sentence-mechanics/'+f,'utf8'),c2);
+  return c2.window.WIKI_SENTENCE_SHARDS||{};})();
+let blank64=0,frag64=0,note64=0,sent64=0;
+for(const sh of Object.values(SH64))for(const sk of Object.values(sh.skills||{}))
+  for(const row of sk.s||[]){
+    sent64++;
+    if(!(row.s||row.b||row.k||row.c))blank64++;
+    const t=String(row.t||'');
+    // A genuine truncated tail, not a legitimately short client description
+    // (「后续技能」/「吸血10%」/「全领域护盾」 are complete one-line skills).
+    if(t.length<=14&&!/[。；;！!？?]$/.test(t)&&
+       (/[\[【▲]$/.test(t)||/^(并|若|在|且|以及)/.test(t)||/[、，]$/.test(t)))frag64++;
+    if((row.c||[]).some(x=>x.startsWith('note:')))note64++;
+  }
+const c93={fullRows:Object.keys(FULL_DESC).length,
+  sampleTail:(FULL_DESC['21312']||'').slice(-24),
+  browserLoadsFull:html64.includes('skill-desc-full.js'),
+  runtimeUnchanged:fs.statSync('data/battle-mech.js').size,
+  sentences:sent64,blank:blank64,frag:frag64,noteRefs:note64,
+  noteCommon:Object.keys(SMC64.common||{}).filter(k=>k.startsWith('note:')).length,
+  mapped:SMI.meta.mapped,total:SMI.meta.sentences,
+  src:[fs.readFileSync('scripts/extract_battle_mechanics.py','utf8').includes("'WIKI_SKILL_DESC_FULL'") ||
+       fs.readFileSync('scripts/extract_battle_mechanics.py','utf8').includes('WIKI_SKILL_DESC_FULL='),
+       fs.readFileSync('scripts/build_sentence_mechanics.py','utf8').includes('skill-desc-full.js'),
+       fs.readFileSync('scripts/build_sentence_mechanics.py','utf8').includes('ATTR_SENTENCE')]};
+// 94 — Round 65: the last unimplemented compound `sparam` key with real
+// effect is now implemented; all other unread keys are individually audited
+// against the 192-game sweep rather than left as a vague "未实装".
+// `find_trap=139` (SP伦伽勒 反应瞬步) must land ON a live 长枪之灵 and fire
+// its 停留 trigger (which consumes the trap, limit=1).
+const SMC65=(()=>{const t=fs.readFileSync('data/mechanics-code.js','utf8');
+  return JSON.parse(t.slice(t.indexOf('=')+1,t.lastIndexOf(';')));})();
+const ftSpec=M.specs['20039']||{};
+const trap139=M.traps?.['139']||{};
+// Schedule 25 (with its client buffDetails via cupEnv) dispatches #20039
+// twice: 找枪灵传送 x2 and 长枪之灵 停留 x6. maxRounds 8 keeps this cheap.
+const ftSc=C.schedules.find(x=>x.id===25);
+const ftTm={A:S.cupFighters(C.teams.find(t=>t.id===ftSc.team1Id)),
+            B:S.cupFighters(C.teams.find(t=>t.id===ftSc.team2Id))};
+const ftCe=S.cupEnv(ftSc,ftTm);
+const ftR=S.simulate({data:D,mech:M,map:W.maps.find(m=>m.id===Number(C.environment.mapId))||W.maps[0],
+  teams:ftTm,mode:'left',seed:1025,maxRounds:8,
+  env:{weatherId:C.environment.weatherId,buffs:ftCe.buffs,unitStatus:ftCe.unitStatus},substrate:SUB});
+const ftEvents=ftR.steps.flatMap(s=>s.events||[]);
+const c94={findTrap:ftSpec.sj?.find_trap||0,trapId:Number(trap139.id||0)||139,
+  trapStay:trap139.tt||0,trapSkill:trap139.ts||0,trapLimit:trap139.lim||0,
+  blinks:ftEvents.filter(e=>/并瞬移过去（找枪灵传送）/.test(e)).length,
+  stays:ftEvents.filter(e=>/停留触发「.*长枪之灵/.test(e)).length,
+  findTrapImpl:SMC65.common['sj:find_trap']?.impl||'',
+  audited:Object.values(SMC65.common).filter(v=>v.impl==='audited').length,
+  missing:Object.values(SMC65.common).filter(v=>['stub','missing'].includes(v.impl)).length,
+  stub:Object.values(SMC65.common).filter(v=>v.impl==='stub').length,
+  src:['const trapId = Number(inst.spec.sj?.find_trap)',
+       "t.kind === 'PLACE_TRAP'",
+       'triggersOnPath([{x: t.x, y: t.y}], o)',
+       fs.readFileSync('scripts/build_sentence_mechanics.py','utf8').includes('AUDITED_SJ')]
+    .every(k=>k===true||CORE.includes(k))};
+
+out={error:r.error,steps:r.steps.length,winner:r.winner,
   deterministic:sig(r)===sig(S.simulate(opt())),
   c1:{orders,emptyOrders:emptyOrders.length},
   c2:{teleports,bad:teleports.filter(t=>t.dist>3||t.effMax>3).length},
@@ -1182,8 +1330,9 @@ const out={error:r.error,steps:r.steps.length,winner:r.winner,
   c20,c21,c22,c23,c24,c25,c26,c27,c28,c29,c30,c31,c32,c33,c34,c35,c36,c37,c38,c39,
   c40,c41,c42,c43,c44,c45,c46,c47,c48,c49,c50,c51,c52,c53,c54,c56,c57,
   c58,c59,c60,c61,c62,c63,c64,c65,c66,c67,c68,c69,c70,c71,c72,c73,
-  c74,c75,c76,c77,c78,c79,c80,c81,c82,c83,c84,c85,c86,c87,c88,
+  c74,c75,c76,c77,c78,c79,c80,c81,c82,c83,c84,c85,c86,c87,c88,c89,c90,c91,c92,c93,c94,
   tables:{sapSpecs,ap2Skills,summonsWithPassive}};
+}
 
 if(FULL){
   const t0=Date.now();
@@ -1257,10 +1406,50 @@ console.log(JSON.stringify(out));
 """
 
 
+def sweep_checks(e, check):
+    """F1–F10 over the 192-battle sweep (shared by --full and --sweep-only)."""
+    sw = e.get('sweep') or {}
+    print('\n--- 全量 192 场 ---')
+    check('F1 全量无异常 / Lua 未知 0',
+          sw.get('done') == 192 and sw.get('err') == 0 and not sw.get('unknown'), str({k: sw.get(k) for k in ('done', 'err', 'seconds', 'unknown')}))
+    check('F2 无负伤害 / 0 伤害都有原因', sw.get('negative') == 0 and sw.get('zeroNoReason') == 0,
+          f"negative={sw.get('negative')} zeroNoReason={sw.get('zeroNoReason')}")
+    check('F3 限定再行动零违规（含白金狮子）/ 附属被动不被低耗能技能触发',
+          sw.get('viol') == 0 and sw.get('lionViol') == 0 and sw.get('ap2Bad') == 0,
+          f"viol={sw.get('viol')} lion={sw.get('lion')} ap2Bad={sw.get('ap2Bad')}")
+    check('F4 召唤物不行动 / 灵感星核同侧最多 1 个', sw.get('summonActs') == 0 and (sw.get('coreMax') or 0) <= 1,
+          f"summonActs={sw.get('summonActs')} coreMax={sw.get('coreMax')}")
+    check('F5 skill_cast_id 后续技能实际造成命中 / 贯日强击发生技能变更',
+          (sw.get('scidHits') or 0) > 0 and (sw.get('swap19180') or 0) > 0,
+          f"scidHits={sw.get('scidHits')} swap19180={sw.get('swap19180')}")
+    check('F6 〈铃兰之剑〉额外协同响应「飞弹礼花-后续」实际造成 50% 穿透伤害',
+          (sw.get('coord50') or 0) > 0, f"coord50={sw.get('coord50')}")
+    check('F7 全量限定再行动零违规、无「改成移动/待机」的额外行动',
+          sw.get('viol') == 0 and sw.get('extraOther') == 0,
+          f"viol={sw.get('viol')} extraOther={sw.get('extraOther')}")
+    check('F8 全量「蛮勇转化-结算」不刷屏 / 落花之舞真实施放',
+          0 < (sw.get('manyuMax') or 0) <= 6 and (sw.get('luoHuaCasts') or 0) > 0,
+          f"manyuMax={sw.get('manyuMax')} luoHuaCasts={sw.get('luoHuaCasts')}")
+    # F9 guards the BUFF_CHANGE (58) self-trigger loop it was written for.
+    # The all-timing total also counts legitimately deep reaction chains,
+    # which grow whenever more client mechanisms are wired (round 52:
+    # attacker-side 被攻击后, follow-skill attack events) — reported only.
+    check('F9 全量 BUFF_CHANGE（at58）自触发链不再靠深度上限收敛',
+          (sw.get('deep58') or 0) < 120,
+          f"at58 截断={sw.get('deep58')}（修复前全部时机合计 295）；全部时机合计={sw.get('deep')}")
+    check('F10 全量空地召唤零违规 / 地形与击退明细真实落地',
+          (sw.get('egCasts') or 0) > 0 and sw.get('egBad') == 0
+          and (sw.get('terrainSteps') or 0) > 0 and (sw.get('knockSteps') or 0) > 0,
+          f"空地召唤={sw.get('egCasts')} 违规={sw.get('egBad')} "
+          f"地形步骤={sw.get('terrainSteps')} 击退明细步骤={sw.get('knockSteps')}")
+
+
 def main():
-    full = '--full' in sys.argv
+    sweep_only = '--sweep-only' in sys.argv
+    full = '--full' in sys.argv or sweep_only
     js = (ENGINE.replace('PLAN_PATH', json.dumps(PLAN))
-               .replace('if(FULL)', 'if(%s)' % ('true' if full else 'false')))
+               .replace('if(FULL)', 'if(%s)' % ('true' if full else 'false'))
+               .replace('if(!SWEEP_ONLY)', 'if(%s)' % ('false' if sweep_only else 'true')))
     # Windows CreateProcess caps the command line at 32767 chars; the engine
     # source has outgrown `node -e <source>`. Write it to a temp .cjs and run
     # that instead — same code, no length limit, no behavioural change.
@@ -1269,7 +1458,7 @@ def main():
     # One file PER PROCESS: run_regression.py starts the fast and --full
     # suites concurrently, and a shared name let the fast run overwrite the
     # full run's script before node read it (the 192-battle sweep vanished).
-    script = work / f'_verify_engine_{"full" if full else "fast"}_{os.getpid()}.cjs'
+    script = work / f'_verify_engine_{"sweep" if sweep_only else "full" if full else "fast"}_{os.getpid()}.cjs'
     script.write_text(js, encoding='utf8')
     try:
         proc = subprocess.run([str(NODE), str(script)], cwd=ROOT, capture_output=True,
@@ -1291,6 +1480,11 @@ def main():
         print(('PASS ' if ok else 'FAIL ') + label + (f' :: {detail}' if detail else ''), flush=True)
         if not ok:
             failures.append(label)
+
+    if sweep_only:
+        sweep_checks(e, check)
+        print('\nALL PASS' if not failures else f'\n{len(failures)} FAILED: ' + ', '.join(failures))
+        return 1 if failures else 0
 
     print('=== 客户端战斗功能验收 · 赛程76 / 种子292 ===')
     check('对局可完整运行且确定性',
@@ -1780,41 +1974,39 @@ def main():
           and c['bugGone'] and c['luaUnknown'] == 0 and c['unmapped'] == 0
           and c['src'], str(c))
 
+    print('\n--- 第 63 轮：伪实装特技与常量 Lua 接口全部接入；逐句机制 → 代码映射 ---')
+    c = e['c89']
+    check('89 生命下限 / 溢出储存 / 缓存值改写 / 目标上限 / 请求援防 / 支援队友 在真实对局中生效',
+          c['hpFloor'] >= 1 and c['overflow'] >= 1 and c['storeWrite'] >= 1 and c['targetLimit'] >= 1
+          and c['demand'] >= 1 and c['support'] >= 1 and c['errors'] == 0 and c['src'], str(c))
+    c = e['c90']
+    check('90 原伪实装特技都在客户端生效位置读取，不再写入无人读取的标记；复合属性（攻击/防御）被展开',
+          not c['leftover'] and not c['readers'] and c['composite'], str(c))
+    c = e['c91']
+    check('91 23 个曾恒返回常量的客户端 Lua 接口改为读取实时战斗状态，对局 Lua 未知 0',
+          not c['stubs'] and not c['apis'] and c['luaUnknown'] == 0, str(c))
+    c = e['c92']
+    check('92 逐句机制映射已生成：每句描述→客户端特技→引擎代码，代码锚点与当前引擎源码逐行一致',
+          c['skills'] >= 4000 and c['sentences'] >= 8000 and c['mapped'] >= 0.9 * c['sentences']
+          and c['withSpec'] >= 0.7 * c['sentences'] and c['anchorsAll'] >= 800
+          and c['anchorsOk'] == c['anchorsAll'] and c['engineLines'] == c['coreLines']
+          and c['gaps'] == 0 and c['luaMissing'] == 0 and c['pers'] >= 500
+          and c['shards'] == 64 and c['sample'] and c['sample'][0] >= 3, str(c))
+    c = e['c93']
+    check('93 逐句覆盖客户端完整描述：120 字截断已补齐、每句都有归属、无空白行、浏览器不加载构建期数据',
+          c['fullRows'] >= 300 and '最终伤害提高30%' in c['sampleTail']
+          and not c['browserLoadsFull'] and c['mapped'] == c['total'] == c['sentences']
+          and c['blank'] == 0 and c['frag'] == 0 and c['noteRefs'] >= 100
+          and c['noteCommon'] >= 1 and all(c['src']), str(c))
+    c = e['c94']
+    check('94 find_trap 找枪灵传送落上陷阱并触发停留；其余未读取的复合参数全部核实归类、无含糊未实装',
+          c['findTrap'] == 139 and c['trapStay'] == 2 and c['trapLimit'] == 1
+          and c['trapSkill'] > 0 and c['blinks'] >= 1 and c['stays'] >= 1
+          and c['findTrapImpl'] == 'impl' and c['audited'] >= 14
+          and c['missing'] == 0 and c['stub'] == 0 and c['src'], str(c))
+
     if full:
-        sw = e.get('sweep') or {}
-        print('\n--- 全量 192 场 ---')
-        check('F1 全量无异常 / Lua 未知 0',
-              sw.get('done') == 192 and sw.get('err') == 0 and not sw.get('unknown'), str({k: sw.get(k) for k in ('done', 'err', 'seconds', 'unknown')}))
-        check('F2 无负伤害 / 0 伤害都有原因', sw.get('negative') == 0 and sw.get('zeroNoReason') == 0,
-              f"negative={sw.get('negative')} zeroNoReason={sw.get('zeroNoReason')}")
-        check('F3 限定再行动零违规（含白金狮子）/ 附属被动不被低耗能技能触发',
-              sw.get('viol') == 0 and sw.get('lionViol') == 0 and sw.get('ap2Bad') == 0,
-              f"viol={sw.get('viol')} lion={sw.get('lion')} ap2Bad={sw.get('ap2Bad')}")
-        check('F4 召唤物不行动 / 灵感星核同侧最多 1 个', sw.get('summonActs') == 0 and (sw.get('coreMax') or 0) <= 1,
-              f"summonActs={sw.get('summonActs')} coreMax={sw.get('coreMax')}")
-        check('F5 skill_cast_id 后续技能实际造成命中 / 贯日强击发生技能变更',
-              (sw.get('scidHits') or 0) > 0 and (sw.get('swap19180') or 0) > 0,
-              f"scidHits={sw.get('scidHits')} swap19180={sw.get('swap19180')}")
-        check('F6 〈铃兰之剑〉额外协同响应「飞弹礼花-后续」实际造成 50% 穿透伤害',
-              (sw.get('coord50') or 0) > 0, f"coord50={sw.get('coord50')}")
-        check('F7 全量限定再行动零违规、无「改成移动/待机」的额外行动',
-              sw.get('viol') == 0 and sw.get('extraOther') == 0,
-              f"viol={sw.get('viol')} extraOther={sw.get('extraOther')}")
-        check('F8 全量「蛮勇转化-结算」不刷屏 / 落花之舞真实施放',
-              0 < (sw.get('manyuMax') or 0) <= 6 and (sw.get('luoHuaCasts') or 0) > 0,
-              f"manyuMax={sw.get('manyuMax')} luoHuaCasts={sw.get('luoHuaCasts')}")
-        # F9 guards the BUFF_CHANGE (58) self-trigger loop it was written for.
-        # The all-timing total also counts legitimately deep reaction chains,
-        # which grow whenever more client mechanisms are wired (round 52:
-        # attacker-side 被攻击后, follow-skill attack events) — reported only.
-        check('F9 全量 BUFF_CHANGE（at58）自触发链不再靠深度上限收敛',
-              (sw.get('deep58') or 0) < 120,
-              f"at58 截断={sw.get('deep58')}（修复前全部时机合计 295）；全部时机合计={sw.get('deep')}")
-        check('F10 全量空地召唤零违规 / 地形与击退明细真实落地',
-              (sw.get('egCasts') or 0) > 0 and sw.get('egBad') == 0
-              and (sw.get('terrainSteps') or 0) > 0 and (sw.get('knockSteps') or 0) > 0,
-              f"空地召唤={sw.get('egCasts')} 违规={sw.get('egBad')} "
-              f"地形步骤={sw.get('terrainSteps')} 击退明细步骤={sw.get('knockSteps')}")
+        sweep_checks(e, check)
 
     print('\nALL PASS' if not failures else f'\n{len(failures)} FAILED: ' + ', '.join(failures))
     return 1 if failures else 0

@@ -39,6 +39,7 @@ STEPS = (
     ('解密客户端 Lua 脚本常量索引', ['scripts/socdecode/lua_scripts.py']),
     ('导出解密机制基底（AI 阶段 / 技能标签 / 选位流水线 / 效果类型）', ['scripts/socdecode/derive_mechanisms.py']),
     ('生成逐角色机制参考文档', ['scripts/build_character_mechanics.py']),
+    ('生成逐句机制与实现代码映射', ['scripts/build_sentence_mechanics.py']),
     ('生成变化技能词条跳转映射', ['scripts/build_skill_switch_links.py']),
     ('生成网页用缩略图与展示图', ['scripts/build_image_variants.py']),
 )

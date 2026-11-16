@@ -39,6 +39,10 @@ from extract_battle_sim import (table, plain, ints, load_js, area_of, TARGET_ENE
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'data' / 'battle-mech.js'
+# Build-time only: skill `desc` above is truncated to 120 chars to keep the
+# runtime bundle small. The sentence-mechanism wiki must analyse EVERY sentence,
+# so export the full text separately. The browser never loads this file.
+OUT_DESC = ROOT / 'data' / 'skill-desc-full.js'
 
 # Trigger timings come straight from the client enum table `active_time`
 # (1 ANY 任意, 2 ATTACK 攻击前, 3 ATTACKED 攻击后, 4 BEATTACKED 被攻击后 …
@@ -300,9 +304,12 @@ def main():
 
     used_aoe = set()
     out_skills = {}
+    full_desc = {}
     for sid in sorted(keep_skills):
         r = skills[sid]
         desc = plain(r.get('desc'))
+        if len(desc) > 120:
+            full_desc[str(sid)] = desc
         sp_ids = [x for x in ints(r.get('speciality_ids')) if x in specs]
         # The client defines every multi-target area through an AOE speciality
         # (aoe_param). Guessing from description text ("…7 格内最近的敌人")
@@ -720,6 +727,9 @@ def main():
     }
     OUT.write_text('window.WIKI_BATTLE_MECH=' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n',
                    'utf8')
+    OUT_DESC.write_text('/* Build-time only, consumed by scripts/build_sentence_mechanics.py. */\n'
+                        'window.WIKI_SKILL_DESC_FULL=' +
+                        json.dumps(full_desc, ensure_ascii=False, separators=(',', ':')) + ';\n', 'utf8')
     tc = Counter(r['t'] for r in out_specs.values())
     print(f'战斗机制数据：{len(out_skills)} 个技能 / {len(out_specs)} 条效果（{len(tc)} 种类型）/ '
           f'{len(out_buffs)} 个状态 / {len(out_props)} 个交互物 / {len(out_traps)} 个触发物 / '

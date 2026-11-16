@@ -133,7 +133,7 @@ def main():
     for key in ('aiByOrder', 'bossRotation', 'choiceOptions', 'skillOrderIndex',
                 'aiFields', 'alertState', 'alertReach', '展开警戒', 'ALERT_ATTACK_DISPLAY',
                 'hidePreview', 'sortByNearEnemy', 'prev_block_min',
-                'if (blocker && blocker.side !== unit.side) continue;',
+                '(rule === null && blocker.side !== unit.side)',
                 'const c = cost + n.step;', 'jumpGround', 'aiPriority',
                 'all_skill_list', 'countBonusOf', 'sim.teleport', 'checkAlert(mover, cell)',
                 'sortByPropsCountNoFade', 'target_order_param'):

@@ -176,6 +176,30 @@ def main():
         check('archive-page <font> name becomes a clickable term',
               page.locator('.ability-description.rich-text a.term-link[data-switch-target]').count() >= 1)
 
+        # 逐句机制与实现代码：技能页逐句 → 客户端特技 → 引擎代码。
+        page.goto(BASE + '#/page/100015386')
+        page.locator('#sentence-mechanics .sm-list').wait_for(timeout=20000)
+        check('skill page lists sentence mechanisms',
+              page.locator('#sentence-mechanics .sm-sentence').count() >= 1
+              and page.locator('#sentence-mechanics .sm-spec').count() >= 3,
+              page.locator('#sentence-mechanics .sm-sentence').first.inner_text()[:80])
+        page.locator('#sentence-mechanics .sm-ref').first.click()
+        page.locator('.sm-pop .sm-anchor').first.wait_for(timeout=20000)
+        cap = page.locator('.sm-pop figcaption').first.inner_text()
+        check('mechanism popover shows engine code with file:line',
+              'battle-sim-core.js:' in cap and page.locator('.sm-pop pre').count() >= 1, cap[:100])
+        page.keyboard.press('Escape')
+        page.goto(BASE + '#/page/200000001')
+        page.locator('[data-sentence-personality] .sm-list').first.wait_for(timeout=20000)
+        check('personality page shows per-star sentence mechanisms',
+              page.locator('[data-sentence-personality] .sm-star').count() >= 2
+              and page.locator('[data-sentence-personality] .sm-sentence').count() >= 1)
+        page.goto(BASE + '#/sentence-mechanics?m=type%3AHP_LOW_LIMIT')
+        page.locator('.sm-mech[open]').first.wait_for(timeout=20000)
+        check('mechanism catalog renders and deep-links one entry',
+              page.locator('.sm-mech').count() >= 500
+              and 'HP_LOW_LIMIT' in page.locator('.sm-mech[open] summary').first.inner_text())
+
         page.goto(BASE + '#/mechanics')
         page.locator('.mechanics-toolbar').wait_for()
         check('mechanics browser lists rules', page.locator('.mechanics-entry').count() > 10)

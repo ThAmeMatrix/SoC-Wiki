@@ -108,7 +108,15 @@ window.WikiCharacter = (() => {
       }
       const type = kind(doc);
       const fullLink = node.page ? '#/page/'+node.page.id : '#/search?q='+encodeURIComponent(node.name);
-      inspector.innerHTML = `<div class="inspector-label"><span>${node.rank?node.rank+' 阶 · '+(node.rank===9?'普攻进阶':node.side?'右侧分支':'左侧分支'):'初始 · '+(node.side?'职业技能':'普攻')}</span><span class="inspector-dot"></span></div><div class="inspector-title">${node.page?.image?`<img src="${esc(node.page.image)}" alt="" width="52" height="52">`:''}<div><h3>${esc(node.name)}</h3>${doc?`<span class="skill-kind kind-${type.tone}">${esc(type.label)}</span>`:''}</div></div><div class="skill-inspector-content" aria-live="polite" aria-busy="${!!node.page&&!doc&&!failed.has(node.page.id)}">${doc?`${skillFacts(doc)}<div class="skill-effect rich-text">${doc.fields['技能描述']||'<p>原站未收录技能描述。</p>'}</div>${rangeFigure(doc)}<div class="skill-terrain">${['攻击方式','射程高低','范围高低'].filter(k=>doc.rawFields[k] && doc.rawFields[k]!=='/').map(k=>`<span><small>${k==='射程高低'?'射程高低差':k==='范围高低'?'范围高低差':k}</small>${esc(doc.rawFields[k])}</span>`).join('')}</div>`:!node.page?'<p class="skill-loading">此技能暂无独立档案，可以搜索关联资料。</p>':failed.has(node.page.id)?'<p class="skill-loading">本地技能资料暂未加载成功。</p><button class="text-link" data-skill-retry>重新加载</button>':'<p class="skill-loading">正在读取本地技能资料…</p>'}</div><a class="skill-full-link" href="${fullLink}">打开完整技能档案 ${h.icon('arrow',15)}</a>`;
+      inspector.innerHTML = `<div class="inspector-label"><span>${node.rank?node.rank+' 阶 · '+(node.rank===9?'普攻进阶':node.side?'右侧分支':'左侧分支'):'初始 · '+(node.side?'职业技能':'普攻')}</span><span class="inspector-dot"></span></div><div class="inspector-title">${node.page?.image?`<img src="${esc(node.page.image)}" alt="" width="52" height="52">`:''}<div><h3>${esc(node.name)}</h3>${doc?`<span class="skill-kind kind-${type.tone}">${esc(type.label)}</span>`:''}</div></div><div class="skill-inspector-content" aria-live="polite" aria-busy="${!!node.page&&!doc&&!failed.has(node.page.id)}">${doc?`${skillFacts(doc)}<div class="skill-effect rich-text">${doc.fields['技能描述']||'<p>原站未收录技能描述。</p>'}</div>${rangeFigure(doc)}<div class="skill-terrain">${['攻击方式','射程高低','范围高低'].filter(k=>doc.rawFields[k] && doc.rawFields[k]!=='/').map(k=>`<span><small>${k==='射程高低'?'射程高低差':k==='范围高低'?'范围高低差':k}</small>${esc(doc.rawFields[k])}</span>`).join('')}</div>`:!node.page?'<p class="skill-loading">此技能暂无独立档案，可以搜索关联资料。</p>':failed.has(node.page.id)?'<p class="skill-loading">本地技能资料暂未加载成功。</p><button class="text-link" data-skill-retry>重新加载</button>':'<p class="skill-loading">正在读取本地技能资料…</p>'}</div>${doc?'<details class="sm-inline"><summary>逐句机制与实现代码</summary><div data-sm-inline></div></details>':''}<a class="skill-full-link" href="${fullLink}">打开完整技能档案 ${h.icon('arrow',15)}</a>`;
+      // Lazy: the shard is only fetched when the reader opens the panel.
+      const sm = inspector.querySelector('.sm-inline');
+      const sid = doc && window.WikiMechanics?.skillIdOf(node.page, doc);
+      if (sm && sid && window.WikiSentence) sm.addEventListener('toggle', () => {
+        const host = sm.querySelector('[data-sm-inline]');
+        if (sm.open && !host.childElementCount) window.WikiSentence.attach(host, sid, {compact: true});
+      });
+      if (sm && !sid) sm.remove();
       relocate();
     }
     async function load() {
